@@ -72,7 +72,7 @@ Kiểm thử được thực hiện để đảm bảo hệ thống đáp ứng 
 
 ---
 
-## 📞 LIÊN HỆ & HỖ TRỢ (CONTACT & SUPPORT)
+## LIÊN HỆ & HỖ TRỢ (CONTACT & SUPPORT)
 
 * **Thành viên Phụ trách Chính (Main Contributor):** Huynh The Hy (Chịu trách nhiệm cuối cùng cho tài liệu yêu cầu). 
 * **Hotline Hỗ trợ (Support Hotline):** 038578241 
