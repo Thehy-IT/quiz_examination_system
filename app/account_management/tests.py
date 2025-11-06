@@ -1,0 +1,1 @@
+# **Unit Test** cho models và views (Ví dụ: kiểm tra mã hóa mật khẩu)
