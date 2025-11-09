@@ -1,20 +1,68 @@
-# Môi trường ảo (Virtual Environment)
-.venv/
-venv/
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Virtual environments
+.env
+.venv
 env/
-*.pyc
+venv/
+ENV/
+env.bak/
+venv.bak/
 
-# Database (Nếu dùng SQLite)
-*.sqlite3
-/data/*.db
-
-# Log và file tạm (Logs and temporary files)
-*.log
-*.tmp
-.DS_Store # Dành cho người dùng MacOS
-
-# File cấu hình riêng của IDE (VS Code)
+# IDEs
 .vscode/
+.idea/
+*.swp
+*.swo
 
-# Thư mục chứa media người dùng upload (Nếu có)
-/media/
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# SQLite databases (optional - you may want to track quiz.db for initial setup)
+# quiz.db
+
+# Logs
+*.log

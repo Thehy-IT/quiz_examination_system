@@ -1,1 +1,0 @@
-# **Unit Test** cho logic chấm điểm tự động và thống kê

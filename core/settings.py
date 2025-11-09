@@ -1,1 +1,0 @@
-# Cấu hình chung của ứng dụng (Database, Security, v.v.)

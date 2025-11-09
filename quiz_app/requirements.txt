@@ -1,0 +1,3 @@
+# Quiz App UI Dependencies
+# Flet - Python GUI framework for cross-platform apps
+flet>=0.17.0

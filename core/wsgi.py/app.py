@@ -1,1 +1,0 @@
-# Điểm khởi chạy của ứng dụng (Entry point)

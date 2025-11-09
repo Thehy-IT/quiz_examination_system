@@ -1,1 +1,0 @@
-# THƯ MỤC CẤU HÌNH/CƠ SỞ (CORE CONFIG)
