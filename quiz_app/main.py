@@ -148,11 +148,12 @@ mock_questions = {
 # COMPONENT HELPER FUNCTIONS
 # =============================================================================
 
-def create_primary_button(text, on_click=None, width=None, disabled=False):
+logindef create_primary_button(text, on_click=None, width=None, disabled=False, icon=None):
     """Create a primary button with consistent styling"""
     return ft.ElevatedButton(
         text=text,
         on_click=on_click,
+        icon=icon,
         width=width,
         height=44,
         disabled=disabled,
@@ -186,13 +187,11 @@ def create_secondary_button(text, on_click=None, width=None):
     )
 
 def create_text_input(label, password=False, width=None, multiline=False, min_lines=1):
-def create_text_input(label, password=False, width=None, multiline=False, min_lines=1, prefix_icon=None):
     """Create a text input with consistent styling"""
     return ft.TextField(
         label=label,
         password=password,
         width=width,
-        prefix_icon=prefix_icon,
         multiline=multiline,
         min_lines=min_lines,
         border_radius=BorderRadius.MD,
@@ -539,8 +538,6 @@ def show_login():
     # Form fields
     username_field = create_text_input("Username", width=400)
     password_field = create_text_input("Password", password=True, width=400)
-    username_field = create_text_input("Username", width=400, prefix_icon=ft.icons.PERSON)
-    password_field = create_text_input("Password", password=True, width=400, prefix_icon=ft.icons.LOCK)
     error_text = ft.Text("", color=Colors.ERROR, size=Typography.SIZE_SM)
     
     def handle_login_click(e):
@@ -587,7 +584,7 @@ def show_login():
             ft.Container(height=Spacing.LG),
             error_text,
             ft.Container(height=Spacing.XL),
-            create_primary_button("Sign In", on_click=handle_login_click, width=400),
+            create_primary_button("Sign In", on_click=handle_login_click, width=400, icon=ft.Icons.LOGIN),
             ft.Container(height=Spacing.LG),
             ft.Text(
                 "Demo credentials: master/master, student/student",
