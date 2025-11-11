@@ -594,7 +594,7 @@ def show_login():
                 text_align=ft.TextAlign.CENTER
             )
         ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-        padding=Spacing.XXXXXXXL
+        padding=Spacing.XXXXL
      )
     login_form.width = 900  # Điều chỉnh chiều rộng của form
     login_form.color = ft.Colors.TRANSPARENT  # Make the card background transparent
