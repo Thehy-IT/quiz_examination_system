@@ -202,16 +202,20 @@ def create_text_input(label, password=False, width=None, multiline=False, min_li
         cursor_color=Colors.PRIMARY
     )
 
-def create_card(content, padding=Spacing.XL, elevation=2):
+def create_card(content, padding=Spacing.XL, elevation=2, width=None, height=None):
     """Create a card container with consistent styling"""
     return ft.Card(
         content=ft.Container(
             content=content,
             padding=padding,
             border_radius=BorderRadius.LG,
+            # Thêm width và height cho container bên trong nếu cần
+            # để đảm bảo content được căn chỉnh đúng
         ),
         elevation=elevation,
-        surface_tint_color=Colors.WHITE
+        surface_tint_color=Colors.WHITE,
+        width=width,
+        height=height
     )
 
 def create_section_title(title, size=Typography.SIZE_XL):
@@ -596,7 +600,8 @@ def show_login():
                 text_align=ft.TextAlign.CENTER
             )
         ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-        padding=Spacing.XXXXL
+        padding=Spacing.XXXXL,
+        width=450  # <-- Thay đổi chiều rộng của form tại đây
     )
     
     # Main login container with background image
@@ -610,11 +615,6 @@ def show_login():
             fit=ft.ImageFit.COVER
         ),
         ft.Container(
-            content=ft.Row([
-                ft.Container(expand=True),
-                login_form,
-                ft.Container(expand=True)
-            ]),
             content=login_form,
             expand=True,
             alignment=ft.alignment.center,
