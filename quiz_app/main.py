@@ -608,7 +608,15 @@ def show_login():
         ]),
         expand=True,
         alignment=ft.alignment.center,
-        bgcolor=Colors.GRAY_50
+        gradient=ft.LinearGradient(
+            begin=ft.alignment.center_left,
+            end=ft.alignment.center_right,
+            colors=[
+                Colors.GRAY_800,  # Dark blue/charcoal on the left
+                Colors.WHITE,    # White in the middle
+                Colors.GRAY_800,  # Dark blue/charcoal on the right
+            ]
+        )
     )
     
     current_page.add(login_container)
@@ -1676,11 +1684,11 @@ def main_page(page: ft.Page):
     
     # Page configuration
     page.title = "Modern Quiz App"
-    page.theme_mode = ft.ThemeMode.LIGHT
-    page.window.width = 1400
-    page.window.height = 900
-    page.window.min_width = 800
-    page.window.min_height = 600
+    page.theme_mode = "light"
+    page.window_width = 1400
+    page.window_height = 900
+    page.window_min_width = 800
+    page.window_min_height = 600
     page.padding = 0
     page.spacing = 0
     
