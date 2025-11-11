@@ -572,7 +572,11 @@ def show_login():
     # Login form
     login_form = create_card(
         content=ft.Column([
-            ft.Icon(ft.Icons.QUIZ, size=48, color=Colors.PRIMARY),
+            # TODO: Thay đổi "assets/logo.png" thành đường dẫn đến tệp logo của bạn.
+            # Kích thước có thể được điều chỉnh bằng cách thay đổi `width` và `height`.
+            ft.Image(
+                src="images/logo.jpg", width=65, height=65, fit=ft.ImageFit.CONTAIN
+            ),
             ft.Container(height=Spacing.LG),
             create_page_title("Welcome Back"),
             create_subtitle("Sign in to your account to continue"),
@@ -611,6 +615,7 @@ def show_login():
                 login_form,
                 ft.Container(expand=True)
             ]),
+            content=login_form,
             expand=True,
             alignment=ft.alignment.center,
         )
