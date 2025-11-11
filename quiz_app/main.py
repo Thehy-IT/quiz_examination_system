@@ -148,7 +148,7 @@ mock_questions = {
 # COMPONENT HELPER FUNCTIONS
 # =============================================================================
 
-logindef create_primary_button(text, on_click=None, width=None, disabled=False, icon=None):
+def create_primary_button(text, on_click=None, width=None, disabled=False, icon=None):
     """Create a primary button with consistent styling"""
     return ft.ElevatedButton(
         text=text,
@@ -186,12 +186,13 @@ def create_secondary_button(text, on_click=None, width=None):
         )
     )
 
-def create_text_input(label, password=False, width=None, multiline=False, min_lines=1):
+def create_text_input(label, password=False, width=None, multiline=False, min_lines=1, icon=None):
     """Create a text input with consistent styling"""
     return ft.TextField(
         label=label,
         password=password,
         width=width,
+        prefix_icon=icon,
         multiline=multiline,
         min_lines=min_lines,
         border_radius=BorderRadius.MD,
@@ -536,8 +537,8 @@ def show_login():
     current_page.appbar = None
     
     # Form fields
-    username_field = create_text_input("Username", width=400)
-    password_field = create_text_input("Password", password=True, width=400)
+    username_field = create_text_input("Username", width=400, icon=ft.Icons.PERSON)
+    password_field = create_text_input("Password", password=True, width=400, icon=ft.Icons.PASSWORD)
     error_text = ft.Text("", color=Colors.ERROR, size=Typography.SIZE_SM)
     
     def handle_login_click(e):
