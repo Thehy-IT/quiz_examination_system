@@ -594,11 +594,22 @@ def show_login():
                 text_align=ft.TextAlign.CENTER
             )
         ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-        padding=Spacing.XXXXL
+        padding=Spacing.XXXXXXXL
      )
-    login_form.width = 700  # Điều chỉnh chiều rộng của form
+    login_form.width = 900  # Điều chỉnh chiều rộng của form
+    login_form.color = ft.Colors.TRANSPARENT  # Make the card background transparent
+    login_form.elevation = 20
+    login_form.border = ft.border.all(width=10, color=Colors.WHITE) 
     login_form.height = 660 # Điều chỉnh chiều cao của form
-    
+    login_form.content.gradient = ft.LinearGradient(
+        begin=ft.alignment.center_left,
+        end=ft.alignment.center_right,
+        colors=[
+            Colors.GRAY_600,
+            Colors.WHITE,
+            Colors.GRAY_600,
+        ]
+    )
     # Main login container
     login_container = ft.Container(
         content=ft.Row([
