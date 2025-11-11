@@ -187,7 +187,7 @@ def create_secondary_button(text, on_click=None, width=None):
 
 def create_text_input(label, password=False, width=None, multiline=False, min_lines=1):
     """Create a text input with consistent styling"""
-    return ft.TextField(
+    control = ft.TextField(
         label=label,
         password=password,
         width=width,
@@ -201,6 +201,10 @@ def create_text_input(label, password=False, width=None, multiline=False, min_li
         label_style=ft.TextStyle(color=Colors.TEXT_SECONDARY),
         cursor_color=Colors.PRIMARY
     )
+    # Nếu không có chiều rộng cụ thể, cho phép nó mở rộng
+    if width is None:
+        control.expand = True
+    return control
 
 def create_card(content, padding=Spacing.XL, elevation=2, width=None, height=None):
     """Create a card container with consistent styling"""
@@ -313,7 +317,7 @@ def create_true_false_question(question, on_answer_change):
 
 def create_fill_in_blank_question(question, on_answer_change):
     """Create a fill-in-the-blank question component"""
-    answer_field = create_text_input("Your answer", width=400)
+    answer_field = create_text_input("Your answer")
     answer_field.on_change = on_answer_change
     
     return ft.Column([
@@ -367,7 +371,7 @@ def create_multiple_select_question(question, on_answer_change):
 
 def create_short_answer_question(question, on_answer_change):
     """Create a short answer question component"""
-    answer_field = create_text_input("Your answer", width=500, multiline=True, min_lines=4)
+    answer_field = create_text_input("Your answer", multiline=True, min_lines=4)
     answer_field.on_change = on_answer_change
     
     return ft.Column([
@@ -579,10 +583,10 @@ def show_login():
             # TODO: Thay đổi "assets/logo.png" thành đường dẫn đến tệp logo của bạn.
             # Kích thước có thể được điều chỉnh bằng cách thay đổi `width` và `height`.
             ft.Image(
-                src="images/logo.jpg", width=65, height=65, fit=ft.ImageFit.CONTAIN
+                src="images/logo.png", width=100, height=100, fit=ft.ImageFit.CONTAIN
             ),
             ft.Container(height=Spacing.LG),
-            create_page_title("Welcome Back"),
+            create_page_title("QUIZ EXAMINATION SYSTEM"),
             create_subtitle("Sign in to your account to continue"),
             ft.Container(height=Spacing.XXL),
             username_field,
@@ -595,13 +599,13 @@ def show_login():
             ft.Container(height=Spacing.LG),
             ft.Text(
                 "Demo credentials: master/master123, student/student123",
-                size=Typography.SIZE_XS,
+                size=Typography.SIZE_SM,
                 color=Colors.TEXT_MUTED,
                 text_align=ft.TextAlign.CENTER
             )
         ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-        padding=Spacing.XXXXL,
-        width=450  # <-- Thay đổi chiều rộng của form tại đây
+        padding=ft.padding.symmetric(vertical=Spacing.XXXXL, horizontal=Spacing.XXL),
+        width=700
     )
     
     # Main login container with background image
@@ -610,26 +614,16 @@ def show_login():
             # TODO: Thay đổi "assets/background.jpg" thành đường dẫn đến ảnh nền của bạn.
             # Hãy chắc chắn rằng bạn đã tạo một thư mục 'assets' trong dự án của mình.
             src="images/background.jpg",
-            width=current_page.window.width,
-            height=current_page.window.height,
-            fit=ft.ImageFit.COVER
+            fit=ft.ImageFit.COVER,
+            expand=True  # Tự động lấp đầy không gian
         ),
         ft.Container(
             content=login_form,
-            expand=True,
+            # expand=True, # Bỏ expand để có thể giới hạn max_width
             alignment=ft.alignment.center,
         )
     ])
 
-    # Xử lý sự kiện thay đổi kích thước cửa sổ để điều chỉnh kích thước ảnh nền
-    def on_resize(e):
-        if isinstance(login_page_content.controls[0], ft.Image):
-            login_page_content.controls[0].width = float(e.data.split(",")[0])
-            login_page_content.controls[0].height = float(e.data.split(",")[1])
-            current_page.update()
-
-    current_page.on_resize = on_resize
-    
     current_page.add(login_page_content)
     current_page.update()
 
@@ -642,79 +636,72 @@ def show_master_dashboard():
     sidebar = create_sidebar(current_user['role'], "dashboard")
     
     # Dashboard content
-    stats_cards = ft.Row([
-        create_card(
-            content=ft.Column([
-                ft.Row([
-                    ft.Icon(ft.Icons.QUIZ, color=Colors.PRIMARY),
-                    ft.Text("Total Quizzes", color=Colors.TEXT_SECONDARY)
-                ]),
-                ft.Text(
-                    str(len([q for q in mock_quizzes if q['created_by'] == current_user['id']])),
-                    size=Typography.SIZE_3XL,
-                    weight=ft.FontWeight.W_700,
-                    color=Colors.TEXT_PRIMARY
-                )
-            ], spacing=Spacing.SM),
-            padding=Spacing.XL
-        ),
-        create_card(
-            content=ft.Column([
-                ft.Row([
-                    ft.Icon(ft.Icons.HELP_OUTLINE, color=Colors.SUCCESS),
-                    ft.Text("Total Questions", color=Colors.TEXT_SECONDARY)
-                ]),
-                ft.Text(
-                    str(sum(len(mock_questions.get(q['id'], [])) for q in mock_quizzes if q['created_by'] == current_user['id'])),
-                    size=Typography.SIZE_3XL,
-                    weight=ft.FontWeight.W_700,
-                    color=Colors.TEXT_PRIMARY
-                )
-            ], spacing=Spacing.SM),
-            padding=Spacing.XL
-        ),
-        create_card(
-            content=ft.Column([
-                ft.Row([
-                    ft.Icon(ft.Icons.PEOPLE, color=Colors.WARNING),
-                    ft.Text("Active Students", color=Colors.TEXT_SECONDARY)
-                ]),
-                ft.Text(
-                    "24",
-                    size=Typography.SIZE_3XL,
-                    weight=ft.FontWeight.W_700,
-                    color=Colors.TEXT_PRIMARY
-                )
-            ], spacing=Spacing.SM),
-            padding=Spacing.XL
-        )
-    ], spacing=Spacing.XL)
+    stats_cards = ft.ResponsiveRow(
+        controls=[
+            ft.Column(
+                col={"xs": 12, "sm": 6, "md": 4},
+                controls=[
+                    create_card(
+                        content=ft.Column([
+                            ft.Row([ft.Icon(ft.Icons.QUIZ, color=Colors.PRIMARY), ft.Text("Total Quizzes", color=Colors.TEXT_SECONDARY)]),
+                            ft.Text(
+                                str(len([q for q in mock_quizzes if q['created_by'] == current_user['id']])),
+                                size=Typography.SIZE_3XL, weight=ft.FontWeight.W_700, color=Colors.TEXT_PRIMARY
+                            )
+                        ], spacing=Spacing.SM),
+                        padding=Spacing.XL
+                    )
+                ]
+            ),
+            ft.Column(
+                col={"xs": 12, "sm": 6, "md": 4},
+                controls=[
+                    create_card(
+                        content=ft.Column([
+                            ft.Row([ft.Icon(ft.Icons.HELP_OUTLINE, color=Colors.SUCCESS), ft.Text("Total Questions", color=Colors.TEXT_SECONDARY)]),
+                            ft.Text(
+                                str(sum(len(mock_questions.get(q['id'], [])) for q in mock_quizzes if q['created_by'] == current_user['id'])),
+                                size=Typography.SIZE_3XL, weight=ft.FontWeight.W_700, color=Colors.TEXT_PRIMARY
+                            )
+                        ], spacing=Spacing.SM),
+                        padding=Spacing.XL
+                    )
+                ]
+            ),
+            ft.Column(
+                col={"xs": 12, "sm": 12, "md": 4},
+                controls=[
+                    create_card(
+                        content=ft.Column([
+                            ft.Row([ft.Icon(ft.Icons.PEOPLE, color=Colors.WARNING), ft.Text("Active Students", color=Colors.TEXT_SECONDARY)]),
+                            ft.Text("24", size=Typography.SIZE_3XL, weight=ft.FontWeight.W_700, color=Colors.TEXT_PRIMARY)
+                        ], spacing=Spacing.SM),
+                        padding=Spacing.XL
+                    )
+                ]
+            )
+        ],
+        spacing=Spacing.XL,
+        run_spacing=Spacing.XL
+    )
     
     # Recent quizzes
     user_quizzes = [q for q in mock_quizzes if q['created_by'] == current_user['id']]
     quiz_cards = []
     
     for quiz in user_quizzes[:3]:  # Show only first 3
-        quiz_card = create_card(
-            content=ft.Column([
-                ft.Row([
-                    ft.Column([
-                        ft.Text(
-                            quiz['title'],
-                            size=Typography.SIZE_LG,
-                            weight=ft.FontWeight.W_600,
-                            color=Colors.TEXT_PRIMARY
-                        ),
-                        ft.Text(
-                            quiz['description'],
-                            size=Typography.SIZE_SM,
-                            color=Colors.TEXT_SECONDARY
-                        )
-                    ], expand=True),
-                    create_badge(quiz['difficulty'])
-                ]),
-                ft.Container(height=Spacing.SM),
-                ft.Row([
+        quiz_card = create_card(content=ft.Column([
+            ft.Row([
+                ft.Column([
+                    ft.Text(quiz['title'], size=Typography.SIZE_LG, weight=ft.FontWeight.W_600, color=Colors.TEXT_PRIMARY),
+                    ft.Text(quiz['description'], size=Typography.SIZE_SM, color=Colors.TEXT_SECONDARY)
+                ], expand=True),
+                create_badge(quiz['difficulty'])
+            ]),
+            ft.Container(height=Spacing.SM),
+            ft.Row(
+                wrap=True, # Cho phép các nút xuống dòng trên màn hình nhỏ
+                controls=[
                     ft.Text(
                         f"{quiz['questions_count']} questions",
                         size=Typography.SIZE_SM,
@@ -723,11 +710,11 @@ def show_master_dashboard():
                     ft.Container(expand=True),
                     create_secondary_button("Edit", width=80),
                     ft.Container(width=Spacing.SM),
-                    create_primary_button("View", width=80)
-                ])
-            ]),
-            padding=Spacing.XL
-        )
+                    create_primary_button("View", width=80),
+                ],
+                spacing=Spacing.SM
+            )
+        ]), padding=Spacing.XL)
         quiz_cards.append(quiz_card)
     
     # Main content
@@ -765,7 +752,7 @@ def show_master_dashboard():
         expand=True
     )
     
-    # Layout with sidebar
+    # Bố cục đáp ứng với sidebar
     layout = ft.Row([
         sidebar,
         main_content
@@ -782,8 +769,8 @@ def show_quiz_management():
     sidebar = create_sidebar(current_user['role'], "quizzes")
     
     # Quiz creation form (initially hidden)
-    quiz_title_field = create_text_input("Quiz Title", width=400)
-    quiz_description_field = create_text_input("Description", width=400, multiline=True, min_lines=3)
+    quiz_title_field = create_text_input("Quiz Title")
+    quiz_description_field = create_text_input("Description", multiline=True, min_lines=3)
     quiz_error_text = ft.Text("", color=Colors.ERROR, size=Typography.SIZE_SM)
     
     def show_create_form(e):
@@ -839,11 +826,11 @@ def show_quiz_management():
             ft.Container(height=Spacing.MD),
             quiz_error_text,
             ft.Container(height=Spacing.XL),
-            ft.Row([
+            ft.Row(wrap=True, controls=[
                 create_primary_button("Create Quiz", on_click=handle_create_quiz, width=120),
                 ft.Container(width=Spacing.MD),
                 create_secondary_button("Cancel", on_click=hide_create_form, width=100)
-            ])
+            ], spacing=Spacing.MD)
         ]),
         padding=Spacing.XXL
     )
@@ -873,7 +860,7 @@ def show_quiz_management():
                     create_badge(quiz['difficulty'])
                 ]),
                 ft.Container(height=Spacing.SM),
-                ft.Row([
+                ft.Row(wrap=True, controls=[
                     ft.Text(
                         f"{quiz['questions_count']} questions",
                         size=Typography.SIZE_SM,
@@ -888,7 +875,7 @@ def show_quiz_management():
                     create_secondary_button("Delete", width=80),
                     ft.Container(width=Spacing.SM),
                     create_primary_button("Manage Questions", on_click=edit_quiz(quiz), width=150)
-                ])
+                ], spacing=Spacing.MD)
             ]),
             padding=Spacing.LG
         )
@@ -898,13 +885,13 @@ def show_quiz_management():
     main_content = ft.Container(
         content=ft.Column([
             # Header
-            ft.Row([
+            ft.Row(wrap=True, controls=[
                 ft.Column([
                     create_page_title("Quiz Management"),
                     create_subtitle("Create and manage your quizzes")
                 ], expand=True),
                 create_primary_button("Create New Quiz", on_click=show_create_form, width=150)
-            ]),
+            ], spacing=Spacing.MD),
             
             ft.Container(height=Spacing.XXL),
             
@@ -952,7 +939,7 @@ def show_question_management(quiz):
     sidebar = create_sidebar(current_user['role'], "questions")
     
     # Question form fields
-    question_text_field = create_text_input("Question Text", width=500, multiline=True, min_lines=2)
+    question_text_field = create_text_input("Question Text", multiline=True, min_lines=2)
     question_error_text = ft.Text("", color=Colors.ERROR, size=Typography.SIZE_SM)
     
     # Question type selector
@@ -976,13 +963,13 @@ def show_question_management(quiz):
             dynamic_form_container.content = ft.Column([
                 create_subtitle("Answer Options:"),
                 ft.Container(height=Spacing.SM),
-                create_text_input("Option A", width=400),
+                create_text_input("Option A"),
                 ft.Container(height=Spacing.SM),
-                create_text_input("Option B", width=400),
+                create_text_input("Option B"),
                 ft.Container(height=Spacing.SM),
-                create_text_input("Option C", width=400),
+                create_text_input("Option C"),
                 ft.Container(height=Spacing.SM),
-                create_text_input("Option D", width=400),
+                create_text_input("Option D"),
                 ft.Container(height=Spacing.LG),
                 create_subtitle("Correct Answer:"),
                 ft.Container(height=Spacing.SM),
@@ -1010,7 +997,7 @@ def show_question_management(quiz):
             dynamic_form_container.content = ft.Column([
                 create_subtitle("Correct Answer:"),
                 ft.Container(height=Spacing.SM),
-                create_text_input("Correct answer", width=400),
+                create_text_input("Correct answer"),
                 ft.Container(height=Spacing.SM),
                 ft.Text("Tip: Use _______ in your question text to indicate where the blank should be.", 
                        size=Typography.SIZE_XS, color=Colors.TEXT_MUTED)
@@ -1019,19 +1006,19 @@ def show_question_management(quiz):
             dynamic_form_container.content = ft.Column([
                 create_subtitle("Answer Options (Check all correct answers):"),
                 ft.Container(height=Spacing.SM),
-                ft.Row([create_text_input("Option A", width=300), ft.Checkbox(label="Correct")]),
+                ft.Row(wrap=True, controls=[create_text_input("Option A"), ft.Checkbox(label="Correct")]),
                 ft.Container(height=Spacing.SM),
-                ft.Row([create_text_input("Option B", width=300), ft.Checkbox(label="Correct")]),
+                ft.Row(wrap=True, controls=[create_text_input("Option B"), ft.Checkbox(label="Correct")]),
                 ft.Container(height=Spacing.SM),
-                ft.Row([create_text_input("Option C", width=300), ft.Checkbox(label="Correct")]),
+                ft.Row(wrap=True, controls=[create_text_input("Option C"), ft.Checkbox(label="Correct")]),
                 ft.Container(height=Spacing.SM),
-                ft.Row([create_text_input("Option D", width=300), ft.Checkbox(label="Correct")]),
+                ft.Row(wrap=True, controls=[create_text_input("Option D"), ft.Checkbox(label="Correct")]),
             ])
         elif question_type == "short_answer":
             dynamic_form_container.content = ft.Column([
                 create_subtitle("Sample Answer (for reference):"),
                 ft.Container(height=Spacing.SM),
-                create_text_input("Sample answer", width=500, multiline=True, min_lines=3),
+                create_text_input("Sample answer", multiline=True, min_lines=3),
                 ft.Container(height=Spacing.SM),
                 ft.Text("Note: Short answer questions require manual grading.", 
                        size=Typography.SIZE_XS, color=Colors.TEXT_MUTED)
@@ -1166,11 +1153,11 @@ def show_question_management(quiz):
             ft.Container(height=Spacing.MD),
             question_error_text,
             ft.Container(height=Spacing.XL),
-            ft.Row([
+            ft.Row(wrap=True, controls=[
                 create_primary_button("Add Question", on_click=handle_create_question, width=130),
                 ft.Container(width=Spacing.MD),
                 create_secondary_button("Cancel", on_click=hide_question_form, width=100)
-            ])
+            ], spacing=Spacing.MD)
         ]),
         padding=Spacing.LG
     )
@@ -1217,12 +1204,12 @@ def show_question_management(quiz):
         
         question_card = create_card(
             content=ft.Column([
-                ft.Row([
+                ft.Row(wrap=True, controls=[
                     ft.Text(
                         f"Question {i}",
                         size=Typography.SIZE_SM,
                         weight=ft.FontWeight.W_600,
-                        color=Colors.PRIMARY
+                        color=Colors.PRIMARY,
                     ),
                     create_badge(question_type.replace('_', ' ').title(), color=Colors.PRIMARY_LIGHT),
                     ft.Container(expand=True),
@@ -1248,7 +1235,7 @@ def show_question_management(quiz):
             scroll=ft.ScrollMode.AUTO,
             controls=[
                 # Header
-                ft.Row([
+                ft.Row(wrap=True, controls=[
                     create_secondary_button("← Back to Quizzes", on_click=back_to_quizzes, width=150),
                     ft.Container(expand=True)
                 ]),
@@ -1280,11 +1267,11 @@ def show_question_management(quiz):
             ft.Container(height=Spacing.LG),
             
             # Add question button
-            ft.Row([
+            ft.Row(wrap=True, controls=[
                 create_section_title("Questions"),
                 ft.Container(expand=True),
                 create_primary_button("Add Question", on_click=show_question_form, width=120)
-            ]),
+            ], spacing=Spacing.MD),
             
             ft.Container(height=Spacing.LG),
             
@@ -1351,7 +1338,7 @@ def show_examinee_dashboard():
                     create_badge(quiz['difficulty'])
                 ]),
                 ft.Container(height=Spacing.SM),
-                ft.Row([
+                ft.Row(wrap=True, controls=[
                     ft.Text(
                         f"{quiz['questions_count']} questions",
                         size=Typography.SIZE_SM,
@@ -1364,7 +1351,7 @@ def show_examinee_dashboard():
                     ),
                     ft.Container(expand=True),
                     create_primary_button("Start Quiz", on_click=lambda e, q=quiz: show_quiz_taking(q), width=120)
-                ])
+                ], spacing=Spacing.MD)
             ]),
             padding=Spacing.XL
         )
@@ -1481,7 +1468,7 @@ def show_quiz_taking(quiz_basic_info):
     
     # Progress bar
     progress_bar = ft.ProgressBar(
-        width=400,
+        expand=True, # Cho phép progress bar mở rộng
         color=Colors.PRIMARY,
         bgcolor=Colors.GRAY_200,
         value=0
@@ -1498,7 +1485,7 @@ def show_quiz_taking(quiz_basic_info):
             # Header
             create_card(
                 content=ft.Column([
-                    ft.Row([
+                    ft.Row(wrap=True, controls=[
                         ft.Column([
                             ft.Text(
                                 quiz_basic_info['title'],
@@ -1509,7 +1496,7 @@ def show_quiz_taking(quiz_basic_info):
                             question_counter_text
                         ], expand=True),
                         create_secondary_button("Exit Quiz", on_click=exit_quiz, width=100)
-                    ]),
+                    ], spacing=Spacing.MD),
                     ft.Container(height=Spacing.LG),
                     progress_bar
                 ]),
@@ -1531,12 +1518,12 @@ def show_quiz_taking(quiz_basic_info):
             ft.Container(height=Spacing.XXL),
             
             # Navigation
-            ft.Row([
+            ft.Row(wrap=True, controls=[
                 prev_button,
                 ft.Container(expand=True),
                 next_button,
                 submit_button
-            ])
+            ], spacing=Spacing.MD)
         ]),
         padding=Spacing.XXXXL,
         expand=True,
@@ -1626,6 +1613,127 @@ def show_quiz_results(quiz_data, user_answers, start_time):
             ft.Container(height=Spacing.XXL),
             
             # Score cards
+            ft.ResponsiveRow(
+                controls=[
+                    ft.Column(
+                        col={"xs": 12, "sm": 4},
+                        controls=[
+                            create_card(
+                                content=ft.Column([
+                                    ft.Text("Score", size=Typography.SIZE_SM, color=Colors.TEXT_SECONDARY),
+                                    ft.Text(f"{correct_count}/{total_questions}", size=Typography.SIZE_3XL, weight=ft.FontWeight.W_700, color=Colors.TEXT_PRIMARY)
+                                ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                                padding=Spacing.XL
+                            )
+                        ]
+                    ),
+                    ft.Column(
+                        col={"xs": 12, "sm": 4},
+                        controls=[
+                            create_card(
+                                content=ft.Column([
+                                    ft.Text("Percentage", size=Typography.SIZE_SM, color=Colors.TEXT_SECONDARY),
+                                    ft.Text(f"{percentage:.1f}%", size=Typography.SIZE_3XL, weight=ft.FontWeight.W_700, color=Colors.SUCCESS if percentage >= 70 else Colors.WARNING)
+                                ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                                padding=Spacing.XL
+                            )
+                        ]
+                    ),
+                    ft.Column(
+                        col={"xs": 12, "sm": 4},
+                        controls=[
+                            create_card(
+                                content=ft.Column([
+                                    ft.Text("Time Taken", size=Typography.SIZE_SM, color=Colors.TEXT_SECONDARY),
+                                    ft.Text(f"{time_minutes:02d}:{time_seconds:02d}", size=Typography.SIZE_3XL, weight=ft.FontWeight.W_700, color=Colors.TEXT_PRIMARY)
+                                ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                                padding=Spacing.XL
+                            )
+                        ]
+                    )
+                ],
+                spacing=Spacing.XL,
+                run_spacing=Spacing.XL
+            ),
+            
+            ft.Container(height=Spacing.XXXXL),
+            
+            # Actions
+            ft.Row(wrap=True, controls=[
+                ft.Container(expand=True),
+                create_secondary_button("Review Answers", width=140),
+                ft.Container(width=Spacing.LG),
+                create_primary_button("Back to Dashboard", on_click=lambda e: show_examinee_dashboard(), width=160),
+                ft.Container(expand=True)
+            ], spacing=Spacing.MD)
+        ]),
+        padding=Spacing.XXXXL,
+        expand=True,
+        alignment=ft.alignment.top_center
+    )
+    
+    current_page.add(results_content)
+    current_page.update()
+
+def main_page_resize(e):
+    """Xử lý thay đổi kích thước trang để ẩn/hiện sidebar"""
+    # Chức năng này có thể được mở rộng để tạo menu hamburger trên màn hình nhỏ.
+    # Hiện tại, các thay đổi responsive đã đủ cho hầu hết các trường hợp.
+    pass
+
+# =============================================================================
+# MAIN APPLICATION
+# =============================================================================
+
+def main_page(page: ft.Page):
+    """Main application entry point"""
+    global current_page
+    current_page = page
+    
+    # Page configuration
+    page.title = "Modern Quiz App"
+    page.theme_mode = ft.ThemeMode.LIGHT
+    page.window.width = 1400
+    page.window.height = 900
+    page.window.min_width = 800
+    page.window.min_height = 600
+    page.padding = 0
+    page.spacing = 0
+    page.on_resize = main_page_resize
+    
+    # Show login page initially
+    show_login()
+
+if __name__ == "__main__":
+    ft.app(target=main_page)
+    # Results content
+    results_content = ft.Container(
+        content=ft.Column([
+            # Header
+            create_card(
+                content=ft.Column([
+                    ft.Icon(ft.Icons.EMOJI_EVENTS, size=64, color=Colors.SUCCESS if percentage >= 70 else Colors.WARNING),
+                    ft.Container(height=Spacing.LG),
+                    ft.Text(
+                        "Quiz Completed!",
+                        size=Typography.SIZE_3XL,
+                        weight=ft.FontWeight.W_700,
+                        color=Colors.TEXT_PRIMARY,
+                        text_align=ft.TextAlign.CENTER
+                    ),
+                    ft.Text(
+                        quiz_data['title'],
+                        size=Typography.SIZE_LG,
+                        color=Colors.TEXT_SECONDARY,
+                        text_align=ft.TextAlign.CENTER
+                    )
+                ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                padding=Spacing.XXXXL
+            ),
+            
+            ft.Container(height=Spacing.XXL),
+            
+            # Score cards
             ft.Row([
                 create_card(
                     content=ft.Column([
@@ -1664,17 +1772,61 @@ def show_quiz_results(quiz_data, user_answers, start_time):
                     padding=Spacing.XL
                 )
             ], spacing=Spacing.XL),
+            ft.ResponsiveRow(
+                controls=[
+                    ft.Column(
+                        col={"xs": 12, "sm": 4},
+                        controls=[
+                            create_card(
+                                content=ft.Column([
+                                    ft.Text("Score", size=Typography.SIZE_SM, color=Colors.TEXT_SECONDARY),
+                                    ft.Text(f"{correct_count}/{total_questions}", size=Typography.SIZE_3XL, weight=ft.FontWeight.W_700, color=Colors.TEXT_PRIMARY)
+                                ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                                padding=Spacing.XL
+                            )
+                        ]
+                    ),
+                    ft.Column(
+                        col={"xs": 12, "sm": 4},
+                        controls=[
+                            create_card(
+                                content=ft.Column([
+                                    ft.Text("Percentage", size=Typography.SIZE_SM, color=Colors.TEXT_SECONDARY),
+                                    ft.Text(f"{percentage:.1f}%", size=Typography.SIZE_3XL, weight=ft.FontWeight.W_700, color=Colors.SUCCESS if percentage >= 70 else Colors.WARNING)
+                                ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                                padding=Spacing.XL
+                            )
+                        ]
+                    ),
+                    ft.Column(
+                        col={"xs": 12, "sm": 4},
+                        controls=[
+                            create_card(
+                                content=ft.Column([
+                                    ft.Text("Time Taken", size=Typography.SIZE_SM, color=Colors.TEXT_SECONDARY),
+                                    ft.Text(f"{time_minutes:02d}:{time_seconds:02d}", size=Typography.SIZE_3XL, weight=ft.FontWeight.W_700, color=Colors.TEXT_PRIMARY)
+                                ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                                padding=Spacing.XL
+                            )
+                        ]
+                    )
+                ],
+                spacing=Spacing.XL,
+                run_spacing=Spacing.XL
+            ),
             
             ft.Container(height=Spacing.XXXXL),
             
             # Actions
             ft.Row([
+            ft.Row(wrap=True, controls=[
                 ft.Container(expand=True),
                 create_secondary_button("Review Answers", width=140),
                 ft.Container(width=Spacing.LG),
                 create_primary_button("Back to Dashboard", on_click=lambda e: show_examinee_dashboard(), width=160),
                 ft.Container(expand=True)
             ])
+            ], spacing=Spacing.MD)
         ]),
         padding=Spacing.XXXXL,
         expand=True,
@@ -1683,6 +1835,12 @@ def show_quiz_results(quiz_data, user_answers, start_time):
     
     current_page.add(results_content)
     current_page.update()
+
+def main_page_resize(e):
+    """Xử lý thay đổi kích thước trang để ẩn/hiện sidebar"""
+    # Chức năng này có thể được mở rộng để tạo menu hamburger trên màn hình nhỏ.
+    # Hiện tại, các thay đổi responsive đã đủ cho hầu hết các trường hợp.
+    pass
 
 # =============================================================================
 # MAIN APPLICATION
@@ -1702,6 +1860,7 @@ def main_page(page: ft.Page):
     page.window.min_height = 600
     page.padding = 0
     page.spacing = 0
+    page.on_resize = main_page_resize
     
     # Show login page initially
     show_login()
