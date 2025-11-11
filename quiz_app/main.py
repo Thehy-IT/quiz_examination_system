@@ -595,9 +595,9 @@ def show_login():
             )
         ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
         padding=Spacing.XXXXL
-        # Bạn có thể thay đổi chiều rộng và chiều cao của form đăng nhập tại đây
-        # width=500,  # Ví dụ: đặt chiều rộng là 500 pixels
-    )
+     )
+    login_form.width = 700  # Điều chỉnh chiều rộng của form
+    login_form.height = 660 # Điều chỉnh chiều cao của form
     
     # Main login container
     login_container = ft.Container(
