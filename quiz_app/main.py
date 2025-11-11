@@ -186,11 +186,13 @@ def create_secondary_button(text, on_click=None, width=None):
     )
 
 def create_text_input(label, password=False, width=None, multiline=False, min_lines=1):
+def create_text_input(label, password=False, width=None, multiline=False, min_lines=1, prefix_icon=None):
     """Create a text input with consistent styling"""
     return ft.TextField(
         label=label,
         password=password,
         width=width,
+        prefix_icon=prefix_icon,
         multiline=multiline,
         min_lines=min_lines,
         border_radius=BorderRadius.MD,
@@ -537,6 +539,8 @@ def show_login():
     # Form fields
     username_field = create_text_input("Username", width=400)
     password_field = create_text_input("Password", password=True, width=400)
+    username_field = create_text_input("Username", width=400, prefix_icon=ft.icons.PERSON)
+    password_field = create_text_input("Password", password=True, width=400, prefix_icon=ft.icons.LOCK)
     error_text = ft.Text("", color=Colors.ERROR, size=Typography.SIZE_SM)
     
     def handle_login_click(e):
