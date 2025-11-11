@@ -595,19 +595,37 @@ def show_login():
         padding=Spacing.XXXXL
     )
     
-    # Main login container
-    login_container = ft.Container(
-        content=ft.Row([
-            ft.Container(expand=True),
-            login_form,
-            ft.Container(expand=True)
-        ]),
-        expand=True,
-        alignment=ft.alignment.center,
-        bgcolor=Colors.GRAY_50
-    )
+    # Main login container with background image
+    login_page_content = ft.Stack([
+        ft.Image(
+            # TODO: Thay đổi "assets/background.jpg" thành đường dẫn đến ảnh nền của bạn.
+            # Hãy chắc chắn rằng bạn đã tạo một thư mục 'assets' trong dự án của mình.
+            src="images/background.jpg",
+            width=current_page.window.width,
+            height=current_page.window.height,
+            fit=ft.ImageFit.COVER
+        ),
+        ft.Container(
+            content=ft.Row([
+                ft.Container(expand=True),
+                login_form,
+                ft.Container(expand=True)
+            ]),
+            expand=True,
+            alignment=ft.alignment.center,
+        )
+    ])
+
+    # Xử lý sự kiện thay đổi kích thước cửa sổ để điều chỉnh kích thước ảnh nền
+    def on_resize(e):
+        if isinstance(login_page_content.controls[0], ft.Image):
+            login_page_content.controls[0].width = float(e.data.split(",")[0])
+            login_page_content.controls[0].height = float(e.data.split(",")[1])
+            current_page.update()
+
+    current_page.on_resize = on_resize
     
-    current_page.add(login_container)
+    current_page.add(login_page_content)
     current_page.update()
 
 def show_master_dashboard():

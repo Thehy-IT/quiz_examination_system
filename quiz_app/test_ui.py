@@ -1,11 +1,10 @@
-#!/usr/bin/env python3
 """
 Modern Quiz App UI Test - Verify the complete modern UI works
 """
 # Tệp này dùng để kiểm thử giao diện người dùng (UI) của ứng dụng Modern Quiz App.
 # Nó xác minh rằng tất cả các thành phần UI hiện đại hoạt động như mong đợi.
 
-import main  # Nhập khẩu tệp main.py để có thể truy cập các hàm và lớp đã định nghĩa ở đó.
+import main  # Nhập tệp main.py để có thể truy cập các hàm và lớp đã định nghĩa ở đó.
 
 def test_modern_design_system():
     """Kiểm tra xem các hằng số của hệ thống thiết kế (màu sắc, khoảng cách, kiểu chữ) có được định nghĩa đúng không."""
@@ -101,7 +100,7 @@ def main_test():
         
         # Nếu tất cả các hàm trên chạy mà không có lỗi `AssertionError`, in ra thông báo thành công.
         print("\n🎉 ALL MODERN UI TESTS PASSED! 🎉")
-        print("====================================")
+        print("-------------------------------------")
         # In ra tóm tắt các tính năng và thông tin hữu ích về ứng dụng.
         print("\nThe Modern Quiz App is ready to use!")
         print("\n🚀 Features Available:")
