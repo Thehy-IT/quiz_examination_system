@@ -87,9 +87,9 @@ quiz_start_time = None
 # =============================================================================
 
 mock_users = {
-    'master': {'id': 1, 'username': 'master', 'password': 'master123', 'role': 'master'},
-    'admin': {'id': 2, 'username': 'admin', 'password': 'admin123', 'role': 'admin'},
-    'student': {'id': 3, 'username': 'student', 'password': 'student123', 'role': 'examinee'}
+    'master': {'id': 1, 'username': 'master', 'password': 'master', 'role': 'master'},
+    'admin': {'id': 2, 'username': 'admin', 'password': 'admin', 'role': 'admin'},
+    'student': {'id': 3, 'username': 'student', 'password': 'student', 'role': 'examinee'}
 }
 
 mock_quizzes = [
@@ -223,13 +223,13 @@ def create_section_title(title, size=Typography.SIZE_XL):
         color=Colors.TEXT_PRIMARY
     )
 
-def create_page_title(title):
+def create_page_title(title, color=Colors.TEXT_PRIMARY):
     """Create a main page title"""
     return ft.Text(
         title,
         size=Typography.SIZE_3XL,
         weight=ft.FontWeight.W_700,
-        color=Colors.TEXT_PRIMARY
+        color=color
     )
 
 def create_subtitle(text):
@@ -535,8 +535,8 @@ def show_login():
     current_page.appbar = None
     
     # Form fields
-    username_field = create_text_input("Username", width=320)
-    password_field = create_text_input("Password", password=True, width=320)
+    username_field = create_text_input("Username", width=400)
+    password_field = create_text_input("Password", password=True, width=400)
     error_text = ft.Text("", color=Colors.ERROR, size=Typography.SIZE_SM)
     
     def handle_login_click(e):
@@ -572,27 +572,29 @@ def show_login():
     # Login form
     login_form = create_card(
         content=ft.Column([
-            ft.Icon(ft.Icons.QUIZ, size=48, color=Colors.PRIMARY),
+            ft.Image(src="assets/logo.png", width=100, height=100, fit=ft.ImageFit.CONTAIN),
             ft.Container(height=Spacing.LG),
-            create_page_title("Welcome Back"),
+            create_page_title("QUIZ EXAMINATION SYSTEM", color=Colors.PRIMARY),
             create_subtitle("Sign in to your account to continue"),
             ft.Container(height=Spacing.XXL),
             username_field,
             ft.Container(height=Spacing.LG),
             password_field,
-            ft.Container(height=Spacing.MD),
+            ft.Container(height=Spacing.LG),
             error_text,
             ft.Container(height=Spacing.XL),
-            create_primary_button("Sign In", on_click=handle_login_click, width=320),
+            create_primary_button("Sign In", on_click=handle_login_click, width=400),
             ft.Container(height=Spacing.LG),
             ft.Text(
-                "Demo credentials: master/master123, student/student123",
+                "Demo credentials: master/master, student/student",
                 size=Typography.SIZE_XS,
                 color=Colors.TEXT_MUTED,
                 text_align=ft.TextAlign.CENTER
             )
         ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
         padding=Spacing.XXXXL
+        # Bạn có thể thay đổi chiều rộng và chiều cao của form đăng nhập tại đây
+        # width=500,  # Ví dụ: đặt chiều rộng là 500 pixels
     )
     
     # Main login container
