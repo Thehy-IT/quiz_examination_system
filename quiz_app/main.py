@@ -616,16 +616,14 @@ def show_login():
     login_form.shape = ft.RoundedRectangleBorder(radius=BorderRadius.XXL) # Tăng độ bo góc cho Card
 
     # --- Tạo hiệu ứng nền kính trong suốt (Glassmorphism) ---
-    # 1. Đặt màu nền bán trong suốt
-    login_form.content.bgcolor = ft.Colors.with_opacity(0.6, Colors.WHITE) # Giảm độ mờ đục để tăng độ trong suốt
     # 1. Đặt gradient cho nền, đảo ngược so với nền chính và áp dụng độ mờ
     login_form.content.gradient = ft.LinearGradient(
         begin=ft.alignment.bottom_right,
         end=ft.alignment.top_left,
         colors=[
-            ft.colors.with_opacity(0.5, Colors.PRIMARY_LIGHTER),
-            ft.colors.with_opacity(0.6, Colors.GRAY_100),
-            ft.colors.with_opacity(0.7, Colors.PRIMARY_LIGHTEST),
+            ft.Colors.with_opacity(0.5, Colors.PRIMARY_LIGHTER),
+            ft.Colors.with_opacity(0.6, Colors.GRAY_100),
+            ft.Colors.with_opacity(0.7, Colors.PRIMARY_LIGHTEST),
         ]
     )
     # Xóa bgcolor để gradient có hiệu lực
