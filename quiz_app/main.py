@@ -88,14 +88,14 @@ quiz_start_time = None
 # =============================================================================
 
 mock_users = {
-    'master': {'id': 1, 'username': 'master', 'password': 'master', 'role': 'master'},
+    'instructor': {'id': 1, 'username': 'instructor', 'password': 'instructor', 'role': 'instructor'},
     'admin': {'id': 2, 'username': 'admin', 'password': 'admin', 'role': 'admin'},
     'student': {'id': 3, 'username': 'student', 'password': 'student', 'role': 'examinee'}
 }
 
 mock_quizzes = [
-    {'id': 1, 'title': 'Python Basics', 'description': 'Learn Python fundamentals', 'created_by': 1, 'created_at': '2025-01-15', 'creator': 'master', 'questions_count': 5, 'difficulty': 'Beginner'},
-    {'id': 2, 'title': 'Web Development', 'description': 'HTML, CSS, JavaScript basics', 'created_by': 1, 'created_at': '2025-01-14', 'creator': 'master', 'questions_count': 8, 'difficulty': 'Intermediate'},
+    {'id': 1, 'title': 'Python Basics', 'description': 'Learn Python fundamentals', 'created_by': 1, 'created_at': '2025-01-15', 'creator': 'instructor', 'questions_count': 5, 'difficulty': 'Beginner'},
+    {'id': 2, 'title': 'Web Development', 'description': 'HTML, CSS, JavaScript basics', 'created_by': 1, 'created_at': '2025-01-14', 'creator': 'instructor', 'questions_count': 8, 'difficulty': 'Intermediate'},
     {'id': 3, 'title': 'Data Structures', 'description': 'Arrays, Lists, Trees, Algorithms', 'created_by': 2, 'created_at': '2025-01-13', 'creator': 'admin', 'questions_count': 12, 'difficulty': 'Advanced'}
 ]
 
@@ -430,10 +430,10 @@ def create_sidebar(user_role, active_page="dashboard"):
     """Create the sidebar navigation"""
     sidebar_items = []
     
-    if user_role in ['master', 'admin']:
+    if user_role in ['instructor', 'admin']:
         sidebar_items = [
-            create_sidebar_item(ft.Icons.DASHBOARD, "Dashboard", active_page == "dashboard", on_click=lambda e: show_master_dashboard()),
-            create_sidebar_item(ft.Icons.QUIZ, "Quiz Management", active_page == "quizzes", on_click=lambda e: show_quiz_management()),
+            create_sidebar_item(ft.Icons.DASHBOARD, "Dashboard", active_page == "dashboard", on_click=lambda e: show_instructor_dashboard()),
+            create_sidebar_item("assets/logo.png", "Quiz Management", active_page == "quizzes", on_click=lambda e: show_quiz_management()),
             create_sidebar_item(ft.Icons.HELP_OUTLINE, "Question Bank", active_page == "questions"),
         ]
         if user_role == 'admin':
@@ -461,15 +461,24 @@ def create_sidebar(user_role, active_page="dashboard"):
         content=ft.Column([
             # Logo/Brand section
             ft.Container(
-                content=ft.Row([
-                    ft.Icon(ft.Icons.QUIZ, size=32, color=Colors.PRIMARY),
-                    ft.Text(
-                        "QuizApp",
-                        size=Typography.SIZE_XL,
-                        weight=ft.FontWeight.W_700,
-                        color=Colors.PRIMARY
+                content=ft.Column([
+                    ft.Image(src="assets/logo.png", width=80, height=80),
+                    ft.Container(height=Spacing.SM),
+                    ft.ShaderMask(
+                        content=ft.Text(
+                            "QUIZ EXAMINATION SYSTEM",
+                            size=Typography.SIZE_LG,
+                            weight=ft.FontWeight.W_700,
+                            text_align=ft.TextAlign.CENTER
+                        ),
+                        blend_mode=ft.BlendMode.SRC_IN,
+                        shader=ft.LinearGradient(
+                            begin=ft.alignment.top_left,
+                            end=ft.alignment.bottom_right,
+                            colors=[Colors.PRIMARY, Colors.PRIMARY_LIGHTER, Colors.SUCCESS]
+                        )
                     )
-                ], spacing=Spacing.MD),
+                ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=Spacing.SM),
                 padding=Spacing.XL
             ),
             ft.Divider(color=Colors.GRAY_200),
@@ -567,8 +576,8 @@ def show_login():
         error_text.value = ""
         
         # Route to appropriate dashboard
-        if user['role'] in ['master', 'admin']:
-            show_master_dashboard()
+        if user['role'] in ['instructor', 'admin']:
+            show_instructor_dashboard()
         else:
             show_examinee_dashboard()
     
@@ -615,7 +624,7 @@ def show_login():
             create_primary_button("Sign In", on_click=handle_login_click, width=400, icon=ft.Icons.LOGIN),
             ft.Container(height=Spacing.LG),
             ft.Text(
-                "Demo credentials: master/master, student/student",
+                "Demo credentials: instructor/instructor, student/student",
                 size=Typography.SIZE_XS,
                 color=Colors.TEXT_MUTED,
                 text_align=ft.TextAlign.CENTER
@@ -727,8 +736,8 @@ def show_login():
     current_page.add(login_container)
     current_page.update()
 
-def show_master_dashboard():
-    """Show the master/admin dashboard"""
+def show_instructor_dashboard():
+    """Show the instructor/admin dashboard"""
     global current_page
     current_page.clean()
     
@@ -740,7 +749,7 @@ def show_master_dashboard():
         create_card(
             content=ft.Column([
                 ft.Row([
-                    ft.Icon(ft.Icons.QUIZ, color=Colors.PRIMARY),
+                    ft.Image(src="assets/logo.png", width=24, height=24),
                     ft.Text("Total Quizzes", color=Colors.TEXT_SECONDARY)
                 ]),
                 ft.Text(
@@ -1012,7 +1021,7 @@ def show_quiz_management():
             ft.Container(height=Spacing.LG),
             ft.Column(quiz_cards, spacing=Spacing.LG) if quiz_cards else create_card(
                 content=ft.Column([
-                    ft.Icon(ft.Icons.QUIZ, size=48, color=Colors.GRAY_400),
+                    ft.Image(src="assets/logo.png", width=48, height=48),
                     ft.Container(height=Spacing.SM),
                     ft.Text(
                         "No quizzes created yet",
@@ -1784,7 +1793,7 @@ def show_quiz_results(quiz_data, user_answers, start_time):
 
 def main_page(page: ft.Page):
     """Main application entry point"""
-    global current_page
+    global current_page, current_user
     current_page = page
     
     # Page configuration
@@ -1797,8 +1806,15 @@ def main_page(page: ft.Page):
     page.padding = 0
     page.spacing = 0
     
-    # Show login page initially
-    show_login()
+    # --- BỎ QUA ĐĂNG NHẬP ĐỂ PHÁT TRIỂN GIAO DIỆN ---
+    # Để bỏ qua màn hình đăng nhập, hãy làm theo các bước sau:
+    # 1. Đặt người dùng hiện tại (current_user) thành một người dùng mẫu.
+    # 2. Gọi hàm hiển thị dashboard tương ứng.
+    # 3. Để bật lại trang đăng nhập, hãy xóa/bình luận các dòng dưới và bỏ bình luận dòng `show_login()`.
+    
+    current_user = mock_users['instructor']  # Đăng nhập với tư cách 'instructor'
+    show_instructor_dashboard()              # Đi thẳng vào dashboard của instructor
+    # show_login()                       # Dòng này đã được bình luận để vô hiệu hóa đăng nhập
 
 if __name__ == "__main__":
     ft.app(target=main_page)
