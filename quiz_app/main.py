@@ -68,6 +68,7 @@ class BorderRadius:
     MD = 8
     LG = 12
     XL = 16
+    XXL = 24 # New larger radius for prominent elements
 
 # =============================================================================
 # GLOBAL STATE
@@ -576,7 +577,19 @@ def show_login():
         content=ft.Column([
             ft.Image(src="assets/logo.png", width=100, height=100, fit=ft.ImageFit.CONTAIN),
             ft.Container(height=Spacing.LG),
-            create_page_title("QUIZ EXAMINATION SYSTEM", color=Colors.PRIMARY),
+            # --- Tạo hiệu ứng Gradient cho tiêu đề ---
+            ft.ShaderMask(
+                content=ft.Text(
+                    "QUIZ EXAMINATION SYSTEM",
+                    size=Typography.SIZE_3XL,
+                    weight=ft.FontWeight.W_700,
+                    text_align=ft.TextAlign.CENTER
+                ),
+                blend_mode=ft.BlendMode.SRC_IN,
+                shader=ft.LinearGradient(
+                    colors=[Colors.PRIMARY, Colors.SUCCESS]
+                )
+            ),
             create_subtitle("Sign in to your account to continue"),
             ft.Container(height=Spacing.XXL),
             username_field,
@@ -599,17 +612,17 @@ def show_login():
     login_form.width = 900  # Điều chỉnh chiều rộng của form
     login_form.color = ft.Colors.TRANSPARENT  # Make the card background transparent
     login_form.elevation = 20
-    login_form.border = ft.border.all(width=10, color=Colors.WHITE) 
     login_form.height = 660 # Điều chỉnh chiều cao của form
-    login_form.content.gradient = ft.LinearGradient(
-        begin=ft.alignment.center_left,
-        end=ft.alignment.center_right,
-        colors=[
-            Colors.GRAY_600,
-            Colors.WHITE,
-            Colors.GRAY_600,
-        ]
-    )
+    login_form.shape = ft.RoundedRectangleBorder(radius=BorderRadius.XXL) # Tăng độ bo góc cho Card
+
+    # --- Tạo hiệu ứng nền kính trong suốt (Glassmorphism) ---
+    # 1. Đặt màu nền bán trong suốt
+    login_form.content.bgcolor = ft.Colors.with_opacity(0.5, Colors.WHITE) # Tăng độ mờ đục để dễ đọc hơn
+    # 2. Thêm hiệu ứng làm mờ (blur)
+    login_form.content.blur = ft.Blur(20, 20, ft.BlurTileMode.MIRROR) # Điều chỉnh giá trị blur hợp lý
+    # 3. Thêm viền mỏng để tạo cảm giác "kính"
+    login_form.content.border = ft.border.all(1, ft.Colors.with_opacity(0.3, Colors.WHITE)) # Giữ nguyên viền
+    login_form.content.border_radius = BorderRadius.XXL # Đồng bộ độ bo góc của content với Card
     # Main login container
     login_container = ft.Container(
         content=ft.Row([
