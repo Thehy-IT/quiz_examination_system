@@ -617,7 +617,19 @@ def show_login():
 
     # --- Tạo hiệu ứng nền kính trong suốt (Glassmorphism) ---
     # 1. Đặt màu nền bán trong suốt
-    login_form.content.bgcolor = ft.Colors.with_opacity(0.5, Colors.WHITE) # Tăng độ mờ đục để dễ đọc hơn
+    login_form.content.bgcolor = ft.Colors.with_opacity(0.6, Colors.WHITE) # Giảm độ mờ đục để tăng độ trong suốt
+    # 1. Đặt gradient cho nền, đảo ngược so với nền chính và áp dụng độ mờ
+    login_form.content.gradient = ft.LinearGradient(
+        begin=ft.alignment.bottom_right,
+        end=ft.alignment.top_left,
+        colors=[
+            ft.colors.with_opacity(0.5, Colors.PRIMARY_LIGHTER),
+            ft.colors.with_opacity(0.6, Colors.GRAY_100),
+            ft.colors.with_opacity(0.7, Colors.PRIMARY_LIGHTEST),
+        ]
+    )
+    # Xóa bgcolor để gradient có hiệu lực
+    login_form.content.bgcolor = None
     # 2. Thêm hiệu ứng làm mờ (blur)
     login_form.content.blur = ft.Blur(20, 20, ft.BlurTileMode.MIRROR) # Điều chỉnh giá trị blur hợp lý
     # 3. Thêm viền mỏng để tạo cảm giác "kính"
@@ -625,22 +637,79 @@ def show_login():
     login_form.content.border_radius = BorderRadius.XXL # Đồng bộ độ bo góc của content với Card
     # Main login container
     login_container = ft.Container(
-        content=ft.Row([
-            ft.Container(expand=True),
-            login_form,
-            ft.Container(expand=True)
-        ]),
         expand=True,
         alignment=ft.alignment.center,
         gradient=ft.LinearGradient(
-            begin=ft.alignment.center_left,
-            end=ft.alignment.center_right,
+            begin=ft.alignment.top_left, # Thay đổi hướng gradient
+            end=ft.alignment.bottom_right,
             colors=[
-                Colors.GRAY_800,  # Dark blue/charcoal on the left
-                Colors.WHITE,    # White in the middle
-                Colors.GRAY_800,  # Dark blue/charcoal on the right
+                Colors.PRIMARY_LIGHTEST, # Màu nền nhẹ nhàng hơn
+                Colors.GRAY_100,
+                Colors.PRIMARY_LIGHTER,
             ]
-        )
+        ),
+        content=ft.Stack([
+            # Các hình dạng nền
+            # Hình 1: Tròn, trên cùng bên trái
+            ft.Container(
+                width=150,
+                height=150,
+                bgcolor=ft.Colors.with_opacity(0.25, Colors.PRIMARY_LIGHT),
+                border_radius=ft.border_radius.all(75),
+                top=20,
+                left=40,
+            ),
+            # Hình 2: Tròn, dưới cùng bên phải
+            ft.Container(
+                width=200,
+                height=200,
+                bgcolor=ft.Colors.with_opacity(0.08, Colors.SUCCESS), # Hình tròn mờ khác
+                border_radius=ft.border_radius.all(100),
+                bottom=20,
+                right=50,
+            ),
+            # Hình 3: Tròn, trên cùng bên phải
+            ft.Container(
+                width=100,
+                height=100,
+                bgcolor=ft.Colors.with_opacity(0.15, Colors.WARNING),
+                border_radius=ft.border_radius.all(50),
+                top=150,
+                right=150,
+            ),
+            # Hình 4: Chữ nhật bo góc, dưới cùng bên trái
+            ft.Container(
+                width=300,
+                height=150,
+                bgcolor=ft.Colors.with_opacity(0.07, Colors.PRIMARY), # Hình chữ nhật bo góc mờ
+                border_radius=BorderRadius.XXL,
+                bottom=60,
+                left=100,
+            ),
+            # Hình 5: Tròn, giữa bên trái
+            ft.Container(
+                width=180,
+                height=180,
+                bgcolor=ft.Colors.with_opacity(0.12, Colors.ERROR),
+                border_radius=ft.border_radius.all(90),
+                top=300,
+                left=200,
+            ),
+            # Thêm các hình dạng mới
+            # Hình 6: Vuông nhỏ, trên cùng bên phải
+            ft.Container(
+                width=80,
+                height=80,
+                bgcolor=ft.Colors.with_opacity(0.1, Colors.GRAY_400),
+                border_radius=ft.border_radius.all(10), # Vuông bo góc nhẹ
+                top=80,
+                right=80,
+            ),
+            # Form đăng nhập chính, được căn giữa trên cùng các hình dạng
+            ft.Column([
+                login_form
+            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, alignment=ft.MainAxisAlignment.CENTER, expand=True)
+        ])
     )
     
     current_page.add(login_container)
