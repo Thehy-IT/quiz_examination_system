@@ -90,7 +90,12 @@ quiz_start_time = None
 mock_users = {
     'instructor': {'id': 1, 'username': 'instructor', 'password': 'instructor', 'role': 'instructor'},
     'admin': {'id': 2, 'username': 'admin', 'password': 'admin', 'role': 'admin'},
-    'student': {'id': 3, 'username': 'student', 'password': 'student', 'role': 'examinee'}
+    'student': {'id': 3, 'username': 'student', 'password': 'student', 'role': 'examinee'},
+    # dùng tải khoản sau để test nhiều người thi
+    'THEHY': {'id': 4, 'username': 'THEHY', 'password': 'THEHY', 'role': 'examinee'},
+    'TAI': {'id': 5, 'username': 'TAI', 'password': 'TAI', 'role': 'examinee'},
+    'HUNG': {'id': 6, 'username': 'HUNG', 'password': 'HUNG', 'role': 'examinee'},
+    'HUY': {'id': 7, 'username': 'HUY', 'password': 'HUY', 'role': 'examinee'},
 }
 
 mock_quizzes = [
