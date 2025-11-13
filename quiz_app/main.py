@@ -595,6 +595,20 @@ def show_login():
             username_field,
             ft.Container(height=Spacing.LG),
             password_field,
+            ft.Container(
+                content=ft.Text(
+                    "Quên mật khẩu?",
+                    size=Typography.SIZE_SM,
+                    color=Colors.PRIMARY,
+                    weight=ft.FontWeight.W_500,
+                    # on_click=... # Sẽ thêm hành động xử lý sau
+                ),
+                alignment=ft.alignment.center_right,
+                padding=ft.padding.only(top=Spacing.SM),
+                width=400, # Đảm bảo chiều rộng bằng với ô nhập liệu
+                ink=True,
+                on_click=lambda e: print("Forgot Password clicked!"), # Hành động tạm thời
+            ),
             ft.Container(height=Spacing.LG),
             error_text,
             ft.Container(height=Spacing.XL),
