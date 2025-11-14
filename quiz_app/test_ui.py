@@ -121,7 +121,7 @@ def main_test():
         print("• Syntax-error free code")
         
     except Exception as e:
-        print(f"\n UI TEST FAILED: {e}")
+        print(f"\n❌ UI TEST FAILED: {e}")
         return False
     
     return True
