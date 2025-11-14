@@ -559,7 +559,7 @@ def create_sidebar(user_role, active_page="dashboard"):
             sidebar_items.append(create_sidebar_item(ft.Icons.QUIZ, "Quiz Management", active_page == "quizzes", on_click=lambda e: show_quiz_management()))
 
         if user_role == 'admin':
-            sidebar_items.append(create_sidebar_item(ft.Icons.SCHOOL, "Quản lý Lớp học", active_page == "classes", on_click=lambda e: show_class_management()))
+            sidebar_items.append(create_sidebar_item(ft.Icons.SCHOOL, "Classes Management", active_page == "classes", on_click=lambda e: show_class_management()))
             sidebar_items.append(create_sidebar_item(ft.Icons.PEOPLE, "User Management", active_page == "users"))
             sidebar_items.append(create_sidebar_item(ft.Icons.EMOJI_EVENTS, "View Results", active_page == "results", on_click=lambda e: show_results_overview()))
         sidebar_items.extend([
@@ -2363,7 +2363,7 @@ def main_page(page: ft.Page):
     # 2. Gọi hàm hiển thị dashboard tương ứng.
     # 3. Để bật lại trang đăng nhập, hãy xóa/bình luận các dòng dưới và bỏ bình luận dòng `show_login()`.
     
-    current_user = mock_users['admin']  # Đăng nhập với tư cách 'instructor'
+    current_user = mock_users['instructor']  # Đăng nhập với tư cách 'instructor'
     show_instructor_dashboard()              # Đi thẳng vào dashboard của instructor
     # show_login()                       # Dòng này đã được bình luận để vô hiệu hóa đăng nhập
 
