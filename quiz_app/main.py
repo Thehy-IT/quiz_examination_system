@@ -262,6 +262,42 @@ def create_badge(text, color=Colors.PRIMARY):
         border_radius=BorderRadius.SM
     )
 
+def create_app_header():
+    """Create the main application header with user info"""
+    if not current_user:
+        return ft.Container()
+
+    return ft.Container(
+        content=ft.Row([
+            # Left side can have breadcrumbs or search in the future
+            ft.Container(expand=True),
+
+            # Right side with user info
+            ft.Row([
+                ft.Column([
+                    ft.Text(
+                        current_user.get('username', "User"),
+                        size=Typography.SIZE_SM,
+                        weight=ft.FontWeight.W_600,
+                        color=Colors.TEXT_PRIMARY
+                    ),
+                    ft.Text(
+                        current_user.get('role', "Role").title(),
+                        size=Typography.SIZE_XS,
+                        color=Colors.TEXT_SECONDARY
+                    )
+                ], spacing=2, alignment=ft.MainAxisAlignment.CENTER),
+                ft.Container(width=Spacing.MD),
+                ft.CircleAvatar(
+                    content=ft.Text(current_user['username'][0].upper(), color=Colors.WHITE, weight=ft.FontWeight.W_600),
+                    bgcolor=Colors.PRIMARY,
+                    radius=20
+                ),
+            ], spacing=Spacing.MD)
+        ]),
+        padding=ft.padding.symmetric(horizontal=Spacing.XXL, vertical=Spacing.MD),
+        border=ft.border.only(bottom=ft.BorderSide(width=1, color=Colors.GRAY_200))
+    )
 # =============================================================================
 # QUESTION TYPE COMPONENTS
 # =============================================================================
@@ -495,34 +531,23 @@ def create_sidebar(user_role, active_page="dashboard"):
                 padding=ft.padding.symmetric(horizontal=Spacing.MD, vertical=Spacing.LG)
             ),
             
-            # User info section
+            # Support info section
             ft.Container(
                 content=ft.Row([
-                    ft.CircleAvatar(
-                        content=ft.Text(
-                            current_user['username'][0].upper() if current_user else "U",
-                            color=Colors.WHITE,
-                            weight=ft.FontWeight.W_600
-                        ),
-                        bgcolor=Colors.PRIMARY,
-                        radius=20
-                    ),
+                    ft.Icon(ft.Icons.SUPPORT_AGENT, color=Colors.TEXT_SECONDARY, size=24),
                     ft.Column([
                         ft.Text(
-                            current_user['username'] if current_user else "User",
+                            "Hỗ trợ kỹ thuật",
                             size=Typography.SIZE_SM,
                             weight=ft.FontWeight.W_600,
                             color=Colors.TEXT_PRIMARY
                         ),
-                        ft.Text(
-                            current_user['role'].title() if current_user else "Role",
-                            size=Typography.SIZE_XS,
-                            color=Colors.TEXT_SECONDARY
-                        )
-                    ], spacing=2)
+                        ft.Text("0385782400", size=Typography.SIZE_BASE, color=Colors.PRIMARY, weight=ft.FontWeight.W_500)
+                    ], spacing=2, horizontal_alignment=ft.CrossAxisAlignment.START)
                 ], spacing=Spacing.MD),
                 padding=Spacing.XL,
-                border=ft.border.only(top=ft.BorderSide(width=1, color=Colors.GRAY_200))
+                border=ft.border.only(top=ft.BorderSide(width=1, color=Colors.GRAY_200)),
+                alignment=ft.alignment.center
             )
         ]),
         width=280,
@@ -840,34 +865,40 @@ def show_instructor_dashboard():
     
     # Main content
     main_content = ft.Container(
-        content=ft.Column([
-            # Header
+        content=ft.Column(spacing=0, controls=[
+            create_app_header(),
             ft.Container(
                 content=ft.Column([
-                    create_page_title(f"Welcome back, {current_user['username']}!"),
-                    create_subtitle("Here's what's happening with your quizzes today.")
+                    # Header
+                    ft.Container(
+                        content=ft.Column([
+                            create_page_title(f"Welcome back, {current_user['username']}!"),
+                            create_subtitle("Here's what's happening with your quizzes today.")
+                        ]),
+                        padding=ft.padding.only(bottom=Spacing.XXL)
+                    ),
+                    
+                    # Stats cards
+                    stats_cards,
+                    
+                    ft.Container(height=Spacing.XXXXL),
+                    
+                    # Recent quizzes section
+                    create_section_title("Recent Quizzes"),
+                    ft.Container(height=Spacing.LG),
+                    ft.Column(quiz_cards, spacing=Spacing.LG) if quiz_cards else ft.Container(
+                        content=ft.Text(
+                            "No quizzes created yet. Create your first quiz to get started!",
+                            color=Colors.TEXT_MUTED
+                        ),
+                        padding=Spacing.XL
+                    ),
+                    
+                    ft.Container(height=Spacing.XL),
+                    create_primary_button("Create New Quiz", on_click=lambda e: show_quiz_management(), width=200)
                 ]),
-                padding=ft.padding.only(bottom=Spacing.XXL)
-            ),
-            
-            # Stats cards
-            stats_cards,
-            
-            ft.Container(height=Spacing.XXXXL),
-            
-            # Recent quizzes section
-            create_section_title("Recent Quizzes"),
-            ft.Container(height=Spacing.LG),
-            ft.Column(quiz_cards, spacing=Spacing.LG) if quiz_cards else ft.Container(
-                content=ft.Text(
-                    "No quizzes created yet. Create your first quiz to get started!",
-                    color=Colors.TEXT_MUTED
-                ),
-                padding=Spacing.XL
-            ),
-            
-            ft.Container(height=Spacing.XL),
-            create_primary_button("Create New Quiz", on_click=lambda e: show_quiz_management(), width=200)
+                padding=Spacing.XXXXL,
+                expand=True)
         ]),
         padding=Spacing.XXXXL,
         expand=True
@@ -1004,46 +1035,52 @@ def show_quiz_management():
     
     # Main content
     main_content = ft.Container(
-        content=ft.Column([
-            # Header
-            ft.Row([
-                ft.Column([
-                    create_page_title("Quiz Management"),
-                    create_subtitle("Create and manage your quizzes")
-                ], expand=True),
-                create_primary_button("Create New Quiz", on_click=show_create_form, width=150)
-            ]),
-            
-            ft.Container(height=Spacing.XXL),
-            
-            # Create form (hidden by default)
-            quiz_form_container,
-            
-            ft.Container(height=Spacing.XL),
-            
-            # Quizzes list
-            create_section_title("Your Quizzes"),
-            ft.Container(height=Spacing.LG),
-            ft.Column(quiz_cards, spacing=Spacing.LG) if quiz_cards else create_card(
+        content=ft.Column(spacing=0, controls=[
+            create_app_header(),
+            ft.Container(
                 content=ft.Column([
-                    ft.Image(src="assets/logo.png", width=48, height=48),
-                    ft.Container(height=Spacing.SM),
-                    ft.Text(
-                        "No quizzes created yet",
-                        size=Typography.SIZE_LG,
-                        weight=ft.FontWeight.W_600,
-                        color=Colors.TEXT_SECONDARY
-                    ),
-                    ft.Text(
-                        "Create your first quiz to get started!",
-                        size=Typography.SIZE_SM,
-                        color=Colors.TEXT_MUTED
+                    # Header
+                    ft.Row([
+                        ft.Column([
+                            create_page_title("Quiz Management"),
+                            create_subtitle("Create and manage your quizzes")
+                        ], expand=True),
+                        create_primary_button("Create New Quiz", on_click=show_create_form, width=150)
+                    ]),
+                    
+                    ft.Container(height=Spacing.XXL),
+                    
+                    # Create form (hidden by default)
+                    quiz_form_container,
+                    
+                    ft.Container(height=Spacing.XL),
+                    
+                    # Quizzes list
+                    create_section_title("Your Quizzes"),
+                    ft.Container(height=Spacing.LG),
+                    ft.Column(quiz_cards, spacing=Spacing.LG) if quiz_cards else create_card(
+                        content=ft.Column([
+                            ft.Image(src="assets/logo.png", width=48, height=48),
+                            ft.Container(height=Spacing.SM),
+                            ft.Text(
+                                "No quizzes created yet",
+                                size=Typography.SIZE_LG,
+                                weight=ft.FontWeight.W_600,
+                                color=Colors.TEXT_SECONDARY
+                            ),
+                            ft.Text(
+                                "Create your first quiz to get started!",
+                                size=Typography.SIZE_SM,
+                                color=Colors.TEXT_MUTED
+                            )
+                        ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                        padding=Spacing.XXXXL
                     )
-                ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-                padding=Spacing.XXXXL
+                ]),
+                padding=Spacing.XL,
+                expand=True
             )
         ]),
-        padding=Spacing.XL,
         expand=True
     )
     
@@ -1352,76 +1389,73 @@ def show_question_management(quiz):
     
     # Main content with scrolling
     main_content = ft.Container(
-        content=ft.Column(
-            scroll=ft.ScrollMode.AUTO,
-            controls=[
-                # Header
-                ft.Row([
-                    create_secondary_button("← Back to Quizzes", on_click=back_to_quizzes, width=150),
-                    ft.Container(expand=True)
-                ]),
-                ft.Container(height=Spacing.LG),
-            
-            # Quiz info
-            create_card(
-                content=ft.Column([
-                    ft.Row([
-                        ft.Column([
-                            ft.Text(
-                                quiz['title'],
-                                size=Typography.SIZE_2XL,
-                                weight=ft.FontWeight.W_700,
-                                color=Colors.TEXT_PRIMARY
-                            ),
-                            ft.Text(
-                                quiz['description'] or "No description",
-                                size=Typography.SIZE_BASE,
-                                color=Colors.TEXT_SECONDARY
-                            )
-                        ], expand=True),
-                        create_badge(f"{len(quiz_questions)} Questions")
-                    ])
-                ]),
-                padding=Spacing.LG
-            ),
-            
-            ft.Container(height=Spacing.LG),
-            
-            # Add question button
-            ft.Row([
-                create_section_title("Questions"),
-                ft.Container(expand=True),
-                create_primary_button("Add Question", on_click=show_question_form, width=120)
-            ]),
-            
-            ft.Container(height=Spacing.LG),
-            
-            # Question form (hidden by default)
-            question_form_container,
-            
-            ft.Container(height=Spacing.LG),
-            
-            # Questions list
-            ft.Column(question_cards, spacing=Spacing.LG) if question_cards else create_card(
-                content=ft.Column([
-                    ft.Icon(ft.Icons.HELP_OUTLINE, size=48, color=Colors.GRAY_400),
-                    ft.Container(height=Spacing.SM),
-                    ft.Text(
-                        "No questions added yet",
-                        size=Typography.SIZE_LG,
-                        weight=ft.FontWeight.W_600,
-                        color=Colors.TEXT_SECONDARY
+        content=ft.Column(spacing=0, controls=[
+            create_app_header(),
+            ft.Container(
+                content=ft.Column(
+                    scroll=ft.ScrollMode.AUTO,
+                    controls=[
+                        # Header
+                        ft.Row([
+                            create_secondary_button("← Back to Quizzes", on_click=back_to_quizzes, width=150),
+                            ft.Container(expand=True)
+                        ]),
+                        ft.Container(height=Spacing.LG),
+                    
+                    # Quiz info
+                    create_card(
+                        content=ft.Column([
+                            ft.Row([
+                                ft.Column([
+                                    ft.Text(
+                                        quiz['title'],
+                                        size=Typography.SIZE_2XL,
+                                        weight=ft.FontWeight.W_700,
+                                        color=Colors.TEXT_PRIMARY
+                                    ),
+                                    ft.Text(
+                                        quiz['description'] or "No description",
+                                        size=Typography.SIZE_BASE,
+                                        color=Colors.TEXT_SECONDARY
+                                    )
+                                ], expand=True),
+                                create_badge(f"{len(quiz_questions)} Questions")
+                            ])
+                        ]),
+                        padding=Spacing.LG
                     ),
-                    ft.Text(
-                        "Add your first question to get started!",
-                        size=Typography.SIZE_SM,
-                        color=Colors.TEXT_MUTED
+                    
+                    ft.Container(height=Spacing.LG),
+                    
+                    # Add question button
+                    ft.Row([
+                        create_section_title("Questions"),
+                        ft.Container(expand=True),
+                        create_primary_button("Add Question", on_click=show_question_form, width=120)
+                    ]),
+                    
+                    ft.Container(height=Spacing.LG),
+                    
+                    # Question form (hidden by default)
+                    question_form_container,
+                    
+                    ft.Container(height=Spacing.LG),
+                    
+                    # Questions list
+                    ft.Column(question_cards, spacing=Spacing.LG) if question_cards else create_card(
+                        content=ft.Column([
+                            ft.Icon(ft.Icons.HELP_OUTLINE, size=48, color=Colors.GRAY_400),
+                            ft.Container(height=Spacing.SM),
+                            ft.Text("No questions added yet", size=Typography.SIZE_LG, weight=ft.FontWeight.W_600, color=Colors.TEXT_SECONDARY),
+                            ft.Text("Add your first question to get started!", size=Typography.SIZE_SM, color=Colors.TEXT_MUTED)
+                        ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                        padding=Spacing.XXXXL
                     )
-                ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-                padding=Spacing.XXXXL
+                ]),
+                padding=Spacing.XL,
+                expand=True
             )
         ]),
-        padding=Spacing.XL,
         expand=True
     )
     
@@ -1480,22 +1514,27 @@ def show_examinee_dashboard():
     
     # Main content
     main_content = ft.Container(
-        content=ft.Column([
-            # Header
+        content=ft.Column(spacing=0, controls=[
+            create_app_header(),
             ft.Container(
                 content=ft.Column([
-                    create_page_title(f"Welcome, {current_user['username']}!"),
-                    create_subtitle("Choose a quiz to test your knowledge.")
+                    # Header
+                    ft.Container(
+                        content=ft.Column([
+                            create_page_title(f"Welcome, {current_user['username']}!"),
+                            create_subtitle("Choose a quiz to test your knowledge.")
+                        ]),
+                        padding=ft.padding.only(bottom=Spacing.XXL)
+                    ),
+                    
+                    # Available quizzes
+                    create_section_title("Available Quizzes"),
+                    ft.Container(height=Spacing.LG),
+                    ft.Column(quiz_cards, spacing=Spacing.LG)
                 ]),
-                padding=ft.padding.only(bottom=Spacing.XXL)
-            ),
-            
-            # Available quizzes
-            create_section_title("Available Quizzes"),
-            ft.Container(height=Spacing.LG),
-            ft.Column(quiz_cards, spacing=Spacing.LG)
+                padding=Spacing.XXXXL,
+                expand=True)
         ]),
-        padding=Spacing.XXXXL,
         expand=True
     )
     
@@ -1800,28 +1839,34 @@ def show_settings_page():
     sidebar = create_sidebar(current_user['role'], "settings")
 
     main_content = ft.Container(
-        content=ft.Column([
-            # Header
+        content=ft.Column(spacing=0, controls=[
+            create_app_header(),
             ft.Container(
                 content=ft.Column([
-                    create_page_title("Settings"),
-                    create_subtitle("Manage your application settings.")
-                ]),
-                padding=ft.padding.only(bottom=Spacing.XXL)
-            ),
+                    # Header
+                    ft.Container(
+                        content=ft.Column([
+                            create_page_title("Settings"),
+                            create_subtitle("Manage your application settings.")
+                        ]),
+                        padding=ft.padding.only(bottom=Spacing.XXL)
+                    ),
 
-            # Placeholder content
-            create_card(
-                content=ft.Column([
-                    ft.Icon(ft.Icons.SETTINGS_SUGGEST, size=48, color=Colors.GRAY_400),
-                    ft.Container(height=Spacing.SM),
-                    ft.Text("Settings Page", size=Typography.SIZE_LG, weight=ft.FontWeight.W_600, color=Colors.TEXT_SECONDARY),
-                    ft.Text("This feature is under construction.", size=Typography.SIZE_SM, color=Colors.TEXT_MUTED)
-                ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-                padding=Spacing.XXXXL
+                    # Placeholder content
+                    create_card(
+                        content=ft.Column([
+                            ft.Icon(ft.Icons.SETTINGS_SUGGEST, size=48, color=Colors.GRAY_400),
+                            ft.Container(height=Spacing.SM),
+                            ft.Text("Settings Page", size=Typography.SIZE_LG, weight=ft.FontWeight.W_600, color=Colors.TEXT_SECONDARY),
+                            ft.Text("This feature is under construction.", size=Typography.SIZE_SM, color=Colors.TEXT_MUTED)
+                        ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                        padding=Spacing.XXXXL
+                    )
+                ]),
+                padding=Spacing.XXXXL,
+                expand=True
             )
         ]),
-        padding=Spacing.XXXXL,
         expand=True
     )
 
