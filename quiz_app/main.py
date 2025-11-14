@@ -890,7 +890,7 @@ def show_instructor_dashboard():
         content=ft.Column(spacing=0, controls=[
             create_app_header(),
             ft.Container(
-                content=ft.Column([
+                content=ft.Column(scroll=ft.ScrollMode.AUTO, controls=[
                     # Header
                     ft.Container(
                         content=ft.Column([
@@ -1065,7 +1065,7 @@ def show_quiz_management():
         content=ft.Column(spacing=0, controls=[
             create_app_header(),
             ft.Container(
-                content=ft.Column([
+                content=ft.Column(scroll=ft.ScrollMode.AUTO, controls=[
                     # Header
                     ft.Row([
                         ft.Column([
@@ -1562,7 +1562,7 @@ def show_examinee_dashboard():
         content=ft.Column(spacing=0, controls=[
             create_app_header(),
             ft.Container(
-                content=ft.Column([
+                content=ft.Column(scroll=ft.ScrollMode.AUTO, controls=[
                     # Header
                     ft.Container(
                         content=ft.Column([
@@ -1691,7 +1691,7 @@ def show_quiz_taking(quiz_basic_info):
     
     # Main quiz interface
     quiz_content = ft.Container(
-        content=ft.Column([
+        content=ft.Column(scroll=ft.ScrollMode.AUTO, controls=[
             # Header
             create_card(
                 content=ft.Column([
@@ -1893,7 +1893,7 @@ def show_settings_page():
         content=ft.Column(spacing=0, controls=[
             create_app_header(),
             ft.Container(
-                content=ft.Column([
+                content=ft.Column(scroll=ft.ScrollMode.AUTO, controls=[
                     # Header
                     ft.Container(
                         content=ft.Column([
