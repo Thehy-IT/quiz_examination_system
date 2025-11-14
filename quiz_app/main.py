@@ -108,6 +108,11 @@ mock_quizzes = [
     {'id': 3, 'title': 'Data Structures', 'description': 'Arrays, Lists, Trees, Algorithms', 'created_by': 2, 'created_at': '2025-01-13', 'creator': 'admin', 'questions_count': 12, 'difficulty': 'Advanced', 'start_time': '2025-07-22 14:00', 'duration_minutes': 30}
 ]
 
+mock_classes = [
+    {'id': 1, 'name': 'Lớp Lập trình Python K18', 'instructor_id': 1},
+    {'id': 2, 'name': 'Lớp Phát triển Web K12', 'instructor_id': 1},
+]
+
 mock_questions = {
     1: [
         {
@@ -548,16 +553,15 @@ def create_sidebar(user_role, active_page="dashboard"):
     sidebar_items = []
     
     if user_role in ['instructor', 'admin']:
-        sidebar_items = [
-            create_sidebar_item(ft.Icons.HOME, "Home", active_page == "dashboard", on_click=lambda e: show_instructor_dashboard()),
-            create_sidebar_item("assets/logo.png", "Quiz Management", active_page == "quizzes", on_click=lambda e: show_quiz_management()),
-            create_sidebar_item(ft.Icons.HELP_OUTLINE, "Question Bank", active_page == "questions"),
-            create_sidebar_item(ft.Icons.EMOJI_EVENTS, "View Results", active_page == "results", on_click=lambda e: show_results_overview()),
-        ]
+        sidebar_items.append(create_sidebar_item(ft.Icons.HOME, "Home", active_page == "dashboard", on_click=lambda e: show_instructor_dashboard()))
+        
+        if user_role == 'instructor':
+            sidebar_items.append(create_sidebar_item(ft.Icons.QUIZ, "Quiz Management", active_page == "quizzes", on_click=lambda e: show_quiz_management()))
+
         if user_role == 'admin':
-            sidebar_items.append(
-                create_sidebar_item(ft.Icons.PEOPLE, "User Management", active_page == "users")
-            )
+            sidebar_items.append(create_sidebar_item(ft.Icons.SCHOOL, "Quản lý Lớp học", active_page == "classes", on_click=lambda e: show_class_management()))
+            sidebar_items.append(create_sidebar_item(ft.Icons.PEOPLE, "User Management", active_page == "users"))
+            sidebar_items.append(create_sidebar_item(ft.Icons.EMOJI_EVENTS, "View Results", active_page == "results", on_click=lambda e: show_results_overview()))
         sidebar_items.extend([
             create_sidebar_item(ft.Icons.SETTINGS, "Settings", active_page == "settings", on_click=lambda e: show_settings_page()),
         ])
@@ -2165,6 +2169,144 @@ def show_settings_page():
         current_page.add(create_app_background(main_content))
         current_page.appbar.visible = True
     current_page.update()
+
+def show_class_management():
+    """Show the class management page for admins."""
+    global current_page, sidebar_drawer
+    current_page.clean()
+
+    sidebar = create_sidebar(current_user['role'], "classes")
+
+    # --- Form tạo lớp học (ẩn ban đầu) ---
+    class_name_field = create_text_input("Tên lớp học", width=400)
+    
+    # Lấy danh sách giảng viên để tạo Dropdown
+    instructors = [user for user in mock_users.values() if user['role'] == 'instructor']
+    instructor_dropdown = ft.Dropdown(
+        label="Chọn giảng viên",
+        width=400,
+        border_radius=BorderRadius.MD,
+        border_color=Colors.GRAY_300,
+        focused_border_color=Colors.PRIMARY,
+        options=[
+            ft.dropdown.Option(key=ins['id'], text=ins['username']) for ins in instructors
+        ]
+    )
+    class_error_text = ft.Text("", color=Colors.ERROR, size=Typography.SIZE_SM)
+
+    def show_create_form(e):
+        class_form_container.visible = True
+        class_name_field.value = ""
+        instructor_dropdown.value = None
+        class_error_text.value = ""
+        current_page.update()
+
+    def hide_create_form(e):
+        class_form_container.visible = False
+        current_page.update()
+
+    def handle_create_class(e):
+        class_name = class_name_field.value or ""
+        instructor_id = instructor_dropdown.value
+
+        if not class_name.strip():
+            class_error_text.value = "Tên lớp học là bắt buộc."
+            current_page.update()
+            return
+        if not instructor_id:
+            class_error_text.value = "Vui lòng chọn một giảng viên."
+            current_page.update()
+            return
+
+        # Thêm vào dữ liệu mẫu
+        new_class = {
+            'id': len(mock_classes) + 1,
+            'name': class_name.strip(),
+            'instructor_id': int(instructor_id)
+        }
+        mock_classes.append(new_class)
+
+        class_error_text.value = ""
+        hide_create_form(e)
+        show_class_management()  # Tải lại trang để hiển thị lớp mới
+
+    class_form_container = create_card(
+        content=ft.Column([
+            create_section_title("Tạo Lớp học mới"),
+            ft.Container(height=Spacing.LG),
+            class_name_field,
+            ft.Container(height=Spacing.LG),
+            instructor_dropdown,
+            ft.Container(height=Spacing.MD),
+            class_error_text,
+            ft.Container(height=Spacing.XL),
+            ft.Row([
+                create_primary_button("Tạo Lớp", on_click=handle_create_class, width=120),
+                ft.Container(width=Spacing.MD),
+                create_secondary_button("Hủy", on_click=hide_create_form, width=100)
+            ])
+        ]),
+        padding=Spacing.XXL
+    )
+    class_form_container.visible = False
+
+    # --- Danh sách các lớp học hiện có ---
+    class_cards = []
+    for cls in mock_classes:
+        instructor_name = next((user['username'] for user in mock_users.values() if user['id'] == cls['instructor_id']), "N/A")
+        class_card = create_card(
+            content=ft.Row([
+                ft.Icon(ft.Icons.SCHOOL_OUTLINED, color=Colors.PRIMARY, size=32),
+                ft.Container(width=Spacing.LG),
+                ft.Column([
+                    ft.Text(cls['name'], size=Typography.SIZE_LG, weight=ft.FontWeight.W_600),
+                    ft.Text(f"Giảng viên: {instructor_name}", color=Colors.TEXT_SECONDARY),
+                ], expand=True),
+                create_secondary_button("Xóa", width=80),
+            ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+            padding=Spacing.LG
+        )
+        class_cards.append(class_card)
+
+    # --- Nội dung chính của trang ---
+    main_content = ft.Container(
+        content=ft.Column(spacing=0, controls=[
+            create_app_header(),
+            ft.Container(
+                content=ft.Column(scroll=ft.ScrollMode.AUTO, controls=[
+                    ft.Row([
+                        ft.Column([
+                            create_page_title("Quản lý Lớp học"),
+                            create_subtitle("Tạo và quản lý các lớp học trong hệ thống.")
+                        ], expand=True),
+                        create_primary_button("Tạo Lớp mới", on_click=show_create_form, width=150)
+                    ]),
+                    ft.Container(height=Spacing.XXL),
+                    class_form_container,
+                    ft.Container(height=Spacing.XL),
+                    create_section_title("Danh sách Lớp học"),
+                    ft.Container(height=Spacing.LG),
+                    ft.Column(class_cards, spacing=Spacing.LG) if class_cards else ft.Text("Chưa có lớp học nào.")
+                ]),
+                padding=Spacing.XXXXL, expand=True, bgcolor=Colors.GRAY_50
+            )
+        ]),
+        expand=True
+    )
+
+    # Responsive layout
+    sidebar_drawer = ft.NavigationDrawer(controls=[sidebar])
+    current_page.drawer = sidebar_drawer
+    current_page.appbar = create_app_bar()
+
+    if current_page.width >= 1000:
+        current_page.add(create_app_background(ft.Row([sidebar, main_content], expand=True)))
+        current_page.appbar.visible = False
+    else:
+        current_page.add(create_app_background(main_content))
+        current_page.appbar.visible = True
+    current_page.update()
+
 # =============================================================================
 # MAIN APPLICATION
 # =============================================================================
@@ -2221,7 +2363,7 @@ def main_page(page: ft.Page):
     # 2. Gọi hàm hiển thị dashboard tương ứng.
     # 3. Để bật lại trang đăng nhập, hãy xóa/bình luận các dòng dưới và bỏ bình luận dòng `show_login()`.
     
-    current_user = mock_users['instructor']  # Đăng nhập với tư cách 'instructor'
+    current_user = mock_users['admin']  # Đăng nhập với tư cách 'instructor'
     show_instructor_dashboard()              # Đi thẳng vào dashboard của instructor
     # show_login()                       # Dòng này đã được bình luận để vô hiệu hóa đăng nhập
 
