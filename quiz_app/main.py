@@ -553,7 +553,15 @@ def create_sidebar(user_role, active_page="dashboard"):
         width=280,
         height=None,
         bgcolor=Colors.WHITE,
-        border=ft.border.only(right=ft.BorderSide(width=1, color=Colors.GRAY_200))
+        border=ft.border.only(right=ft.BorderSide(width=1, color=Colors.GRAY_200)),
+        # --- Thêm hiệu ứng đổ bóng cho sidebar ---
+        shadow=ft.BoxShadow(
+            spread_radius=1,
+            blur_radius=10,
+            color=ft.Colors.with_opacity(0.15, ft.Colors.BLACK),
+            offset=ft.Offset(4, 0),
+        ),
+        clip_behavior=ft.ClipBehavior.NONE # Cho phép bóng hiển thị bên ngoài container
     )
 
 # =============================================================================
