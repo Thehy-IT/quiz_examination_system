@@ -151,6 +151,20 @@ mock_questions = {
     ]
 }
 
+mock_notifications = {
+    'instructor': [
+        {'id': 1, 'text': 'Student "THEHY" has completed the "Python Basics" quiz.', 'read': False, 'timestamp': '2 hours ago'},
+        {'id': 2, 'text': 'A new version of the app is available.', 'read': True, 'timestamp': '1 day ago'},
+    ],
+    'admin': [
+        {'id': 5, 'text': 'Instructor "instructor" created a new quiz "Web Development".', 'read': False, 'timestamp': '1 day ago'},
+    ],
+    'examinee': [
+        {'id': 3, 'text': 'Your results for "Python Basics" are ready.', 'read': False, 'timestamp': '30 minutes ago'},
+        {'id': 4, 'text': 'New quiz "Data Structures" has been added.', 'read': False, 'timestamp': '5 hours ago'},
+    ],
+}
+
 # =============================================================================
 # COMPONENT HELPER FUNCTIONS
 # =============================================================================
@@ -268,6 +282,62 @@ def create_app_header():
     if not current_user:
         return ft.Container()
 
+    user_role = current_user.get('role')
+    notifications = mock_notifications.get(user_role, [])
+    unread_count = sum(1 for n in notifications if not n['read'])
+
+    def mark_as_read(notification):
+        def on_click(e):
+            notification['read'] = True
+            # In a real app, you would update the backend here
+            # For this demo, we just need to refresh the header state
+            current_page.controls[0].content.controls[0].controls[0] = create_app_header()
+            current_page.update()
+        return on_click
+
+    notification_items = []
+    if notifications:
+        for n in notifications:
+            notification_items.append(
+                ft.PopupMenuItem(
+                    content=ft.Row([
+                        ft.Column([
+                            ft.Text(n['text'], size=Typography.SIZE_SM, color=Colors.TEXT_PRIMARY, weight=ft.FontWeight.W_600 if not n['read'] else ft.FontWeight.NORMAL),
+                            ft.Text(n['timestamp'], size=Typography.SIZE_XS, color=Colors.TEXT_MUTED),
+                        ], expand=True),
+                        ft.Icon(ft.Icons.CIRCLE, color=Colors.PRIMARY, size=10) if not n['read'] else ft.Container(width=10)
+                    ]),
+                    on_click=mark_as_read(n)
+                )
+            )
+    else:
+        notification_items.append(
+            ft.PopupMenuItem(
+                content=ft.Text("No notifications", color=Colors.TEXT_MUTED, text_align=ft.TextAlign.CENTER),
+                enabled=False
+            )
+        )
+
+    notification_button = ft.PopupMenuButton(
+        content=ft.Stack([
+            ft.IconButton(
+                icon=ft.Icons.NOTIFICATIONS_OUTLINED,
+                icon_color=Colors.TEXT_SECONDARY,
+                tooltip="Notifications"
+            ),
+            ft.Container(
+                content=ft.Text(str(unread_count), size=10, color=Colors.WHITE, weight=ft.FontWeight.W_600),
+                bgcolor=Colors.ERROR,
+                padding=ft.padding.symmetric(horizontal=5),
+                border_radius=10,
+                right=5,
+                top=5,
+                visible=unread_count > 0
+            )
+        ]),
+        items=notification_items
+    )
+
     return ft.Container(
         content=ft.Row([
             # Left side can have breadcrumbs or search in the future
@@ -275,6 +345,8 @@ def create_app_header():
 
             # Right side with user info
             ft.Row([
+                notification_button,
+                ft.VerticalDivider(width=1, color=Colors.GRAY_200),
                 ft.Column([
                     ft.Text(
                         current_user.get('username', "User"),
