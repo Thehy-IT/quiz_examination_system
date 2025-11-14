@@ -477,6 +477,7 @@ def create_sidebar(user_role, active_page="dashboard"):
             create_sidebar_item(ft.Icons.HOME, "Home", active_page == "dashboard", on_click=lambda e: show_instructor_dashboard()),
             create_sidebar_item("assets/logo.png", "Quiz Management", active_page == "quizzes", on_click=lambda e: show_quiz_management()),
             create_sidebar_item(ft.Icons.HELP_OUTLINE, "Question Bank", active_page == "questions"),
+            create_sidebar_item(ft.Icons.EMOJI_EVENTS, "View Results", active_page == "results", on_click=lambda e: show_results_overview()),
         ]
         if user_role == 'admin':
             sidebar_items.append(
@@ -1879,6 +1880,59 @@ def show_quiz_results(quiz_data, user_answers, start_time):
     )
     
     current_page.add(results_content)
+    current_page.update()
+
+def show_results_overview():
+    """Show a placeholder page for viewing quiz results overview"""
+    global current_page
+    global sidebar_drawer
+    current_page.clean()
+
+    sidebar = create_sidebar(current_user['role'], "results")
+
+    main_content = ft.Container(
+        content=ft.Column(spacing=0, controls=[
+            create_app_header(),
+            ft.Container(
+                content=ft.Column(scroll=ft.ScrollMode.AUTO, controls=[
+                    # Header
+                    ft.Container(
+                        content=ft.Column([
+                            create_page_title("Quiz Results"),
+                            create_subtitle("Review attempts and results for your quizzes.")
+                        ]),
+                        padding=ft.padding.only(bottom=Spacing.XXL)
+                    ),
+
+                    # Placeholder content
+                    create_card(
+                        content=ft.Column([
+                            ft.Icon(ft.Icons.CONSTRUCTION, size=48, color=Colors.GRAY_400),
+                            ft.Container(height=Spacing.SM),
+                            ft.Text("Results Overview", size=Typography.SIZE_LG, weight=ft.FontWeight.W_600, color=Colors.TEXT_SECONDARY),
+                            ft.Text("This feature is under construction.", size=Typography.SIZE_SM, color=Colors.TEXT_MUTED)
+                        ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                        padding=Spacing.XXXXL
+                    )
+                ]),
+                padding=Spacing.XXXXL,
+                expand=True
+            )
+        ]),
+        expand=True
+    )
+
+    # Responsive layout (same as other pages)
+    sidebar_drawer = ft.NavigationDrawer(controls=[sidebar])
+    current_page.drawer = sidebar_drawer
+    current_page.appbar = create_app_bar()
+
+    if current_page.width >= 1000:
+        current_page.add(ft.Row([sidebar, main_content], expand=True))
+        current_page.appbar.visible = False
+    else:
+        current_page.add(main_content)
+        current_page.appbar.visible = True
     current_page.update()
 
 def show_settings_page():
