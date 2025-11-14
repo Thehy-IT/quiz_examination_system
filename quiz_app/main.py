@@ -76,6 +76,7 @@ class BorderRadius:
 
 current_user = None
 current_page = None
+sidebar_drawer = None
 
 # Quiz taking state
 current_question_index = 0
@@ -574,6 +575,18 @@ def handle_logout(e=None):
     current_user = None
     show_login()
 
+def open_drawer(e):
+    """Open the navigation drawer"""
+    if sidebar_drawer:
+        sidebar_drawer.open = True
+        sidebar_drawer.update()
+
+def create_app_bar():
+    """Create a responsive app bar with a menu button"""
+    return ft.AppBar(
+        leading=ft.IconButton(ft.Icons.MENU, on_click=open_drawer, tooltip="Menu"),
+        leading_width=40
+    )
 # =============================================================================
 # PAGE FUNCTIONS
 # =============================================================================
@@ -777,6 +790,7 @@ def show_login():
 def show_instructor_dashboard():
     """Show the instructor/admin dashboard"""
     global current_page
+    global sidebar_drawer
     current_page.clean()
     
     # Create main layout with sidebar
@@ -912,18 +926,23 @@ def show_instructor_dashboard():
         expand=True
     )
     
-    # Layout with sidebar
-    layout = ft.Row([
-        sidebar,
-        main_content
-    ], expand=True)
-    
-    current_page.add(layout)
+    # Responsive layout
+    sidebar_drawer = ft.NavigationDrawer(controls=[sidebar])
+    current_page.drawer = sidebar_drawer
+    current_page.appbar = create_app_bar()
+
+    if current_page.width >= 1000:
+        current_page.add(ft.Row([sidebar, main_content], expand=True))
+        current_page.appbar.visible = False
+    else:
+        current_page.add(main_content)
+        current_page.appbar.visible = True
     current_page.update()
 
 def show_quiz_management():
     """Show the quiz management page"""
     global current_page
+    global sidebar_drawer
     current_page.clean()
     
     sidebar = create_sidebar(current_user['role'], "quizzes")
@@ -1092,14 +1111,23 @@ def show_quiz_management():
         expand=True
     )
     
-    # Layout with sidebar
-    layout = ft.Row([sidebar, main_content], expand=True)
-    current_page.add(layout)
+    # Responsive layout
+    sidebar_drawer = ft.NavigationDrawer(controls=[sidebar])
+    current_page.drawer = sidebar_drawer
+    current_page.appbar = create_app_bar()
+
+    if current_page.width >= 1000:
+        current_page.add(ft.Row([sidebar, main_content], expand=True))
+        current_page.appbar.visible = False
+    else:
+        current_page.add(main_content)
+        current_page.appbar.visible = True
     current_page.update()
 
 def show_question_management(quiz):
     """Show the enhanced question management page with multiple question types"""
     global current_page
+    global sidebar_drawer
     current_page.clean()
     
     sidebar = create_sidebar(current_user['role'], "questions")
@@ -1467,14 +1495,23 @@ def show_question_management(quiz):
         expand=True
     )
     
-    # Layout with sidebar
-    layout = ft.Row([sidebar, main_content], expand=True)
-    current_page.add(layout)
+    # Responsive layout
+    sidebar_drawer = ft.NavigationDrawer(controls=[sidebar])
+    current_page.drawer = sidebar_drawer
+    current_page.appbar = create_app_bar()
+
+    if current_page.width >= 1000:
+        current_page.add(ft.Row([sidebar, main_content], expand=True))
+        current_page.appbar.visible = False
+    else:
+        current_page.add(main_content)
+        current_page.appbar.visible = True
     current_page.update()
 
 def show_examinee_dashboard():
     """Show the examinee dashboard"""
     global current_page
+    global sidebar_drawer
     current_page.clean()
     
     sidebar = create_sidebar(current_user['role'], "home")
@@ -1546,13 +1583,18 @@ def show_examinee_dashboard():
         expand=True
     )
     
-    # Layout with sidebar
-    layout = ft.Row([
-        sidebar,
-        main_content
-    ], expand=True)
-    
-    current_page.add(layout)
+    # Responsive layout
+    sidebar_drawer = ft.NavigationDrawer(controls=[sidebar])
+    current_page.drawer = sidebar_drawer
+    current_page.appbar = create_app_bar()
+
+    if current_page.width >= 1000:
+        current_page.add(ft.Row([sidebar, main_content], expand=True))
+        current_page.appbar.visible = False
+    else:
+        current_page.add(main_content)
+        current_page.appbar.visible = True
+
     current_page.update()
 
 def show_quiz_taking(quiz_basic_info):
@@ -1842,6 +1884,7 @@ def show_quiz_results(quiz_data, user_answers, start_time):
 def show_settings_page():
     """Show a placeholder settings page"""
     global current_page
+    global sidebar_drawer
     current_page.clean()
 
     sidebar = create_sidebar(current_user['role'], "settings")
@@ -1878,8 +1921,17 @@ def show_settings_page():
         expand=True
     )
 
-    layout = ft.Row([sidebar, main_content], expand=True)
-    current_page.add(layout)
+    # Responsive layout
+    sidebar_drawer = ft.NavigationDrawer(controls=[sidebar])
+    current_page.drawer = sidebar_drawer
+    current_page.appbar = create_app_bar()
+
+    if current_page.width >= 1000:
+        current_page.add(ft.Row([sidebar, main_content], expand=True))
+        current_page.appbar.visible = False
+    else:
+        current_page.add(main_content)
+        current_page.appbar.visible = True
     current_page.update()
 # =============================================================================
 # MAIN APPLICATION
@@ -1887,7 +1939,7 @@ def show_settings_page():
 
 def main_page(page: ft.Page):
     """Main application entry point"""
-    global current_page, current_user
+    global current_page, current_user, sidebar_drawer
     current_page = page
     
     # Page configuration
@@ -1900,6 +1952,32 @@ def main_page(page: ft.Page):
     page.padding = 0
     page.spacing = 0
     
+    def handle_resize(e):
+        """Handle window resize to show/hide sidebar."""
+        # This check is to avoid errors on pages without a sidebar (like login)
+        if not hasattr(page, "appbar") or not page.appbar:
+            return
+
+        is_wide = page.width >= 1000
+        page.appbar.visible = not is_wide
+
+        # Check if the main layout is a Row (meaning sidebar is visible)
+        is_sidebar_visible = len(page.controls) > 0 and isinstance(page.controls[0], ft.Row)
+
+        if is_wide and not is_sidebar_visible:
+            # Switch to wide view: show sidebar
+            main_content = page.controls[0]
+            page.controls.clear()
+            page.controls.append(ft.Row([page.drawer.controls[0], main_content], expand=True))
+        elif not is_wide and is_sidebar_visible:
+            # Switch to narrow view: hide sidebar
+            main_content = page.controls[0].controls[1]
+            page.controls.clear()
+            page.controls.append(main_content)
+        page.update()
+
+    page.on_resize = handle_resize
+
     # --- BỎ QUA ĐĂNG NHẬP ĐỂ PHÁT TRIỂN GIAO DIỆN ---
     # Để bỏ qua màn hình đăng nhập, hãy làm theo các bước sau:
     # 1. Đặt người dùng hiện tại (current_user) thành một người dùng mẫu.
