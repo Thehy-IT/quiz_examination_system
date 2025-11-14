@@ -393,7 +393,7 @@ def create_multiple_choice_question(question, on_answer_change):
             )
         )
     options_group.content = ft.Column(options, spacing=Spacing.MD)
-    options_group.on_change = on_answer_change
+    options_group.on_change = lambda e: on_answer_change(e, int(e.control.value))
     
     return ft.Column([
         ft.Text(
@@ -414,7 +414,7 @@ def create_true_false_question(question, on_answer_change):
             ft.Radio(value="false", label="False", label_style=ft.TextStyle(size=Typography.SIZE_BASE))
         ], spacing=Spacing.MD)
     )
-    true_false_group.on_change = on_answer_change
+    true_false_group.on_change = lambda e: on_answer_change(e, e.control.value == "true")
     
     return ft.Column([
         ft.Text(
@@ -430,7 +430,7 @@ def create_true_false_question(question, on_answer_change):
 def create_fill_in_blank_question(question, on_answer_change):
     """Create a fill-in-the-blank question component"""
     answer_field = create_text_input("Your answer", width=400)
-    answer_field.on_change = on_answer_change
+    answer_field.on_change = lambda e: on_answer_change(e, e.control.value)
     
     return ft.Column([
         ft.Text(
@@ -454,11 +454,8 @@ def create_multiple_select_question(question, on_answer_change):
             for i, cb in enumerate(checkboxes):
                 if cb.value:
                     selected.append(str(i))
-            # Create a mock event with the selected values
-            class MockEvent:
-                def __init__(self, control_value):
-                    self.control = type('MockControl', (), {'value': control_value})()
-            on_answer_change(MockEvent(','.join(selected)))
+            # Pass the list of selected indices
+            on_answer_change(e, [int(s) for s in selected])
         return handler
     
     for i, option in enumerate(question.get('options', [])):
@@ -484,7 +481,7 @@ def create_multiple_select_question(question, on_answer_change):
 def create_short_answer_question(question, on_answer_change):
     """Create a short answer question component"""
     answer_field = create_text_input("Your answer", width=500, multiline=True, min_lines=4)
-    answer_field.on_change = on_answer_change
+    answer_field.on_change = lambda e: on_answer_change(e, e.control.value)
     
     return ft.Column([
         ft.Text(
@@ -501,19 +498,22 @@ def create_question_by_type(question, on_answer_change):
     """Create question component based on question type"""
     question_type = question.get('question_type', 'multiple_choice')
     
+    def answer_handler(e, answer_value):
+        on_answer_change(question['id'], answer_value)
+
     if question_type == 'multiple_choice':
-        return create_multiple_choice_question(question, on_answer_change)
+        return create_multiple_choice_question(question, answer_handler)
     elif question_type == 'true_false':
-        return create_true_false_question(question, on_answer_change)
+        return create_true_false_question(question, answer_handler)
     elif question_type == 'fill_in_blank':
-        return create_fill_in_blank_question(question, on_answer_change)
+        return create_fill_in_blank_question(question, answer_handler)
     elif question_type == 'multiple_select':
-        return create_multiple_select_question(question, on_answer_change)
+        return create_multiple_select_question(question, answer_handler)
     elif question_type == 'short_answer':
-        return create_short_answer_question(question, on_answer_change)
+        return create_short_answer_question(question, answer_handler)
     else:
         # Default to multiple choice
-        return create_multiple_choice_question(question, on_answer_change)
+        return create_multiple_choice_question(question, answer_handler)
 
 # =============================================================================
 # NAVIGATION COMPONENTS
