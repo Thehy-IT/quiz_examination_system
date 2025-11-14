@@ -1,7 +1,7 @@
 # Modern Quiz App - Clean Light Theme UI
 # Beautiful, modern design with clean components and navigation
 
-import flet as ft
+import flet as ft # Nạp thư viện Flet để xây dựng giao diện người dùng
 import datetime
 
 # =============================================================================
@@ -10,13 +10,13 @@ import datetime
 
 # Colors - Light Theme Only
 class Colors:
-    # Primary blue palette
+    # Primary blue palette màu chủ đạo
     PRIMARY = "#2563eb"
     PRIMARY_LIGHT = "#3b82f6" 
     PRIMARY_LIGHTER = "#60a5fa"
     PRIMARY_LIGHTEST = "#eff6ff"
     
-    # Gray scale
+    # Gray scale colors: màu xám dùng làm nền và viền
     WHITE = "#ffffff"
     GRAY_50 = "#f8fafc"
     GRAY_100 = "#f1f5f9"
@@ -29,17 +29,17 @@ class Colors:
     GRAY_800 = "#1e293b"
     GRAY_900 = "#0f172a"
     
-    # Accent colors
+    # Accent colors màu nhấn nếu báo lỗi hoặc thành công
     SUCCESS = "#10b981"
     WARNING = "#f59e0b"
     ERROR = "#ef4444"
     
-    # Text colors
+    # Màu chữ
     TEXT_PRIMARY = "#1e293b"
     TEXT_SECONDARY = "#64748b"
     TEXT_MUTED = "#94a3b8"
 
-# Spacing scale (4px base)
+# Spacing scale (4px base): khoảng cách giữa các thành phần
 class Spacing:
     XS = 4
     SM = 8
@@ -51,7 +51,7 @@ class Spacing:
     XXXXL = 48
     XXXXXL = 64
 
-# Typography
+# Typography: kích thước chữ
 class Typography:
     SIZE_XS = 12
     SIZE_SM = 14
@@ -62,7 +62,7 @@ class Typography:
     SIZE_3XL = 32
     SIZE_4XL = 48
 
-# Border radius
+# Border radius scale: bo góc các thành phần
 class BorderRadius:
     SM = 4
     MD = 8
@@ -72,11 +72,11 @@ class BorderRadius:
 # =============================================================================
 # GLOBAL STATE
 # =============================================================================
-
+# khởi tạo biến toàn cục để theo dõi trạng thái ứng dụng
 current_user = None
 current_page = None
 
-# Quiz taking state
+# Quiz taking state: trạng thái khi làm bài thi
 current_question_index = 0
 user_answers = {}
 quiz_questions = []
