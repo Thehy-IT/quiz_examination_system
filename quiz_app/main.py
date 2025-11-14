@@ -437,7 +437,7 @@ def create_sidebar(user_role, active_page="dashboard"):
     
     if user_role in ['instructor', 'admin']:
         sidebar_items = [
-            create_sidebar_item(ft.Icons.DASHBOARD, "Dashboard", active_page == "dashboard", on_click=lambda e: show_instructor_dashboard()),
+            create_sidebar_item(ft.Icons.HOME, "Home", active_page == "dashboard", on_click=lambda e: show_instructor_dashboard()),
             create_sidebar_item("assets/logo.png", "Quiz Management", active_page == "quizzes", on_click=lambda e: show_quiz_management()),
             create_sidebar_item(ft.Icons.HELP_OUTLINE, "Question Bank", active_page == "questions"),
         ]
