@@ -3,6 +3,8 @@
 
 import flet as ft
 import datetime
+import time
+import threading
 
 # =============================================================================
 # DESIGN SYSTEM CONSTANTS
@@ -83,6 +85,7 @@ current_question_index = 0
 user_answers = {}
 quiz_questions = []
 quiz_start_time = None
+quiz_timer_thread = None
 
 # =============================================================================
 # MOCK DATA
@@ -100,9 +103,9 @@ mock_users = {
 }
 
 mock_quizzes = [
-    {'id': 1, 'title': 'Python Basics', 'description': 'Learn Python fundamentals', 'created_by': 1, 'created_at': '2025-01-15', 'creator': 'instructor', 'questions_count': 5, 'difficulty': 'Beginner'},
-    {'id': 2, 'title': 'Web Development', 'description': 'HTML, CSS, JavaScript basics', 'created_by': 1, 'created_at': '2025-01-14', 'creator': 'instructor', 'questions_count': 8, 'difficulty': 'Intermediate'},
-    {'id': 3, 'title': 'Data Structures', 'description': 'Arrays, Lists, Trees, Algorithms', 'created_by': 2, 'created_at': '2025-01-13', 'creator': 'admin', 'questions_count': 12, 'difficulty': 'Advanced'}
+    {'id': 1, 'title': 'Python Basics', 'description': 'Learn Python fundamentals', 'created_by': 1, 'created_at': '2025-01-15', 'creator': 'instructor', 'questions_count': 5, 'difficulty': 'Beginner', 'start_time': '2024-01-01 00:00', 'duration_minutes': 10},
+    {'id': 2, 'title': 'Web Development', 'description': 'HTML, CSS, JavaScript basics', 'created_by': 1, 'created_at': '2025-01-14', 'creator': 'instructor', 'questions_count': 8, 'difficulty': 'Intermediate', 'start_time': '2025-07-20 10:00', 'duration_minutes': 20},
+    {'id': 3, 'title': 'Data Structures', 'description': 'Arrays, Lists, Trees, Algorithms', 'created_by': 2, 'created_at': '2025-01-13', 'creator': 'admin', 'questions_count': 12, 'difficulty': 'Advanced', 'start_time': '2025-07-22 14:00', 'duration_minutes': 30}
 ]
 
 mock_questions = {
@@ -160,8 +163,8 @@ mock_notifications = {
         {'id': 5, 'text': 'Instructor "instructor" created a new quiz "Web Development".', 'read': False, 'timestamp': '1 day ago'},
     ],
     'examinee': [
-        {'id': 4, 'text': 'Your results for "Python Basics" are ready.', 'read': False, 'timestamp': '30 minutes ago'},
-        {'id': 5, 'text': 'New quiz "Data Structures" has been added.', 'read': False, 'timestamp': '5 hours ago'},
+        {'id': 3, 'text': 'Your results for "Python Basics" are ready.', 'read': False, 'timestamp': '30 minutes ago'},
+        {'id': 4, 'text': 'New quiz "Data Structures" has been added.', 'read': False, 'timestamp': '5 hours ago'},
     ],
 }
 
@@ -1012,6 +1015,8 @@ def show_quiz_management():
     # Quiz creation form (initially hidden)
     quiz_title_field = create_text_input("Quiz Title", width=400)
     quiz_description_field = create_text_input("Description", width=400, multiline=True, min_lines=3)
+    quiz_start_time_field = create_text_input("Start Time (YYYY-MM-DD HH:MM)", width=250, icon=ft.Icons.CALENDAR_MONTH)
+    quiz_duration_field = create_text_input("Duration (minutes)", width=140, icon=ft.Icons.TIMER)
     quiz_error_text = ft.Text("", color=Colors.ERROR, size=Typography.SIZE_SM)
     
     def show_create_form(e):
@@ -1019,6 +1024,8 @@ def show_quiz_management():
         quiz_title_field.value = ""
         quiz_description_field.value = ""
         quiz_error_text.value = ""
+        quiz_start_time_field.value = ""
+        quiz_duration_field.value = ""
         current_page.update()
     
     def hide_create_form(e):
@@ -1028,11 +1035,28 @@ def show_quiz_management():
     def handle_create_quiz(e):
         title = quiz_title_field.value or ""
         description = quiz_description_field.value or ""
+        start_time_str = quiz_start_time_field.value or ""
+        duration_str = quiz_duration_field.value or ""
         
         if not title.strip():
             quiz_error_text.value = "Quiz title is required"
             current_page.update()
             return
+
+        try:
+            datetime.datetime.strptime(start_time_str, '%Y-%m-%d %H:%M')
+        except ValueError:
+            quiz_error_text.value = "Invalid start time format. Use YYYY-MM-DD HH:MM"
+            current_page.update()
+            return
+
+        if not duration_str.isdigit() or int(duration_str) <= 0:
+            quiz_error_text.value = "Duration must be a positive number of minutes"
+            current_page.update()
+            return
+        
+        duration_minutes = int(duration_str)
+
         
         # Add to mock data
         new_quiz = {
@@ -1043,7 +1067,9 @@ def show_quiz_management():
             'created_at': '2025-01-15',
             'creator': current_user['username'],
             'questions_count': 0,
-            'difficulty': 'Beginner'
+            'difficulty': 'Beginner',
+            'start_time': start_time_str.strip(),
+            'duration_minutes': duration_minutes
         }
         mock_quizzes.append(new_quiz)
         
@@ -1064,6 +1090,11 @@ def show_quiz_management():
             quiz_title_field,
             ft.Container(height=Spacing.LG),
             quiz_description_field,
+            ft.Container(height=Spacing.LG),
+            ft.Row([
+                quiz_start_time_field,
+                quiz_duration_field
+            ], spacing=Spacing.MD),
             ft.Container(height=Spacing.MD),
             quiz_error_text,
             ft.Container(height=Spacing.XL),
@@ -1109,6 +1140,16 @@ def show_quiz_management():
                     ),
                     ft.Text(
                         f"Created: {quiz['created_at']}",
+                        size=Typography.SIZE_SM,
+                        color=Colors.TEXT_MUTED
+                    ),
+                    ft.Text(
+                        f"| Starts: {quiz.get('start_time', 'N/A')}",
+                        size=Typography.SIZE_SM,
+                        color=Colors.TEXT_MUTED
+                    ),
+                    ft.Text(
+                        f"| Duration: {quiz.get('duration_minutes', 'N/A')} min",
                         size=Typography.SIZE_SM,
                         color=Colors.TEXT_MUTED
                     ),
@@ -1611,8 +1652,13 @@ def show_examinee_dashboard():
                         size=Typography.SIZE_SM,
                         color=Colors.TEXT_MUTED
                     ),
+                    ft.Text(f"| Starts: {quiz.get('start_time', 'N/A')}", size=Typography.SIZE_SM, color=Colors.TEXT_MUTED),
+                    ft.Text(f"| {quiz.get('duration_minutes', 'N/A')} min", size=Typography.SIZE_SM, color=Colors.TEXT_MUTED),
                     ft.Container(expand=True),
-                    create_primary_button("Start Quiz", on_click=lambda e, q=quiz: show_quiz_taking(q), width=120)
+                    create_primary_button(
+                        "Start Quiz", on_click=lambda e, q=quiz: show_quiz_taking(q), width=120,
+                        disabled=datetime.datetime.now() < datetime.datetime.strptime(quiz.get('start_time', '1970-01-01 00:00'), '%Y-%m-%d %H:%M')
+                    )
                 ])
             ]),
             padding=Spacing.XL
@@ -1661,12 +1707,13 @@ def show_examinee_dashboard():
 
 def show_quiz_taking(quiz_basic_info):
     """Show the modern quiz taking interface with multiple question types"""
-    global current_page, current_user, current_question_index, user_answers, quiz_questions, quiz_start_time
+    global current_page, current_user, current_question_index, user_answers, quiz_questions, quiz_start_time, quiz_timer_thread
     
     current_page.clean()
     current_question_index = 0
     user_answers = {}
     quiz_start_time = datetime.datetime.now()
+    quiz_timer_thread = None
     
     # Load quiz questions
     quiz_questions = mock_questions.get(quiz_basic_info['id'], [])
@@ -1678,6 +1725,7 @@ def show_quiz_taking(quiz_basic_info):
     # Quiz state
     question_counter_text = ft.Text("", size=Typography.SIZE_BASE, weight=ft.FontWeight.W_600, color=Colors.TEXT_SECONDARY)
     question_text_display = ft.Text("", size=Typography.SIZE_XL, weight=ft.FontWeight.W_600, color=Colors.TEXT_PRIMARY)
+    timer_text = ft.Text("", size=Typography.SIZE_LG, weight=ft.FontWeight.W_600, color=Colors.ERROR)
     question_component_container = ft.Container(content=ft.Column([]))
     
     def update_question_display():
@@ -1725,6 +1773,10 @@ def show_quiz_taking(quiz_basic_info):
             update_question_display()
     
     def handle_submit(e):
+        global quiz_timer_thread
+        if quiz_timer_thread:
+            quiz_timer_thread.do_run = False # Signal thread to stop
+            quiz_timer_thread = None
         show_quiz_results(quiz_basic_info, user_answers, quiz_start_time)
     
     def exit_quiz(e):
@@ -1751,6 +1803,30 @@ def show_quiz_taking(quiz_basic_info):
         progress_bar.value = progress
         current_page.update()
     
+    def run_timer():
+        """Background thread function to update the countdown timer."""
+        duration_minutes = quiz_basic_info.get('duration_minutes', 10)
+        end_time = quiz_start_time + datetime.timedelta(minutes=duration_minutes)
+        
+        t = threading.current_thread()
+        while getattr(t, "do_run", True):
+            remaining = end_time - datetime.datetime.now()
+            if remaining.total_seconds() <= 0:
+                timer_text.value = "00:00"
+                current_page.update()
+                # Use page.run() to ensure thread-safe execution of UI-modifying code
+                current_page.run(handle_submit(None))
+                break
+
+            minutes, seconds = divmod(int(remaining.total_seconds()), 60)
+            timer_text.value = f"{minutes:02d}:{seconds:02d}"
+            current_page.update()
+            time.sleep(1)
+
+    # Start the timer thread
+    quiz_timer_thread = threading.Thread(target=run_timer, daemon=True)
+    quiz_timer_thread.start()
+
     # Main quiz interface
     quiz_content = ft.Container(
         content=ft.Column(scroll=ft.ScrollMode.AUTO, controls=[
@@ -1766,7 +1842,10 @@ def show_quiz_taking(quiz_basic_info):
                                 color=Colors.TEXT_PRIMARY
                             ),
                             question_counter_text
-                        ], expand=True),
+                        ], expand=True, spacing=Spacing.XS),
+                        ft.Icon(ft.Icons.TIMER, color=Colors.ERROR),
+                        timer_text,
+                        ft.Container(width=Spacing.XL),
                         create_secondary_button("Exit Quiz", on_click=exit_quiz, width=100)
                     ]),
                     ft.Container(height=Spacing.LG),
@@ -2053,7 +2132,7 @@ def show_settings_page():
 # =============================================================================
 
 def main_page(page: ft.Page):
-    """Main application entry point"""
+    """Main application entry point""" 
     global current_page, current_user, sidebar_drawer
     current_page = page
     
@@ -2077,7 +2156,12 @@ def main_page(page: ft.Page):
         page.appbar.visible = not is_wide
 
         # Check if the main layout is a Row (meaning sidebar is visible)
-        is_sidebar_visible = len(page.controls) > 0 and isinstance(page.controls[0], ft.Row)
+        is_sidebar_visible = (
+            len(page.controls) > 0 and 
+            hasattr(page.controls[0], 'content') and 
+            isinstance(page.controls[0].content, ft.Row) and
+            len(page.controls[0].content.controls) > 1
+        )
 
         if is_wide and not is_sidebar_visible:
             # Switch to wide view: show sidebar
