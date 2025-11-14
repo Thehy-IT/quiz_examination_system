@@ -446,7 +446,7 @@ def create_sidebar(user_role, active_page="dashboard"):
                 create_sidebar_item(ft.Icons.PEOPLE, "User Management", active_page == "users")
             )
         sidebar_items.extend([
-            create_sidebar_item(ft.Icons.SETTINGS, "Settings", active_page == "settings"),
+            create_sidebar_item(ft.Icons.SETTINGS, "Settings", active_page == "settings", on_click=lambda e: show_settings_page()),
         ])
     else:  # examinee
         sidebar_items = [
@@ -1792,6 +1792,42 @@ def show_quiz_results(quiz_data, user_answers, start_time):
     current_page.add(results_content)
     current_page.update()
 
+def show_settings_page():
+    """Show a placeholder settings page"""
+    global current_page
+    current_page.clean()
+
+    sidebar = create_sidebar(current_user['role'], "settings")
+
+    main_content = ft.Container(
+        content=ft.Column([
+            # Header
+            ft.Container(
+                content=ft.Column([
+                    create_page_title("Settings"),
+                    create_subtitle("Manage your application settings.")
+                ]),
+                padding=ft.padding.only(bottom=Spacing.XXL)
+            ),
+
+            # Placeholder content
+            create_card(
+                content=ft.Column([
+                    ft.Icon(ft.Icons.SETTINGS_SUGGEST, size=48, color=Colors.GRAY_400),
+                    ft.Container(height=Spacing.SM),
+                    ft.Text("Settings Page", size=Typography.SIZE_LG, weight=ft.FontWeight.W_600, color=Colors.TEXT_SECONDARY),
+                    ft.Text("This feature is under construction.", size=Typography.SIZE_SM, color=Colors.TEXT_MUTED)
+                ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                padding=Spacing.XXXXL
+            )
+        ]),
+        padding=Spacing.XXXXL,
+        expand=True
+    )
+
+    layout = ft.Row([sidebar, main_content], expand=True)
+    current_page.add(layout)
+    current_page.update()
 # =============================================================================
 # MAIN APPLICATION
 # =============================================================================
