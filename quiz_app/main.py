@@ -92,7 +92,7 @@ quiz_timer_thread = None
 # =============================================================================
 
 # mock_users: Từ điển chứa thông tin tài khoản người dùng mẫu
-# Key là username (tên đăng nhập), value là dict chứa:
+# Key là username (tên đăng nhập), chứa các thuộc tính:
 # - id: ID duy nhất của user
 # - username: tên đăng nhập
 # - password: mật khẩu (trong thực tế sẽ được hash)
@@ -110,7 +110,7 @@ mock_users = {
 }
 
 # mock_quizzes: List chứa các bài quiz mẫu
-# Mỗi quiz là một dict với các thông tin:
+# Mỗi quiz sẽ chưa các thông tin (attribute):
 # - id: ID duy nhất của quiz
 # - title: tiêu đề quiz
 # - description: mô tả quiz
@@ -129,7 +129,7 @@ mock_quizzes = [
 ]
 
 # mock_classes: List chứa thông tin các lớp học mẫu
-# Mỗi class là dict với:
+# Mỗi class sẽ chứa :
 # - id: ID duy nhất của lớp
 # - name: tên lớp
 # - instructor_id: ID của giảng viên dạy lớp (liên kết với mock_users)
@@ -140,8 +140,8 @@ mock_classes = [
 ]
 
 # mock_questions: Từ điển chứa câu hỏi cho từng quiz
-# Key là quiz_id (liên kết với mock_quizzes), value là list các câu hỏi
-# Mỗi câu hỏi là dict với:
+# Key là quiz_id (liên kết với mock_quizzes)
+# Mỗi câu hỏi sẽ có các thuộc tính như:
 # - id: ID duy nhất của câu hỏi
 # - question_type: loại câu hỏi ('multiple_choice', 'true_false', 'fill_in_blank', 'multiple_select', 'short_answer')
 # - question_text: nội dung câu hỏi
@@ -183,13 +183,13 @@ mock_questions = {
             'options': [
                 {'option_text': 'Django', 'is_correct': True},
                 {'option_text': 'Flask', 'is_correct': True},
-                {'option_text': 'React', 'is_correct': False},  # React là JS framework, không phải Python
+                {'option_text': 'React', 'is_correct': False},  
                 {'option_text': 'FastAPI', 'is_correct': True}
             ]
         },
         {
             'id': 5,
-            'question_type': 'short_answer',  # Câu hỏi trả lời ngắn
+            'question_type': 'short_answer',  
             'question_text': 'Explain the difference between a list and a tuple in Python.',
             'sample_answer': 'Lists are mutable and use square brackets, while tuples are immutable and use parentheses.'  # Mẫu đáp án để tham khảo
         }
@@ -197,8 +197,8 @@ mock_questions = {
 }
 
 # mock_notifications: Từ điển chứa thông báo cho từng role
-# Key là role ('instructor', 'admin', 'examinee'), value là list thông báo
-# Mỗi thông báo là dict với:
+# Key là role ('instructor', 'admin', 'examinee')
+# Mỗi thông báo sẽ có:
 # - id: ID thông báo
 # - text: nội dung thông báo
 # - read: đã đọc hay chưa (boolean)
