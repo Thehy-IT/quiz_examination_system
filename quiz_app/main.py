@@ -941,9 +941,9 @@ def show_instructor_dashboard():
                         color=Colors.TEXT_MUTED
                     ),
                     ft.Container(expand=True),
-                    create_secondary_button("Edit", width=80),
+                    create_secondary_button("Edit", on_click=lambda e, q=quiz: show_question_management(q), width=80),
                     ft.Container(width=Spacing.SM),
-                    create_primary_button("View", width=80)
+                    create_primary_button("View", on_click=lambda e: show_results_overview(), width=80)
                 ])
             ]),
             padding=Spacing.XL
