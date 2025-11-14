@@ -588,6 +588,61 @@ def create_app_bar():
         leading=ft.IconButton(ft.Icons.MENU, on_click=open_drawer, tooltip="Menu"),
         leading_width=40
     )
+
+def create_app_background(content_control):
+    """Creates the standard application background with a gradient and decorative shapes."""
+    return ft.Container(
+        expand=True,
+        # The alignment is important to center the content if it doesn't expand
+        alignment=ft.alignment.center,
+        gradient=ft.LinearGradient(
+            begin=ft.alignment.top_left,
+            end=ft.alignment.bottom_right,
+            colors=[
+                Colors.PRIMARY_LIGHTEST,
+                Colors.GRAY_100,
+                Colors.PRIMARY_LIGHTER,
+            ]
+        ),
+        content=ft.Stack([
+            # Decorative shapes
+            ft.Container(
+                width=150,
+                height=150,
+                bgcolor=ft.Colors.with_opacity(0.25, Colors.PRIMARY_LIGHT),
+                border_radius=ft.border_radius.all(75),
+                top=20,
+                left=40,
+            ),
+            ft.Container(
+                width=200,
+                height=200,
+                bgcolor=ft.Colors.with_opacity(0.08, Colors.SUCCESS),
+                border_radius=ft.border_radius.all(100),
+                bottom=20,
+                right=50,
+            ),
+            ft.Container(
+                width=100,
+                height=100,
+                bgcolor=ft.Colors.with_opacity(0.15, Colors.WARNING),
+                border_radius=ft.border_radius.all(50),
+                top=150,
+                right=150,
+            ),
+            ft.Container(
+                width=300,
+                height=150,
+                bgcolor=ft.Colors.with_opacity(0.07, Colors.PRIMARY),
+                border_radius=BorderRadius.XXL,
+                bottom=60,
+                left=100,
+            ),
+            # The main content is placed on top of the shapes
+            content_control
+        ])
+    )
+
 # =============================================================================
 # PAGE FUNCTIONS
 # =============================================================================
@@ -708,83 +763,17 @@ def show_login():
     # 3. Thêm viền mỏng để tạo cảm giác "kính"
     login_form.content.border = ft.border.all(1, ft.Colors.with_opacity(0.3, Colors.WHITE)) # Giữ nguyên viền
     login_form.content.border_radius = BorderRadius.XXL # Đồng bộ độ bo góc của content với Card
-    # Main login container
-    login_container = ft.Container(
-        expand=True,
-        alignment=ft.alignment.center,
-        gradient=ft.LinearGradient(
-            begin=ft.alignment.top_left, # Thay đổi hướng gradient
-            end=ft.alignment.bottom_right,
-            colors=[
-                Colors.PRIMARY_LIGHTEST, # Màu nền nhẹ nhàng hơn
-                Colors.GRAY_100,
-                Colors.PRIMARY_LIGHTER,
-            ]
-        ),
-        content=ft.Stack([
-            # Các hình dạng nền
-            # Hình 1: Tròn, trên cùng bên trái
-            ft.Container(
-                width=150,
-                height=150,
-                bgcolor=ft.Colors.with_opacity(0.25, Colors.PRIMARY_LIGHT),
-                border_radius=ft.border_radius.all(75),
-                top=20,
-                left=40,
-            ),
-            # Hình 2: Tròn, dưới cùng bên phải
-            ft.Container(
-                width=200,
-                height=200,
-                bgcolor=ft.Colors.with_opacity(0.08, Colors.SUCCESS), # Hình tròn mờ khác
-                border_radius=ft.border_radius.all(100),
-                bottom=20,
-                right=50,
-            ),
-            # Hình 3: Tròn, trên cùng bên phải
-            ft.Container(
-                width=100,
-                height=100,
-                bgcolor=ft.Colors.with_opacity(0.15, Colors.WARNING),
-                border_radius=ft.border_radius.all(50),
-                top=150,
-                right=150,
-            ),
-            # Hình 4: Chữ nhật bo góc, dưới cùng bên trái
-            ft.Container(
-                width=300,
-                height=150,
-                bgcolor=ft.Colors.with_opacity(0.07, Colors.PRIMARY), # Hình chữ nhật bo góc mờ
-                border_radius=BorderRadius.XXL,
-                bottom=60,
-                left=100,
-            ),
-            # Hình 5: Tròn, giữa bên trái
-            ft.Container(
-                width=180,
-                height=180,
-                bgcolor=ft.Colors.with_opacity(0.12, Colors.ERROR),
-                border_radius=ft.border_radius.all(90),
-                top=300,
-                left=200,
-            ),
-            # Thêm các hình dạng mới
-            # Hình 6: Vuông nhỏ, trên cùng bên phải
-            ft.Container(
-                width=80,
-                height=80,
-                bgcolor=ft.Colors.with_opacity(0.1, Colors.GRAY_400),
-                border_radius=ft.border_radius.all(10), # Vuông bo góc nhẹ
-                top=80,
-                right=80,
-            ),
-            # Form đăng nhập chính, được căn giữa trên cùng các hình dạng
-            ft.Column([
-                login_form
-            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, alignment=ft.MainAxisAlignment.CENTER, expand=True)
-        ])
+
+    # The main content for the login page
+    login_content = ft.Column(
+        [login_form],
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        alignment=ft.MainAxisAlignment.CENTER,
+        expand=True
     )
-    
+
+    # Wrap the content with the new background
+    login_container = create_app_background(login_content)
     current_page.add(login_container)
     current_page.update()
 
@@ -921,7 +910,7 @@ def show_instructor_dashboard():
                     create_primary_button("Create New Quiz", on_click=lambda e: show_quiz_management(), width=200)
                 ]),
                 padding=Spacing.XXXXL,
-                expand=True)
+                expand=True, bgcolor=Colors.GRAY_50)
         ]),
         padding=Spacing.XXXXL,
         expand=True
@@ -933,10 +922,10 @@ def show_instructor_dashboard():
     current_page.appbar = create_app_bar()
 
     if current_page.width >= 1000:
-        current_page.add(ft.Row([sidebar, main_content], expand=True))
+        current_page.add(create_app_background(ft.Row([sidebar, main_content], expand=True)))
         current_page.appbar.visible = False
     else:
-        current_page.add(main_content)
+        current_page.add(create_app_background(main_content))
         current_page.appbar.visible = True
     current_page.update()
 
@@ -1106,7 +1095,7 @@ def show_quiz_management():
                     )
                 ]),
                 padding=Spacing.XL,
-                expand=True
+                expand=True, bgcolor=Colors.GRAY_50
             )
         ]),
         expand=True
@@ -1118,10 +1107,10 @@ def show_quiz_management():
     current_page.appbar = create_app_bar()
 
     if current_page.width >= 1000:
-        current_page.add(ft.Row([sidebar, main_content], expand=True))
+        current_page.add(create_app_background(ft.Row([sidebar, main_content], expand=True)))
         current_page.appbar.visible = False
     else:
-        current_page.add(main_content)
+        current_page.add(create_app_background(main_content))
         current_page.appbar.visible = True
     current_page.update()
 
@@ -1490,7 +1479,7 @@ def show_question_management(quiz):
                     )
                 ]),
                 padding=Spacing.XL,
-                expand=True
+                expand=True, bgcolor=Colors.GRAY_50
             )
         ]),
         expand=True
@@ -1502,10 +1491,10 @@ def show_question_management(quiz):
     current_page.appbar = create_app_bar()
 
     if current_page.width >= 1000:
-        current_page.add(ft.Row([sidebar, main_content], expand=True))
+        current_page.add(create_app_background(ft.Row([sidebar, main_content], expand=True)))
         current_page.appbar.visible = False
     else:
-        current_page.add(main_content)
+        current_page.add(create_app_background(main_content))
         current_page.appbar.visible = True
     current_page.update()
 
@@ -1579,7 +1568,7 @@ def show_examinee_dashboard():
                     ft.Column(quiz_cards, spacing=Spacing.LG)
                 ]),
                 padding=Spacing.XXXXL,
-                expand=True)
+                expand=True, bgcolor=Colors.GRAY_50)
         ]),
         expand=True
     )
@@ -1590,10 +1579,10 @@ def show_examinee_dashboard():
     current_page.appbar = create_app_bar()
 
     if current_page.width >= 1000:
-        current_page.add(ft.Row([sidebar, main_content], expand=True))
+        current_page.add(create_app_background(ft.Row([sidebar, main_content], expand=True)))
         current_page.appbar.visible = False
     else:
-        current_page.add(main_content)
+        current_page.add(create_app_background(main_content))
         current_page.appbar.visible = True
 
     current_page.update()
@@ -1916,7 +1905,7 @@ def show_results_overview():
                     )
                 ]),
                 padding=Spacing.XXXXL,
-                expand=True
+                expand=True, bgcolor=Colors.GRAY_50
             )
         ]),
         expand=True
@@ -1928,10 +1917,10 @@ def show_results_overview():
     current_page.appbar = create_app_bar()
 
     if current_page.width >= 1000:
-        current_page.add(ft.Row([sidebar, main_content], expand=True))
+        current_page.add(create_app_background(ft.Row([sidebar, main_content], expand=True)))
         current_page.appbar.visible = False
     else:
-        current_page.add(main_content)
+        current_page.add(create_app_background(main_content))
         current_page.appbar.visible = True
     current_page.update()
 
@@ -1969,7 +1958,7 @@ def show_settings_page():
                     )
                 ]),
                 padding=Spacing.XXXXL,
-                expand=True
+                expand=True, bgcolor=Colors.GRAY_50
             )
         ]),
         expand=True
@@ -1981,10 +1970,10 @@ def show_settings_page():
     current_page.appbar = create_app_bar()
 
     if current_page.width >= 1000:
-        current_page.add(ft.Row([sidebar, main_content], expand=True))
+        current_page.add(create_app_background(ft.Row([sidebar, main_content], expand=True)))
         current_page.appbar.visible = False
     else:
-        current_page.add(main_content)
+        current_page.add(create_app_background(main_content))
         current_page.appbar.visible = True
     current_page.update()
 # =============================================================================
@@ -2021,13 +2010,13 @@ def main_page(page: ft.Page):
         if is_wide and not is_sidebar_visible:
             # Switch to wide view: show sidebar
             main_content = page.controls[0]
-            page.controls.clear()
-            page.controls.append(ft.Row([page.drawer.controls[0], main_content], expand=True))
+            # The background is the root control, its content is the Row
+            page.controls[0].content = ft.Row([page.drawer.controls[0], main_content.content.controls[1]], expand=True)
         elif not is_wide and is_sidebar_visible:
             # Switch to narrow view: hide sidebar
-            main_content = page.controls[0].controls[1]
-            page.controls.clear()
-            page.controls.append(main_content)
+            main_content = page.controls[0].content.controls[1]
+            # The background is the root control, its content is now just the main content
+            page.controls[0].content = main_content
         page.update()
 
     page.on_resize = handle_resize
