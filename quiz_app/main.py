@@ -1359,20 +1359,21 @@ def show_question_management(quiz):
         
         # Type-specific data collection
         if question_type == "multiple_choice":
-            options_container = dynamic_form_container.content.controls[1:]
+            form_controls = dynamic_form_container.content.controls
             option_texts = []
-            for i in range(4):
-                option_field = options_container[i*2]  # Skip spacing containers
-                if hasattr(option_field, 'value'):
-                    option_texts.append(option_field.value or "")
+            # Lấy giá trị từ các ô nhập liệu (vị trí 2, 4, 6, 8)
+            option_texts.append(form_controls[2].value or "")
+            option_texts.append(form_controls[4].value or "")
+            option_texts.append(form_controls[6].value or "")
+            option_texts.append(form_controls[8].value or "")
             
             if not all(opt.strip() for opt in option_texts):
                 question_error_text.value = "All options are required for multiple choice questions"
                 current_page.update()
                 return
             
-            correct_group = options_container[-1]  # Last element is the correct answer group
-            if not hasattr(correct_group, 'value') or not correct_group.value:
+            correct_group = form_controls[-1]  # RadioGroup là thành phần cuối cùng
+            if not correct_group.value:
                 question_error_text.value = "Please select the correct answer"
                 current_page.update()
                 return
@@ -1405,6 +1406,30 @@ def show_question_management(quiz):
             sample_field = dynamic_form_container.content.controls[2]
             new_question['sample_answer'] = getattr(sample_field, 'value', '') or ''
         
+        elif question_type == "multiple_select":
+            options_container = dynamic_form_container.content.controls[2:] # Bắt đầu từ Row đầu tiên
+            options = []
+            has_empty_option = False
+            for i in range(4):
+                row = options_container[i*2] # Bỏ qua các container khoảng cách
+                option_field = row.controls[0]
+                checkbox = row.controls[1]
+                
+                option_text = option_field.value or ""
+                if not option_text.strip():
+                    has_empty_option = True
+                    break
+                
+                options.append({
+                    'option_text': option_text,
+                    'is_correct': checkbox.value
+                })
+            if has_empty_option:
+                question_error_text.value = "All option texts are required for multiple select questions"
+                current_page.update()
+                return
+            new_question['options'] = options
+
         # Add to mock data
         if quiz['id'] not in mock_questions:
             mock_questions[quiz['id']] = []
@@ -1496,6 +1521,19 @@ def show_question_management(quiz):
         elif question_type == "short_answer":
             preview_content = ft.Text("Sample: " + (question.get('sample_answer', 'No sample provided')[:50] + "..."), 
                                     size=Typography.SIZE_SM, color=Colors.TEXT_MUTED)
+        elif question_type == "multiple_select":
+            correct_options = [opt['option_text'] for opt in question.get('options', []) if opt['is_correct']]
+            preview_content = ft.Column([
+                ft.Column([
+                    ft.Text(f"- {opt['option_text']}", size=Typography.SIZE_SM, color=Colors.TEXT_SECONDARY) for opt in question.get('options', [])
+                ], spacing=Spacing.XS),
+                ft.Container(height=Spacing.SM),
+                ft.Row([
+                    ft.Text("Correct Answers:", size=Typography.SIZE_SM, color=Colors.TEXT_MUTED),
+                    ft.Text(", ".join(correct_options), size=Typography.SIZE_SM, weight=ft.FontWeight.W_600, color=Colors.SUCCESS)
+                ])
+            ])
+
         else:
             preview_content = ft.Text("Preview not available", size=Typography.SIZE_SM, color=Colors.TEXT_MUTED)
         
