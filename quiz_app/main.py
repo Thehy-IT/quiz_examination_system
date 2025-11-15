@@ -1181,6 +1181,38 @@ def show_quiz_management():
     
     sidebar = create_sidebar(current_user['role'], "quizzes")
     
+    # --- Search and Filter Logic ---
+    search_field = create_text_input("Search by quiz title...", width=300, icon=ft.Icons.SEARCH)
+    quiz_list_view = ft.Column(spacing=Spacing.LG)
+
+    def update_quiz_list(e=None):
+        search_term = search_field.value.lower() if search_field.value else ""
+        
+        # Filter quizzes based on current user and search term
+        user_quizzes = [q for q in mock_quizzes if q['created_by'] == current_user['id']]
+        filtered_quizzes = [
+            q for q in user_quizzes if search_term in q['title'].lower()
+        ]
+
+        quiz_list_view.controls.clear()
+        if filtered_quizzes:
+            for quiz in filtered_quizzes:
+                quiz_list_view.controls.append(create_quiz_card(quiz))
+        else:
+            quiz_list_view.controls.append(create_card(
+                content=ft.Column([
+                    ft.Icon(ft.Icons.SEARCH_OFF, size=48, color=Colors.GRAY_400),
+                    ft.Container(height=Spacing.SM),
+                    ft.Text("No quizzes found", size=Typography.SIZE_LG, weight=ft.FontWeight.W_600, color=Colors.TEXT_SECONDARY),
+                    ft.Text(f"Your search for '{search_field.value}' did not match any quizzes.", size=Typography.SIZE_SM, color=Colors.TEXT_MUTED)
+                ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                padding=Spacing.XXXXL
+            ))
+        
+        current_page.update()
+
+    search_field.on_change = update_quiz_list
+
     # Quiz creation form (initially hidden)
     quiz_title_field = create_text_input("Quiz Title", width=400)
     quiz_description_field = create_text_input("Description", width=400, multiline=True, min_lines=3)
@@ -1273,12 +1305,9 @@ def show_quiz_management():
         show_quiz_management()  # Refresh the page
     
     def edit_quiz(quiz):
-        def handler(e):
-            show_question_management(quiz)
-        return handler
+        return lambda e: show_question_management(quiz)
     
-    # Quiz creation form
-    quiz_form_container = create_card(
+    quiz_form_container = create_card( # Quiz creation form
         content=ft.Column([
             create_section_title("Create New Quiz"),
             ft.Container(height=Spacing.LG),
@@ -1307,11 +1336,8 @@ def show_quiz_management():
     )
     quiz_form_container.visible = False
     
-    # User's quizzes
-    user_quizzes = [q for q in mock_quizzes if q['created_by'] == current_user['id']]
-    quiz_cards = []
-    
-    for quiz in user_quizzes:
+    # --- Function to create a single quiz card ---
+    def create_quiz_card(quiz):
         class_name = next((c['name'] for c in mock_classes if c['id'] == quiz.get('class_id')), "Unassigned")
 
         quiz_card = create_card(
@@ -1366,8 +1392,10 @@ def show_quiz_management():
             ]),
             padding=Spacing.LG
         )
-        quiz_cards.append(quiz_card)
-    
+        return quiz_card
+
+    # Initial population of the list
+    update_quiz_list()
     # Main content
     main_content = ft.Container(
         content=ft.Column(spacing=0, controls=[
@@ -1379,7 +1407,8 @@ def show_quiz_management():
                         ft.Column([
                             create_page_title("Quiz Management"),
                             create_subtitle("Create and manage your quizzes")
-                        ], expand=True),
+                        ], expand=True, spacing=Spacing.XS),
+                        search_field,
                         create_primary_button("Create New Quiz", on_click=show_create_form, width=150)
                     ]),
                     
@@ -1393,7 +1422,7 @@ def show_quiz_management():
                     # Quizzes list
                     create_section_title("Your Quizzes"),
                     ft.Container(height=Spacing.LG),
-                    ft.Column(quiz_cards, spacing=Spacing.LG) if quiz_cards else create_card(
+                    quiz_list_view if quiz_list_view.controls else create_card(
                         content=ft.Column([
                             ft.Image(src="assets/logo.png", width=48, height=48),
                             ft.Container(height=Spacing.SM),
@@ -1889,6 +1918,38 @@ def show_examinee_dashboard():
     
     sidebar = create_sidebar(current_user['role'], "home")
     
+    # --- Search and Filter Logic ---
+    search_field = create_text_input("Search by quiz title...", width=300, icon=ft.Icons.SEARCH)
+    quiz_list_view = ft.Column(spacing=Spacing.LG)
+
+    def update_quiz_list(e=None):
+        search_term = search_field.value.lower() if search_field.value else ""
+        
+        # Filter quizzes based on search term
+        filtered_quizzes = [
+            q for q in mock_quizzes if search_term in q['title'].lower()
+        ]
+
+        quiz_list_view.controls.clear()
+        if filtered_quizzes:
+            for quiz in filtered_quizzes:
+                quiz_list_view.controls.append(create_quiz_card(quiz))
+        else:
+            quiz_list_view.controls.append(create_card(
+                content=ft.Column([
+                    ft.Icon(ft.Icons.SEARCH_OFF, size=48, color=Colors.GRAY_400),
+                    ft.Container(height=Spacing.SM),
+                    ft.Text("No quizzes found", size=Typography.SIZE_LG, weight=ft.FontWeight.W_600, color=Colors.TEXT_SECONDARY),
+                    ft.Text(f"Your search for '{search_field.value}' did not match any available quizzes.", size=Typography.SIZE_SM, color=Colors.TEXT_MUTED)
+                ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                padding=Spacing.XXXXL
+            ))
+        
+        current_page.update()
+
+    search_field.on_change = update_quiz_list
+
+
     def handle_start_quiz(quiz):
         def start_action(e):
             if quiz.get('password'):
@@ -1932,9 +1993,8 @@ def show_examinee_dashboard():
                 show_quiz_taking(quiz)
         return start_action
 
-    # Available quizzes
-    quiz_cards = []
-    for quiz in mock_quizzes:
+    # --- Function to create a single quiz card for examinee ---
+    def create_quiz_card(quiz):
         quiz_card = create_card(
             content=ft.Column([
                 ft.Row([
@@ -1981,9 +2041,10 @@ def show_examinee_dashboard():
             ]),
             padding=Spacing.XL
         )
-        quiz_cards.append(quiz_card)
-    
-    # Main content
+        return quiz_card
+
+    # Initial population of the list
+    update_quiz_list()
     main_content = ft.Container(
         content=ft.Column(spacing=0, controls=[
             create_app_header(),
@@ -1993,15 +2054,15 @@ def show_examinee_dashboard():
                     ft.Container(
                         content=ft.Column([
                             create_page_title(f"Welcome, {current_user['username']}!"),
-                            create_subtitle("Choose a quiz to test your knowledge.")
-                        ]),
+                            create_subtitle("Choose a quiz to test your knowledge."),
+                        ], spacing=Spacing.XS),
                         padding=ft.padding.only(bottom=Spacing.XXL)
                     ),
                     
                     # Available quizzes
-                    create_section_title("Available Quizzes"),
+                    ft.Row([create_section_title("Available Quizzes"), ft.Container(expand=True), search_field]),
                     ft.Container(height=Spacing.LG),
-                    ft.Column(quiz_cards, spacing=Spacing.LG)
+                    quiz_list_view
                 ]),
                 padding=Spacing.XXXXL,
                 expand=True, bgcolor=Colors.GRAY_50)
@@ -2453,6 +2514,34 @@ def show_class_management():
 
     sidebar = create_sidebar(current_user['role'], "classes")
 
+    # --- Search and Filter Logic ---
+    search_field = create_text_input("Search by class name...", width=300, icon=ft.Icons.SEARCH)
+    class_list_view = ft.Column(spacing=Spacing.LG)
+
+    def update_class_list(e=None):
+        search_term = search_field.value.lower() if search_field.value else ""
+        
+        filtered_classes = [
+            c for c in mock_classes if search_term in c['name'].lower()
+        ]
+
+        class_list_view.controls.clear()
+        if filtered_classes:
+            for cls in filtered_classes:
+                class_list_view.controls.append(create_class_card(cls))
+        else:
+            class_list_view.controls.append(create_card(
+                content=ft.Column([
+                    ft.Icon(ft.Icons.SEARCH_OFF, size=48, color=Colors.GRAY_400),
+                    ft.Container(height=Spacing.SM),
+                    ft.Text("No classes found", size=Typography.SIZE_LG, weight=ft.FontWeight.W_600, color=Colors.TEXT_SECONDARY),
+                ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                padding=Spacing.XXXXL
+            ))
+        current_page.update()
+
+    search_field.on_change = update_class_list
+
     def handle_delete_class(class_id_to_delete):
         def on_delete(e):
             global mock_classes
@@ -2534,8 +2623,8 @@ def show_class_management():
     class_form_container.visible = False
 
     # --- Danh sách các lớp học hiện có ---
-    class_cards = []
-    for cls in mock_classes:
+    def create_class_card(cls):
+        """Helper function to create a class card."""
         instructor_name = next((user['username'] for user in mock_users.values() if user['id'] == cls['instructor_id']), "N/A")
         class_card = create_card(
             content=ft.Row([
@@ -2549,8 +2638,10 @@ def show_class_management():
             ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
             padding=Spacing.LG
         )
-        class_cards.append(class_card)
+        return class_card
 
+    # Initial population of the list
+    update_class_list()
     # --- Nội dung chính của trang ---
     main_content = ft.Container(
         content=ft.Column(spacing=0, controls=[
@@ -2561,7 +2652,8 @@ def show_class_management():
                         ft.Column([
                             create_page_title("Quản lý Lớp học"),
                             create_subtitle("Tạo và quản lý các lớp học trong hệ thống.")
-                        ], expand=True),
+                        ], expand=True, spacing=Spacing.XS),
+                        search_field,
                         create_primary_button("Tạo Lớp mới", on_click=show_create_form, width=150)
                     ]),
                     ft.Container(height=Spacing.XXL),
@@ -2569,7 +2661,7 @@ def show_class_management():
                     ft.Container(height=Spacing.XL),
                     create_section_title("Danh sách Lớp học"),
                     ft.Container(height=Spacing.LG),
-                    ft.Column(class_cards, spacing=Spacing.LG) if class_cards else ft.Text("Chưa có lớp học nào.")
+                    class_list_view if class_list_view.controls else ft.Text("Chưa có lớp học nào.")
                 ]),
                 padding=Spacing.XXXXL, expand=True, bgcolor=Colors.GRAY_50
             )
@@ -2596,6 +2688,53 @@ def show_user_management():
     current_page.clean()
 
     sidebar = create_sidebar(current_user['role'], "users")
+
+    # --- Search and Filter Logic ---
+    search_field = create_text_input("Search by username...", width=300, icon=ft.Icons.SEARCH)
+    role_filter_dropdown = ft.Dropdown(
+        label="Filter by Role",
+        width=200,
+        value="all",
+        options=[
+            ft.dropdown.Option(key="all", text="All Roles"),
+            ft.dropdown.Option(key='instructor', text='Instructor'),
+            ft.dropdown.Option(key='admin', text='Admin'),
+            ft.dropdown.Option(key='examinee', text='Examinee'),
+        ]
+    )
+    user_list_view = ft.Column(spacing=Spacing.LG)
+
+    def update_user_list(e=None):
+        search_term = search_field.value.lower() if search_field.value else ""
+        selected_role = role_filter_dropdown.value
+
+        # Filter users
+        filtered_users = mock_users.items()
+        if search_term:
+            filtered_users = [(u, d) for u, d in filtered_users if search_term in d['username'].lower()]
+        if selected_role and selected_role != "all":
+            filtered_users = [(u, d) for u, d in filtered_users if d['role'] == selected_role]
+
+        user_list_view.controls.clear()
+        if filtered_users:
+            for username, user_data in filtered_users:
+                user_list_view.controls.append(create_user_card(username, user_data))
+        else:
+            user_list_view.controls.append(create_card(
+                content=ft.Column([
+                    ft.Icon(ft.Icons.PERSON_SEARCH, size=48, color=Colors.GRAY_400),
+                    ft.Container(height=Spacing.SM),
+                    ft.Text("No users found", size=Typography.SIZE_LG, weight=ft.FontWeight.W_600, color=Colors.TEXT_SECONDARY),
+                    ft.Text("Your search did not match any users.", size=Typography.SIZE_SM, color=Colors.TEXT_MUTED)
+                ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                padding=Spacing.XXXXL
+            ))
+        
+        current_page.update()
+
+    search_field.on_change = update_user_list
+    role_filter_dropdown.on_change = update_user_list
+
 
     # --- Edit User Dialog ---
     def open_edit_dialog(user_to_edit):
@@ -2785,8 +2924,8 @@ def show_user_management():
     user_form_container.visible = False
 
     # --- List of existing users ---
-    user_cards = []
-    for username, user_data in mock_users.items():
+    def create_user_card(username, user_data):
+        """Helper function to create a user card."""
         details_column = [
             ft.Text(user_data['username'], size=Typography.SIZE_LG, weight=ft.FontWeight.W_600),
             ft.Text(f"Role: {user_data['role'].title()}", color=Colors.TEXT_SECONDARY),
@@ -2809,8 +2948,10 @@ def show_user_management():
             ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
             padding=Spacing.LG
         )
-        user_cards.append(user_card)
+        return user_card
 
+    # Initial population of the list
+    update_user_list()
     # --- Main page content ---
     main_content = ft.Container(
         content=ft.Column(spacing=0, controls=[
@@ -2821,7 +2962,9 @@ def show_user_management():
                         ft.Column([
                             create_page_title("User Management"),
                             create_subtitle("Create and manage system users.")
-                        ], expand=True),
+                        ], expand=True, spacing=Spacing.XS),
+                        search_field,
+                        role_filter_dropdown,
                         create_primary_button("Add New User", on_click=show_create_form, width=150)
                     ]),
                     ft.Container(height=Spacing.XXL),
@@ -2829,7 +2972,7 @@ def show_user_management():
                     ft.Container(height=Spacing.XL),
                     create_section_title("All Users"),
                     ft.Container(height=Spacing.LG),
-                    ft.Column(user_cards, spacing=Spacing.LG) if user_cards else ft.Text("No users found.")
+                    user_list_view if user_list_view.controls else ft.Text("No users found.")
                 ]),
                 padding=Spacing.XXXXL, expand=True, bgcolor=Colors.GRAY_50
             )
