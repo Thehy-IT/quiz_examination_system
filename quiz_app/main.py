@@ -123,9 +123,9 @@ mock_users = {
 # - duration_minutes: thời gian làm bài (phút)
 # Mục đích: Để hiển thị danh sách quiz và quản lý quiz
 mock_quizzes = [
-    {'id': 1, 'title': 'Python Basics', 'description': 'Learn Python fundamentals', 'created_by': 1, 'created_at': '2025-01-15', 'creator': 'instructor', 'questions_count': 5, 'difficulty': 'Beginner', 'start_time': '2024-01-01 00:00', 'duration_minutes': 10},
-    {'id': 2, 'title': 'Web Development', 'description': 'HTML, CSS, JavaScript basics', 'created_by': 1, 'created_at': '2025-01-14', 'creator': 'instructor', 'questions_count': 8, 'difficulty': 'Intermediate', 'start_time': '2025-07-20 10:00', 'duration_minutes': 20},
-    {'id': 3, 'title': 'Data Structures', 'description': 'Arrays, Lists, Trees, Algorithms', 'created_by': 2, 'created_at': '2025-01-13', 'creator': 'admin', 'questions_count': 12, 'difficulty': 'Advanced', 'start_time': '2025-07-22 14:00', 'duration_minutes': 30}
+    {'id': 1, 'title': 'Python Basics', 'description': 'Learn Python fundamentals', 'created_by': 1, 'created_at': '2025-01-15', 'creator': 'instructor', 'questions_count': 5, 'difficulty': 'Beginner', 'start_time': '2024-01-01 00:00', 'duration_minutes': 10, 'class_id': 1},
+    {'id': 2, 'title': 'Web Development', 'description': 'HTML, CSS, JavaScript basics', 'created_by': 1, 'created_at': '2025-01-14', 'creator': 'instructor', 'questions_count': 8, 'difficulty': 'Intermediate', 'start_time': '2025-07-20 10:00', 'duration_minutes': 20, 'class_id': 2},
+    {'id': 3, 'title': 'Data Structures', 'description': 'Arrays, Lists, Trees, Algorithms', 'created_by': 2, 'created_at': '2025-01-13', 'creator': 'admin', 'questions_count': 12, 'difficulty': 'Advanced', 'start_time': '2025-07-22 14:00', 'duration_minutes': 30, 'class_id': 1}
 ]
 
 # mock_classes: List chứa thông tin các lớp học mẫu
@@ -1164,6 +1164,20 @@ def show_quiz_management():
     quiz_description_field = create_text_input("Description", width=400, multiline=True, min_lines=3)
     quiz_start_time_field = create_text_input("Start Time (YYYY-MM-DD HH:MM)", width=250, icon=ft.Icons.CALENDAR_MONTH)
     quiz_duration_field = create_text_input("Duration (minutes)", width=140, icon=ft.Icons.TIMER)
+    
+    # Lấy danh sách các lớp mà giảng viên hiện tại được phân công
+    instructor_classes = [c for c in mock_classes if c['instructor_id'] == current_user['id']]
+    class_dropdown = ft.Dropdown(
+        label="Select Class for this Quiz",
+        width=400,
+        border_radius=BorderRadius.MD,
+        border_color=Colors.GRAY_300,
+        focused_border_color=Colors.PRIMARY,
+        options=[
+            ft.dropdown.Option(key=cls['id'], text=cls['name']) for cls in instructor_classes
+        ]
+    )
+
     quiz_error_text = ft.Text("", color=Colors.ERROR, size=Typography.SIZE_SM)
     
     def show_create_form(e):
@@ -1173,6 +1187,7 @@ def show_quiz_management():
         quiz_error_text.value = ""
         quiz_start_time_field.value = ""
         quiz_duration_field.value = ""
+        class_dropdown.value = None
         current_page.update()
     
     def hide_create_form(e):
@@ -1184,9 +1199,15 @@ def show_quiz_management():
         description = quiz_description_field.value or ""
         start_time_str = quiz_start_time_field.value or ""
         duration_str = quiz_duration_field.value or ""
+        class_id = class_dropdown.value
         
         if not title.strip():
             quiz_error_text.value = "Quiz title is required"
+            current_page.update()
+            return
+        
+        if not class_id:
+            quiz_error_text.value = "Please select a class for the quiz"
             current_page.update()
             return
 
@@ -1216,7 +1237,8 @@ def show_quiz_management():
             'questions_count': 0,
             'difficulty': 'Beginner',
             'start_time': start_time_str.strip(),
-            'duration_minutes': duration_minutes
+            'duration_minutes': duration_minutes,
+            'class_id': int(class_id)
         }
         mock_quizzes.append(new_quiz)
         
@@ -1237,6 +1259,8 @@ def show_quiz_management():
             quiz_title_field,
             ft.Container(height=Spacing.LG),
             quiz_description_field,
+            ft.Container(height=Spacing.LG),
+            class_dropdown,
             ft.Container(height=Spacing.LG),
             ft.Row([
                 quiz_start_time_field,
@@ -1260,6 +1284,8 @@ def show_quiz_management():
     quiz_cards = []
     
     for quiz in user_quizzes:
+        class_name = next((c['name'] for c in mock_classes if c['id'] == quiz.get('class_id')), "Unassigned")
+
         quiz_card = create_card(
             content=ft.Column([
                 ft.Row([
@@ -1275,7 +1301,11 @@ def show_quiz_management():
                             size=Typography.SIZE_SM,
                             color=Colors.TEXT_SECONDARY
                         )
-                    ], expand=True),
+                    ], expand=True, spacing=Spacing.XS),
+                    ft.Column([
+                        create_badge(class_name, color=Colors.WARNING),
+                    ], alignment=ft.MainAxisAlignment.START)
+                    ,
                     create_badge(quiz['difficulty'])
                 ]),
                 ft.Container(height=Spacing.SM),
