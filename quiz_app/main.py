@@ -122,9 +122,9 @@ mock_users = {
 # - duration_minutes: thời gian làm bài (phút)
 # Mục đích: Để hiển thị danh sách quiz và quản lý quiz
 mock_quizzes = [
-    {'id': 1, 'title': 'Python Basics', 'description': 'Learn Python fundamentals', 'created_by': 1, 'created_at': '2025-01-15', 'creator': 'instructor', 'questions_count': 5, 'start_time': '2024-01-01 00:00', 'duration_minutes': 10, 'class_id': 1, 'password': '123'},
-    {'id': 2, 'title': 'Web Development', 'description': 'HTML, CSS, JavaScript basics', 'created_by': 1, 'created_at': '2025-01-14', 'creator': 'instructor', 'questions_count': 8, 'start_time': '2025-07-20 10:00', 'duration_minutes': 20, 'class_id': 2, 'password': None},
-    {'id': 3, 'title': 'Data Structures', 'description': 'Arrays, Lists, Trees, Algorithms', 'created_by': 2, 'created_at': '2025-01-13', 'creator': 'admin', 'questions_count': 12, 'start_time': '2025-07-22 14:00', 'duration_minutes': 30, 'class_id': 1, 'password': 'dsa'}
+    {'id': 1, 'title': 'Python Basics', 'description': 'Learn Python fundamentals', 'created_by': 1, 'created_at': '2025-01-15', 'creator': 'instructor', 'questions_count': 5, 'start_time': '2024-01-01 00:00', 'duration_minutes': 10, 'class_id': 1, 'password': '123', 'is_active': True},
+    {'id': 2, 'title': 'Web Development', 'description': 'HTML, CSS, JavaScript basics', 'created_by': 1, 'created_at': '2025-01-14', 'creator': 'instructor', 'questions_count': 8, 'start_time': '2025-07-20 10:00', 'duration_minutes': 20, 'class_id': 2, 'password': None, 'is_active': True},
+    {'id': 3, 'title': 'Data Structures', 'description': 'Arrays, Lists, Trees, Algorithms', 'created_by': 2, 'created_at': '2025-01-13', 'creator': 'admin', 'questions_count': 12, 'start_time': '2025-07-22 14:00', 'duration_minutes': 30, 'class_id': 1, 'password': 'dsa', 'is_active': False}
 ]
 
 # mock_classes: List chứa thông tin các lớp học mẫu
@@ -1306,7 +1306,8 @@ def show_quiz_management():
             'start_time': start_time_str.strip(),
             'duration_minutes': duration_minutes,
             'class_id': int(class_id),
-            'password': password.strip() if password else None
+            'password': password.strip() if password else None,
+            'is_active': True # Bài thi mới tạo mặc định được kích hoạt
         }
         mock_quizzes.append(new_quiz)
         
@@ -1350,6 +1351,14 @@ def show_quiz_management():
     def create_quiz_card(quiz):
         class_name = next((c['name'] for c in mock_classes if c['id'] == quiz.get('class_id')), "Unassigned")
 
+        def toggle_active_state(e):
+            # Tìm bài thi trong mock_quizzes và cập nhật trạng thái
+            for q in mock_quizzes:
+                if q['id'] == quiz['id']:
+                    q['is_active'] = e.control.value
+                    break
+            show_quiz_management() # Tải lại trang để cập nhật giao diện
+
         quiz_card = create_card(
             content=ft.Column([
                 ft.Row([
@@ -1367,7 +1376,14 @@ def show_quiz_management():
                         )
                     ], expand=True, spacing=Spacing.XS),
                     ft.Column([
+                        create_badge(
+                            "Active" if quiz.get('is_active', False) else "Disabled",
+                            color=Colors.SUCCESS if quiz.get('is_active', False) else Colors.GRAY_400
+                        ),
+                        ft.Container(height=Spacing.XS),
                         create_badge(class_name, color=Colors.WARNING),
+                        ft.Container(height=Spacing.XS),
+                        ft.Switch(value=quiz.get('is_active', False), on_change=toggle_active_state, label="Active", label_position=ft.LabelPosition.LEFT)
                     ], alignment=ft.MainAxisAlignment.START),
                 ]),
                 ft.Container(height=Spacing.SM),
@@ -1950,7 +1966,7 @@ def show_examinee_dashboard():
         
         # Filter quizzes based on search term
         filtered_quizzes = [
-            q for q in mock_quizzes if search_term in q['title'].lower()
+            q for q in mock_quizzes if search_term in q['title'].lower() and q.get('is_active', False)
         ]
 
         quiz_list_view.controls.clear()
