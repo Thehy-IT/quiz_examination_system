@@ -1963,10 +1963,17 @@ def show_examinee_dashboard():
 
     def update_quiz_list(e=None):
         search_term = search_field.value.lower() if search_field.value else ""
+        student_class_id = current_user.get('class_id')
         
-        # Filter quizzes based on search term
+        # Filter quizzes based on class assignment, active state, and search term
+        available_quizzes = []
+        if student_class_id is not None:
+            available_quizzes = [
+                q for q in mock_quizzes 
+                if q.get('is_active', False) and q.get('class_id') == student_class_id
+            ]
         filtered_quizzes = [
-            q for q in mock_quizzes if search_term in q['title'].lower() and q.get('is_active', False)
+            q for q in available_quizzes if search_term in q['title'].lower()
         ]
 
         quiz_list_view.controls.clear()
@@ -1979,7 +1986,11 @@ def show_examinee_dashboard():
                     ft.Icon(ft.Icons.SEARCH_OFF, size=48, color=Colors.GRAY_400),
                     ft.Container(height=Spacing.SM),
                     ft.Text("No quizzes found", size=Typography.SIZE_LG, weight=ft.FontWeight.W_600, color=Colors.TEXT_SECONDARY),
-                    ft.Text(f"Your search for '{search_field.value}' did not match any available quizzes.", size=Typography.SIZE_SM, color=Colors.TEXT_MUTED)
+                    ft.Text(
+                        "There are no available quizzes for your class at the moment." if not search_field.value else f"Your search for '{search_field.value}' did not match any quizzes in your class.",
+                        size=Typography.SIZE_SM,
+                        color=Colors.TEXT_MUTED
+                    )
                 ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
                 padding=Spacing.XXXXL
             ))
