@@ -156,6 +156,7 @@ mock_questions = {
             'id': 1,
             'question_type': 'multiple_choice',  # Câu hỏi trắc nghiệm 4 lựa chọn
             'question_text': 'What is Python?',
+            'difficulty': 'Easy',
             'options': [  # 4 lựa chọn, mỗi cái có text và is_correct
                 {'option_text': 'A snake', 'is_correct': False},
                 {'option_text': 'A programming language', 'is_correct': True},
@@ -167,12 +168,14 @@ mock_questions = {
             'id': 2,
             'question_type': 'true_false', 
             'question_text': 'Python is an interpreted programming language.',
+            'difficulty': 'Easy',
             'correct_answer': True  
         },
         {
             'id': 3,
             'question_type': 'fill_in_blank', 
             'question_text': 'Python was created by _______ in 1991.',
+            'difficulty': 'Medium',
             'correct_answer': 'Guido van Rossum',  
             'answer_variations': ['guido van rossum', 'guido', 'van rossum']  
         },
@@ -180,6 +183,7 @@ mock_questions = {
             'id': 4,
             'question_type': 'multiple_select',  
             'question_text': 'Which of the following are Python web frameworks? (Select all that apply)',
+            'difficulty': 'Medium',
             'options': [
                 {'option_text': 'Django', 'is_correct': True},
                 {'option_text': 'Flask', 'is_correct': True},
@@ -191,6 +195,7 @@ mock_questions = {
             'id': 5,
             'question_type': 'short_answer',  
             'question_text': 'Explain the difference between a list and a tuple in Python.',
+            'difficulty': 'Hard',
             'sample_answer': 'Lists are mutable and use square brackets, while tuples are immutable and use parentheses.'  # Mẫu đáp án để tham khảo
         }
     ]
@@ -1428,6 +1433,17 @@ def show_question_management(quiz):
     )
     question_type_group.value = "multiple_choice"  # Default
     
+    # Difficulty selector
+    difficulty_group = ft.RadioGroup(
+        content=ft.Row([
+            ft.Radio(value="Easy", label="Easy"),
+            ft.Radio(value="Medium", label="Medium"),
+            ft.Radio(value="Hard", label="Hard"),
+        ], spacing=Spacing.LG)
+    )
+    difficulty_group.value = "Easy" # Default
+
+
     # Dynamic form container
     dynamic_form_container = ft.Container()
     
@@ -1508,6 +1524,7 @@ def show_question_management(quiz):
     def show_question_form(e):
         question_form_container.visible = True
         question_text_field.value = ""
+        difficulty_group.value = "Easy"
         question_type_group.value = "multiple_choice"
         update_dynamic_form("multiple_choice")
         question_error_text.value = ""
@@ -1520,6 +1537,7 @@ def show_question_management(quiz):
     def handle_create_question(e):
         question_text = question_text_field.value or ""
         question_type = question_type_group.value
+        difficulty = difficulty_group.value
         
         # Basic validation
         if not question_text.strip():
@@ -1532,6 +1550,7 @@ def show_question_management(quiz):
             'id': len(mock_questions.get(quiz['id'], [])) + 1,
             'question_type': question_type,
             'question_text': question_text.strip(),
+            'difficulty': difficulty,
         }
         
         # Type-specific data collection
@@ -1645,6 +1664,12 @@ def show_question_management(quiz):
             ft.Container(height=Spacing.MD),
             question_text_field,
             ft.Container(height=Spacing.XL),
+
+            # Difficulty selector
+            create_subtitle("Difficulty:"),
+            ft.Container(height=Spacing.MD),
+            difficulty_group,
+            ft.Container(height=Spacing.XL),
             
             # Dynamic form based on question type
             dynamic_form_container,
@@ -1669,6 +1694,12 @@ def show_question_management(quiz):
     for i, question in enumerate(quiz_questions, 1):
         # Create type-specific preview
         question_type = question.get('question_type', 'multiple_choice')
+        difficulty = question.get('difficulty', 'Medium')
+        difficulty_color_map = {
+            'Easy': Colors.SUCCESS,
+            'Medium': Colors.WARNING,
+            'Hard': Colors.ERROR
+        }
         
         if question_type == "multiple_choice":
             correct_option = next((opt['option_text'] for opt in question.get('options', []) if opt['is_correct']), "")
@@ -1724,6 +1755,7 @@ def show_question_management(quiz):
                         color=Colors.PRIMARY
                     ),
                     create_badge(question_type.replace('_', ' ').title(), color=Colors.PRIMARY_LIGHT),
+                    create_badge(difficulty, color=difficulty_color_map.get(difficulty, Colors.GRAY_400)),
                     ft.Container(expand=True),
                     create_secondary_button("Delete", width=80)
                 ]),
