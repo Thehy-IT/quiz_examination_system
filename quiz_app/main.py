@@ -218,6 +218,15 @@ mock_notifications = {
     ],
 }
 
+# mock_activity_log: List chứa lịch sử hoạt động trên hệ thống
+# Mục đích: Để admin theo dõi các sự kiện quan trọng
+mock_activity_log = [
+    {'timestamp': '2025-07-21 10:05', 'user': 'instructor', 'action': 'đã tạo một bài thi mới', 'details': 'Web Development'},
+    {'timestamp': '2025-07-21 09:30', 'user': 'THEHY', 'action': 'đã hoàn thành bài thi', 'details': 'Python Basics'},
+    {'timestamp': '2025-07-20 15:00', 'user': 'admin', 'action': 'đã tạo người dùng mới', 'details': 'HUNG'},
+    {'timestamp': '2025-07-20 14:00', 'user': 'admin', 'action': 'đã tạo một lớp học mới', 'details': 'Lớp Phát triển Web K12'},
+]
+
 # =============================================================================
 # COMPONENT HELPER FUNCTIONS
 # =============================================================================
@@ -602,6 +611,7 @@ def create_sidebar(user_role, active_page="dashboard"):
         
         if user_role == 'instructor':
             sidebar_items.append(create_sidebar_item(ft.Icons.QUIZ, "Quiz Management", active_page == "quizzes", on_click=lambda e: show_quiz_management()))
+            sidebar_items.append(create_sidebar_item(ft.Icons.EMOJI_EVENTS, "View Results", active_page == "results", on_click=lambda e: show_results_overview()))
 
         if user_role == 'admin':
             sidebar_items.append(create_sidebar_item(ft.Icons.SCHOOL, "Classes Management", active_page == "classes", on_click=lambda e: show_class_management()))
@@ -910,94 +920,120 @@ def show_instructor_dashboard():
     # Create main layout with sidebar
     sidebar = create_sidebar(current_user['role'], "dashboard")
     
-    # Dashboard content
-    stats_cards = ft.Row([
-        create_card(
-            content=ft.Column([
-                ft.Row([
-                    ft.Image(src="assets/logo.png", width=24, height=24),
-                    ft.Text("Total Quizzes", color=Colors.TEXT_SECONDARY)
-                ]),
-                ft.Text(
-                    str(len([q for q in mock_quizzes if q['created_by'] == current_user['id']])),
-                    size=Typography.SIZE_3XL,
-                    weight=ft.FontWeight.W_700,
-                    color=Colors.TEXT_PRIMARY
-                )
-            ], spacing=Spacing.SM),
-            padding=Spacing.XL
-        ),
-        create_card(
-            content=ft.Column([
-                ft.Row([
-                    ft.Icon(ft.Icons.HELP_OUTLINE, color=Colors.SUCCESS),
-                    ft.Text("Total Questions", color=Colors.TEXT_SECONDARY)
-                ]),
-                ft.Text(
-                    str(sum(len(mock_questions.get(q['id'], [])) for q in mock_quizzes if q['created_by'] == current_user['id'])),
-                    size=Typography.SIZE_3XL,
-                    weight=ft.FontWeight.W_700,
-                    color=Colors.TEXT_PRIMARY
-                )
-            ], spacing=Spacing.SM),
-            padding=Spacing.XL
-        ),
-        create_card(
-            content=ft.Column([
-                ft.Row([
-                    ft.Icon(ft.Icons.PEOPLE, color=Colors.WARNING),
-                    ft.Text("Active Students", color=Colors.TEXT_SECONDARY)
-                ]),
-                ft.Text(
-                    "24",
-                    size=Typography.SIZE_3XL,
-                    weight=ft.FontWeight.W_700,
-                    color=Colors.TEXT_PRIMARY
-                )
-            ], spacing=Spacing.SM),
-            padding=Spacing.XL
-        )
-    ], spacing=Spacing.XL)
-    
-    # Recent quizzes
-    user_quizzes = [q for q in mock_quizzes if q['created_by'] == current_user['id']]
-    quiz_cards = []
-    
-    for quiz in user_quizzes[:3]:  # Show only first 3
-        quiz_card = create_card(
-            content=ft.Column([
-                ft.Row([
-                    ft.Column([
-                        ft.Text(
-                            quiz['title'],
-                            size=Typography.SIZE_LG,
-                            weight=ft.FontWeight.W_600,
-                            color=Colors.TEXT_PRIMARY
-                        ),
-                        ft.Text(
-                            quiz['description'],
-                            size=Typography.SIZE_SM,
-                            color=Colors.TEXT_SECONDARY
-                        )
-                    ], expand=True),
-                    create_badge(quiz['difficulty'])
-                ]),
-                ft.Container(height=Spacing.SM),
-                ft.Row([
+    # --- Helper function to create an activity log item ---
+    def create_activity_item(log):
+        icon_map = {
+            'created a new quiz': (ft.Icons.QUIZ, Colors.PRIMARY),
+            'đã tạo một bài thi mới': (ft.Icons.QUIZ, Colors.PRIMARY),
+            'completed the quiz': (ft.Icons.CHECK_CIRCLE, Colors.SUCCESS),
+            'đã hoàn thành bài thi': (ft.Icons.CHECK_CIRCLE, Colors.SUCCESS),
+            'created a new user': (ft.Icons.PERSON_ADD, Colors.WARNING),
+            'đã tạo người dùng mới': (ft.Icons.PERSON_ADD, Colors.WARNING),
+            'created a new class': (ft.Icons.SCHOOL, Colors.PRIMARY_LIGHT),
+            'đã tạo một lớp học mới': (ft.Icons.SCHOOL, Colors.PRIMARY_LIGHT),
+        }
+        icon, color = icon_map.get(log['action'], (ft.Icons.INFO, Colors.GRAY_400))
+
+        return ft.Container(
+            content=ft.Row([
+                ft.Icon(icon, color=color, size=24),
+                ft.Container(width=Spacing.LG),
+                ft.Column([
+                    ft.Row([
+                        ft.Text(log['user'], weight=ft.FontWeight.W_600, color=Colors.TEXT_PRIMARY),
+                        ft.Text(log['action'], color=Colors.TEXT_SECONDARY),
+                        ft.Text(f"'{log['details']}'", weight=ft.FontWeight.W_600, color=Colors.TEXT_PRIMARY),
+                    ], spacing=Spacing.XS),
                     ft.Text(
-                        f"{quiz['questions_count']} questions",
-                        size=Typography.SIZE_SM,
+                        f"Thời gian: {log['timestamp']}",
+                        size=Typography.SIZE_XS,
                         color=Colors.TEXT_MUTED
-                    ),
-                    ft.Container(expand=True),
-                    create_secondary_button("Edit", on_click=lambda e, q=quiz: show_question_management(q), width=80),
-                    ft.Container(width=Spacing.SM),
-                    create_primary_button("View", on_click=lambda e: show_results_overview(), width=80)
-                ])
+                    )
+                ], spacing=2)
             ]),
-            padding=Spacing.XL
+            padding=ft.padding.symmetric(vertical=Spacing.MD),
+            border=ft.border.only(bottom=ft.BorderSide(1, Colors.GRAY_200))
         )
-        quiz_cards.append(quiz_card)
+
+
+    # --- Dashboard content based on user role ---
+    stats_cards_list = []
+    if current_user['role'] == 'admin':
+        # Admin stats: Total classes, total users, total students
+        stats_cards_list.extend([
+            create_card(
+                content=ft.Column([
+                    ft.Row([ft.Icon(ft.Icons.SCHOOL, color=Colors.PRIMARY), ft.Text("Tổng số lớp học", color=Colors.TEXT_SECONDARY)]),
+                    ft.Text(str(len(mock_classes)), size=Typography.SIZE_3XL, weight=ft.FontWeight.W_700, color=Colors.TEXT_PRIMARY)
+                ], spacing=Spacing.SM),
+                padding=Spacing.XL
+            ),
+            create_card(
+                content=ft.Column([
+                    ft.Row([ft.Icon(ft.Icons.PEOPLE_OUTLINE, color=Colors.SUCCESS), ft.Text("Tổng số người dùng", color=Colors.TEXT_SECONDARY)]),
+                    ft.Text(str(len(mock_users)), size=Typography.SIZE_3XL, weight=ft.FontWeight.W_700, color=Colors.TEXT_PRIMARY)
+                ], spacing=Spacing.SM),
+                padding=Spacing.XL
+            ),
+            create_card(
+                content=ft.Column([
+                    ft.Row([ft.Icon(ft.Icons.FACE, color=Colors.WARNING), ft.Text("Tổng số sinh viên", color=Colors.TEXT_SECONDARY)]),
+                    ft.Text(str(len([u for u in mock_users.values() if u['role'] == 'examinee'])), size=Typography.SIZE_3XL, weight=ft.FontWeight.W_700, color=Colors.TEXT_PRIMARY)
+                ], spacing=Spacing.SM),
+                padding=Spacing.XL
+            )
+        ])
+    else: # instructor
+        # Instructor stats: Total quizzes, total questions, active students
+        stats_cards_list.extend([
+            create_card(
+                content=ft.Column([
+                    ft.Row([
+                        ft.Image(src="assets/logo.png", width=24, height=24),
+                        ft.Text("Total Quizzes", color=Colors.TEXT_SECONDARY)
+                    ]),
+                    ft.Text(
+                        str(len([q for q in mock_quizzes if q['created_by'] == current_user['id']])),
+                        size=Typography.SIZE_3XL,
+                        weight=ft.FontWeight.W_700,
+                        color=Colors.TEXT_PRIMARY
+                    )
+                ], spacing=Spacing.SM),
+                padding=Spacing.XL
+            ),
+            create_card(
+                content=ft.Column([
+                    ft.Row([
+                        ft.Icon(ft.Icons.HELP_OUTLINE, color=Colors.SUCCESS),
+                        ft.Text("Total Questions", color=Colors.TEXT_SECONDARY)
+                    ]),
+                    ft.Text(
+                        str(sum(len(mock_questions.get(q['id'], [])) for q in mock_quizzes if q['created_by'] == current_user['id'])),
+                        size=Typography.SIZE_3XL,
+                        weight=ft.FontWeight.W_700,
+                        color=Colors.TEXT_PRIMARY
+                    )
+                ], spacing=Spacing.SM),
+                padding=Spacing.XL
+            ),
+            create_card(
+                content=ft.Column([
+                    ft.Row([
+                        ft.Icon(ft.Icons.PEOPLE, color=Colors.WARNING),
+                        ft.Text("Active Students", color=Colors.TEXT_SECONDARY)
+                    ]),
+                    ft.Text(
+                        "24", # Placeholder
+                        size=Typography.SIZE_3XL,
+                        weight=ft.FontWeight.W_700,
+                        color=Colors.TEXT_PRIMARY
+                    )
+                ], spacing=Spacing.SM),
+                padding=Spacing.XL
+            )
+        ])
+    
+    stats_cards = ft.Row(stats_cards_list, spacing=Spacing.XL)
     
     # Main content
     main_content = ft.Container(
@@ -1008,33 +1044,69 @@ def show_instructor_dashboard():
                     # Header
                     ft.Container(
                         content=ft.Column([
-                            create_page_title(f"Welcome back, {current_user['username']}!"),
-                            create_subtitle("Here's what's happening with your quizzes today.")
+                            create_page_title(f"Chào mừng trở lại, {current_user['username']}!"),
+                            create_subtitle("Đây là tổng quan về các hoạt động trên hệ thống.") if current_user['role'] == 'admin' else create_subtitle("Here's what's happening with your quizzes today.")
                         ]),
                         padding=ft.padding.only(bottom=Spacing.XXL)
                     ),
                     
                     # Stats cards
                     stats_cards,
-                    
                     ft.Container(height=Spacing.XXXXL),
                     
-                    # Recent quizzes section
-                    create_section_title("Recent Quizzes"),
-                    ft.Container(height=Spacing.LG),
-                    ft.Column(quiz_cards, spacing=Spacing.LG) if quiz_cards else ft.Container(
-                        content=ft.Text(
-                            "No quizzes created yet. Create your first quiz to get started!",
-                            color=Colors.TEXT_MUTED
-                        ),
-                        padding=Spacing.XL
-                    ),
-                    
-                    ft.Container(height=Spacing.XL),
-                    create_primary_button("Create New Quiz", on_click=lambda e: show_quiz_management(), width=200)
+                    # --- Role-specific content ---
+                    ft.Column([
+                        # --- ADMIN: Activity History ---
+                        ft.Column([
+                            create_section_title("Lịch sử hoạt động"),
+                            ft.Container(height=Spacing.LG),
+                            create_card(
+                                content=ft.Column([create_activity_item(log) for log in mock_activity_log]),
+                                padding=ft.padding.symmetric(horizontal=Spacing.XL)
+                            )
+                        ]) if current_user['role'] == 'admin' else
+                        
+                        # --- INSTRUCTOR: Recent Quizzes ---
+                        ft.Column([
+                            create_section_title("Recent Quizzes"),
+                            ft.Container(height=Spacing.LG),
+                            ft.Column(
+                                [
+                                    create_card(
+                                        content=ft.Column([
+                                            ft.Row([
+                                                ft.Column([
+                                                    ft.Text(quiz['title'], size=Typography.SIZE_LG, weight=ft.FontWeight.W_600, color=Colors.TEXT_PRIMARY),
+                                                    ft.Text(quiz['description'], size=Typography.SIZE_SM, color=Colors.TEXT_SECONDARY)
+                                                ], expand=True),
+                                                create_badge(quiz['difficulty'])
+                                            ]),
+                                            ft.Container(height=Spacing.SM),
+                                            ft.Row([
+                                                ft.Text(f"{quiz['questions_count']} questions", size=Typography.SIZE_SM, color=Colors.TEXT_MUTED),
+                                                ft.Container(expand=True),
+                                                create_secondary_button("Edit", on_click=lambda e, q=quiz: show_question_management(q), width=80),
+                                                ft.Container(width=Spacing.SM),
+                                                create_primary_button("View", on_click=lambda e: show_results_overview(), width=80)
+                                            ])
+                                        ]),
+                                        padding=Spacing.XL
+                                    ) for quiz in [q for q in mock_quizzes if q['created_by'] == current_user['id']][:3]
+                                ],
+                                spacing=Spacing.LG
+                            ) if any(q for q in mock_quizzes if q['created_by'] == current_user['id']) else ft.Container(
+                                content=ft.Text("No quizzes created yet. Create your first quiz to get started!", color=Colors.TEXT_MUTED),
+                                padding=Spacing.XL
+                            ),
+                            ft.Container(height=Spacing.XL),
+                            create_primary_button("Create New Quiz", on_click=lambda e: show_quiz_management(), width=200)
+                        ])
+                    ])
                 ]),
                 padding=Spacing.XXXXL,
-                expand=True, bgcolor=Colors.GRAY_50)
+                expand=True,
+                bgcolor=Colors.GRAY_50
+            )
         ]),
         padding=Spacing.XXXXL,
         expand=True
@@ -2563,10 +2635,12 @@ def main_page(page: ft.Page):
     
     # --- Chế độ phát triển ---
     current_user = mock_users['admin']  # Đăng nhập với tư cách 'admin'
-    show_user_management()              # Đi thẳng vào trang quản lý người dùng
+    show_instructor_dashboard()         # Đi thẳng vào dashboard của admin
+    # current_user = mock_users['instructor']  # Đăng nhập với tư cách 'instructor'
+    # show_instructor_dashboard()              # Đi thẳng vào dashboard của instructor
 
     # --- Chế độ hoạt động bình thường ---
-    # show_login()                       # Bắt đầu từ trang đăng nhập
+    #show_login()                       # Bắt đầu từ trang đăng nhập
 
 if __name__ == "__main__":
     ft.app(target=main_page)
