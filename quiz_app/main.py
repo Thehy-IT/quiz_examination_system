@@ -605,7 +605,7 @@ def create_sidebar(user_role, active_page="dashboard"):
 
         if user_role == 'admin':
             sidebar_items.append(create_sidebar_item(ft.Icons.SCHOOL, "Classes Management", active_page == "classes", on_click=lambda e: show_class_management()))
-            sidebar_items.append(create_sidebar_item(ft.Icons.PEOPLE, "User Management", active_page == "users"))
+            sidebar_items.append(create_sidebar_item(ft.Icons.PEOPLE, "User Management", active_page == "users", on_click=lambda e: show_user_management()))
             sidebar_items.append(create_sidebar_item(ft.Icons.EMOJI_EVENTS, "View Results", active_page == "results", on_click=lambda e: show_results_overview()))
         sidebar_items.extend([
             create_sidebar_item(ft.Icons.SETTINGS, "Settings", active_page == "settings", on_click=lambda e: show_settings_page()),
@@ -2352,6 +2352,159 @@ def show_class_management():
         current_page.appbar.visible = True
     current_page.update()
 
+def show_user_management():
+    """Show the user management page for admins."""
+    global current_page, sidebar_drawer
+    current_page.clean()
+
+    sidebar = create_sidebar(current_user['role'], "users")
+
+    # --- Form to create a new user (initially hidden) ---
+    username_field = create_text_input("Username", width=400)
+    password_field = create_text_input("Password", password=True, width=400)
+    role_dropdown = ft.Dropdown(
+        label="Select Role",
+        width=400,
+        border_radius=BorderRadius.MD,
+        border_color=Colors.GRAY_300,
+        focused_border_color=Colors.PRIMARY,
+        options=[
+            ft.dropdown.Option(key='instructor', text='Instructor'),
+            ft.dropdown.Option(key='admin', text='Admin'),
+            ft.dropdown.Option(key='examinee', text='Examinee (Student)'),
+        ]
+    )
+    user_error_text = ft.Text("", color=Colors.ERROR, size=Typography.SIZE_SM)
+
+    def show_create_form(e):
+        user_form_container.visible = True
+        username_field.value = ""
+        password_field.value = ""
+        role_dropdown.value = None
+        user_error_text.value = ""
+        current_page.update()
+
+    def hide_create_form(e):
+        user_form_container.visible = False
+        current_page.update()
+
+    def handle_create_user(e):
+        username = username_field.value or ""
+        password = password_field.value or ""
+        role = role_dropdown.value
+
+        if not username.strip() or not password.strip():
+            user_error_text.value = "Username and password are required."
+            current_page.update()
+            return
+        if not role:
+            user_error_text.value = "Please select a role."
+            current_page.update()
+            return
+        if username.strip() in mock_users:
+            user_error_text.value = f"Username '{username.strip()}' already exists."
+            current_page.update()
+            return
+
+        # Add to mock data
+        new_id = max(user['id'] for user in mock_users.values()) + 1
+        new_user = {
+            'id': new_id,
+            'username': username.strip(),
+            'password': password.strip(),
+            'role': role
+        }
+        mock_users[username.strip()] = new_user
+
+        user_error_text.value = ""
+        hide_create_form(e)
+        show_user_management()  # Refresh the page
+
+    def handle_delete_user(username_to_delete):
+        def on_delete(e):
+            if username_to_delete in mock_users:
+                del mock_users[username_to_delete]
+            show_user_management() # Refresh
+        return on_delete
+
+    user_form_container = create_card(
+        content=ft.Column([
+            create_section_title("Create New User"),
+            ft.Container(height=Spacing.LG),
+            username_field,
+            ft.Container(height=Spacing.LG),
+            password_field,
+            ft.Container(height=Spacing.LG),
+            role_dropdown,
+            ft.Container(height=Spacing.MD),
+            user_error_text,
+            ft.Container(height=Spacing.XL),
+            ft.Row([
+                create_primary_button("Create User", on_click=handle_create_user, width=120),
+                ft.Container(width=Spacing.MD),
+                create_secondary_button("Cancel", on_click=hide_create_form, width=100)
+            ])
+        ]),
+        padding=Spacing.XXL
+    )
+    user_form_container.visible = False
+
+    # --- List of existing users ---
+    user_cards = []
+    for username, user_data in mock_users.items():
+        user_card = create_card(
+            content=ft.Row([
+                ft.Icon(ft.Icons.PERSON_OUTLINE, color=Colors.PRIMARY, size=32),
+                ft.Container(width=Spacing.LG),
+                ft.Column([
+                    ft.Text(user_data['username'], size=Typography.SIZE_LG, weight=ft.FontWeight.W_600),
+                    ft.Text(f"Role: {user_data['role'].title()}", color=Colors.TEXT_SECONDARY),
+                ], expand=True),
+                create_secondary_button("Delete", width=80, on_click=handle_delete_user(username)),
+            ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+            padding=Spacing.LG
+        )
+        user_cards.append(user_card)
+
+    # --- Main page content ---
+    main_content = ft.Container(
+        content=ft.Column(spacing=0, controls=[
+            create_app_header(),
+            ft.Container(
+                content=ft.Column(scroll=ft.ScrollMode.AUTO, controls=[
+                    ft.Row([
+                        ft.Column([
+                            create_page_title("User Management"),
+                            create_subtitle("Create and manage system users.")
+                        ], expand=True),
+                        create_primary_button("Add New User", on_click=show_create_form, width=150)
+                    ]),
+                    ft.Container(height=Spacing.XXL),
+                    user_form_container,
+                    ft.Container(height=Spacing.XL),
+                    create_section_title("All Users"),
+                    ft.Container(height=Spacing.LG),
+                    ft.Column(user_cards, spacing=Spacing.LG) if user_cards else ft.Text("No users found.")
+                ]),
+                padding=Spacing.XXXXL, expand=True, bgcolor=Colors.GRAY_50
+            )
+        ]),
+        expand=True
+    )
+
+    # Responsive layout
+    sidebar_drawer = ft.NavigationDrawer(controls=[sidebar])
+    current_page.drawer = sidebar_drawer
+    current_page.appbar = create_app_bar()
+
+    if current_page.width >= 1000:
+        current_page.add(create_app_background(ft.Row([sidebar, main_content], expand=True)))
+        current_page.appbar.visible = False
+    else:
+        current_page.add(create_app_background(main_content))
+        current_page.appbar.visible = True
+    current_page.update()
+
 # =============================================================================
 # MAIN APPLICATION
 # =============================================================================
@@ -2408,9 +2561,12 @@ def main_page(page: ft.Page):
     # 2. Gọi hàm hiển thị dashboard tương ứng.
     # 3. Để bật lại trang đăng nhập, hãy xóa/bình luận các dòng dưới và bỏ bình luận dòng `show_login()`.
     
-    current_user = mock_users['instructor']  # Đăng nhập với tư cách 'instructor'
-    show_instructor_dashboard()              # Đi thẳng vào dashboard của instructor
-    # show_login()                       # Dòng này đã được bình luận để vô hiệu hóa đăng nhập
+    # --- Chế độ phát triển ---
+    current_user = mock_users['admin']  # Đăng nhập với tư cách 'admin'
+    show_user_management()              # Đi thẳng vào trang quản lý người dùng
+
+    # --- Chế độ hoạt động bình thường ---
+    # show_login()                       # Bắt đầu từ trang đăng nhập
 
 if __name__ == "__main__":
     ft.app(target=main_page)
