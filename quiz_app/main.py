@@ -101,12 +101,12 @@ quiz_timer_thread = None
 mock_users = {
     'instructor': {'id': 1, 'username': 'instructor', 'password': 'instructor', 'role': 'instructor'},
     'admin': {'id': 2, 'username': 'admin', 'password': 'admin', 'role': 'admin'},
-    'student': {'id': 3, 'username': 'student', 'password': 'student', 'role': 'examinee'},
+    'student': {'id': 3, 'username': 'student', 'password': 'student', 'role': 'examinee', 'class_id': 1},
     # dùng tải khoản sau để test nhiều người thi
-    'THEHY': {'id': 4, 'username': 'THEHY', 'password': 'THEHY', 'role': 'examinee'},
-    'TAI': {'id': 5, 'username': 'TAI', 'password': 'TAI', 'role': 'examinee'},
-    'HUNG': {'id': 6, 'username': 'HUNG', 'password': 'HUNG', 'role': 'examinee'},
-    'HUY': {'id': 7, 'username': 'HUY', 'password': 'HUY', 'role': 'examinee'},
+    'THEHY': {'id': 4, 'username': 'THEHY', 'password': 'THEHY', 'role': 'examinee', 'class_id': 1},
+    'TAI': {'id': 5, 'username': 'TAI', 'password': 'TAI', 'role': 'examinee', 'class_id': 2},
+    'HUNG': {'id': 6, 'username': 'HUNG', 'password': 'HUNG', 'role': 'examinee', 'class_id': 2},
+    'HUY': {'id': 7, 'username': 'HUY', 'password': 'HUY', 'role': 'examinee', 'class_id': None},
 }
 
 # mock_quizzes: List chứa các bài quiz mẫu
@@ -2612,6 +2612,18 @@ def show_user_management():
             ft.dropdown.Option(key='examinee', text='Examinee (Student)'),
         ]
     )
+    # --- Thêm Dropdown để gán lớp học, ẩn ban đầu ---
+    class_assignment_dropdown = ft.Dropdown(
+        label="Gán vào lớp học (tùy chọn)",
+        width=400,
+        border_radius=BorderRadius.MD,
+        border_color=Colors.GRAY_300,
+        focused_border_color=Colors.PRIMARY,
+        options=[
+            ft.dropdown.Option(key=cls['id'], text=cls['name']) for cls in mock_classes
+        ],
+        visible=False # Chỉ hiển thị khi role là 'examinee'
+    )
     user_error_text = ft.Text("", color=Colors.ERROR, size=Typography.SIZE_SM)
 
     def show_create_form(e):
@@ -2619,12 +2631,21 @@ def show_user_management():
         username_field.value = ""
         password_field.value = ""
         role_dropdown.value = None
+        class_assignment_dropdown.value = None
+        class_assignment_dropdown.visible = False
         user_error_text.value = ""
         current_page.update()
 
     def hide_create_form(e):
         user_form_container.visible = False
         current_page.update()
+    
+    def on_role_change(e):
+        # Hiển thị dropdown lớp học nếu vai trò là 'examinee'
+        is_examinee = role_dropdown.value == 'examinee'
+        class_assignment_dropdown.visible = is_examinee
+        current_page.update()
+    role_dropdown.on_change = on_role_change
 
     def handle_create_user(e):
         username = username_field.value or ""
@@ -2650,7 +2671,8 @@ def show_user_management():
             'id': new_id,
             'username': username.strip(),
             'password': password.strip(),
-            'role': role
+            'role': role,
+            'class_id': int(class_assignment_dropdown.value) if role == 'examinee' and class_assignment_dropdown.value else None
         }
         mock_users[username.strip()] = new_user
 
@@ -2674,6 +2696,8 @@ def show_user_management():
             password_field,
             ft.Container(height=Spacing.LG),
             role_dropdown,
+            ft.Container(height=Spacing.LG),
+            class_assignment_dropdown, # Thêm dropdown lớp học vào form
             ft.Container(height=Spacing.MD),
             user_error_text,
             ft.Container(height=Spacing.XL),
@@ -2690,14 +2714,22 @@ def show_user_management():
     # --- List of existing users ---
     user_cards = []
     for username, user_data in mock_users.items():
+        details_column = [
+            ft.Text(user_data['username'], size=Typography.SIZE_LG, weight=ft.FontWeight.W_600),
+            ft.Text(f"Role: {user_data['role'].title()}", color=Colors.TEXT_SECONDARY),
+        ]
+        # Nếu là sinh viên, hiển thị thêm thông tin lớp học
+        if user_data['role'] == 'examinee' and user_data.get('class_id'):
+            class_name = next((c['name'] for c in mock_classes if c['id'] == user_data['class_id']), "Chưa gán lớp")
+            details_column.append(
+                ft.Text(f"Lớp: {class_name}", color=Colors.TEXT_MUTED, size=Typography.SIZE_SM)
+            )
+
         user_card = create_card(
             content=ft.Row([
                 ft.Icon(ft.Icons.PERSON_OUTLINE, color=Colors.PRIMARY, size=32),
                 ft.Container(width=Spacing.LG),
-                ft.Column([
-                    ft.Text(user_data['username'], size=Typography.SIZE_LG, weight=ft.FontWeight.W_600),
-                    ft.Text(f"Role: {user_data['role'].title()}", color=Colors.TEXT_SECONDARY),
-                ], expand=True),
+                ft.Column(details_column, expand=True, spacing=2),
                 create_secondary_button("Delete", width=80, on_click=handle_delete_user(username)),
             ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
             padding=Spacing.LG
@@ -2802,7 +2834,7 @@ def main_page(page: ft.Page):
     # --- Chế độ phát triển ---
     # current_user = mock_users['admin']  # Đăng nhập với tư cách 'admin'
     # show_instructor_dashboard()         # Đi thẳng vào dashboard của admin
-    current_user = mock_users['instructor']  # Đăng nhập với tư cách 'instructor'
+    current_user = mock_users['admin']  # Đăng nhập với tư cách 'instructor'
     show_instructor_dashboard()              # Đi thẳng vào dashboard của instructor
 
     # --- Chế độ hoạt động bình thường ---
