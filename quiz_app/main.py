@@ -3052,7 +3052,7 @@ def main_page(page: ft.Page):
     # --- Chế độ phát triển ---
     # current_user = mock_users['admin']  # Đăng nhập với tư cách 'admin'
     # show_instructor_dashboard()         # Đi thẳng vào dashboard của admin
-    current_user = mock_users['admin']  # Đăng nhập với tư cách 'instructor'
+    current_user = mock_users['instructor']  # Đăng nhập với tư cách 'instructor'
     show_instructor_dashboard()              # Đi thẳng vào dashboard của instructor
 
     # --- Chế độ hoạt động bình thường ---
