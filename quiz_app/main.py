@@ -1,6 +1,7 @@
 # Modern Quiz App - Clean Light Theme UI
 # Beautiful, modern design with clean components and navigation
 
+import random
 import flet as ft # Nạp thư viện Flet để xây dựng giao diện người dùng
 import datetime
 import time
@@ -122,9 +123,9 @@ mock_users = {
 # - duration_minutes: thời gian làm bài (phút)
 # Mục đích: Để hiển thị danh sách quiz và quản lý quiz
 mock_quizzes = [
-    {'id': 1, 'title': 'Python Basics', 'description': 'Learn Python fundamentals', 'created_by': 1, 'created_at': '2025-01-15', 'creator': 'instructor', 'questions_count': 5, 'start_time': '2024-01-01 00:00', 'duration_minutes': 10, 'class_id': 1, 'password': '123', 'is_active': True},
-    {'id': 2, 'title': 'Web Development', 'description': 'HTML, CSS, JavaScript basics', 'created_by': 1, 'created_at': '2025-01-14', 'creator': 'instructor', 'questions_count': 8, 'start_time': '2025-07-20 10:00', 'duration_minutes': 20, 'class_id': 2, 'password': None, 'is_active': True},
-    {'id': 3, 'title': 'Data Structures', 'description': 'Arrays, Lists, Trees, Algorithms', 'created_by': 2, 'created_at': '2025-01-13', 'creator': 'admin', 'questions_count': 12, 'start_time': '2025-07-22 14:00', 'duration_minutes': 30, 'class_id': 1, 'password': 'dsa', 'is_active': False}
+    {'id': 1, 'title': 'Python Basics', 'description': 'Learn Python fundamentals', 'created_by': 1, 'created_at': '2025-01-15', 'creator': 'instructor', 'questions_count': 5, 'start_time': '2024-01-01 00:00', 'duration_minutes': 10, 'class_id': 1, 'password': '123', 'is_active': True, 'shuffle_questions': True, 'shuffle_answers': True},
+    {'id': 2, 'title': 'Web Development', 'description': 'HTML, CSS, JavaScript basics', 'created_by': 1, 'created_at': '2025-01-14', 'creator': 'instructor', 'questions_count': 8, 'start_time': '2025-07-20 10:00', 'duration_minutes': 20, 'class_id': 2, 'password': None, 'is_active': True, 'shuffle_questions': False, 'shuffle_answers': True},
+    {'id': 3, 'title': 'Data Structures', 'description': 'Arrays, Lists, Trees, Algorithms', 'created_by': 2, 'created_at': '2025-01-13', 'creator': 'admin', 'questions_count': 12, 'start_time': '2025-07-22 14:00', 'duration_minutes': 30, 'class_id': 1, 'password': 'dsa', 'is_active': False, 'shuffle_questions': True, 'shuffle_answers': False}
 ]
 
 # mock_classes: List chứa thông tin các lớp học mẫu
@@ -458,22 +459,31 @@ def create_app_header():
 # QUESTION TYPE COMPONENTS
 # =============================================================================
 
-def create_multiple_choice_question(question, on_answer_change):
+def create_multiple_choice_question(question, on_answer_change, shuffle_answers=False):
     """Create a multiple choice question component"""
     options_group = ft.RadioGroup(content=ft.Column([]))
     
+    options_data = question.get('options', [])
+    
+    # Xáo trộn đáp án nếu được yêu cầu
+    if shuffle_answers:
+        random.shuffle(options_data)
+
     # Create radio options
     options = []
-    for i, option in enumerate(question.get('options', [])):
+    for i, option in enumerate(options_data):
+        # Lưu trữ ID gốc của option (hoặc text) để xác định câu trả lời đúng
+        # Ở đây ta dùng chính text của option
+        original_option_text = option['option_text']
         options.append(
             ft.Radio(
-                value=str(i),
+                value=original_option_text,
                 label=option['option_text'],
                 label_style=ft.TextStyle(size=Typography.SIZE_BASE)
             )
         )
     options_group.content = ft.Column(options, spacing=Spacing.MD)
-    options_group.on_change = lambda e: on_answer_change(e, int(e.control.value))
+    options_group.on_change = lambda e: on_answer_change(e, e.control.value)
     
     return ft.Column([
         ft.Text(
@@ -523,27 +533,35 @@ def create_fill_in_blank_question(question, on_answer_change):
         answer_field
     ])
 
-def create_multiple_select_question(question, on_answer_change):
+def create_multiple_select_question(question, on_answer_change, shuffle_answers=False):
     """Create a multiple select question component"""
     checkboxes = []
+    options_data = question.get('options', [])
+
+    # Xáo trộn đáp án nếu được yêu cầu
+    if shuffle_answers:
+        random.shuffle(options_data)
     
-    def create_checkbox_handler(index):
+    def create_checkbox_handler(option_text):
         def handler(e):
             # Collect all selected checkboxes
             selected = []
-            for i, cb in enumerate(checkboxes):
+            for cb in checkboxes:
                 if cb.value:
-                    selected.append(str(i))
-            # Pass the list of selected indices
-            on_answer_change(e, [int(s) for s in selected])
+                    selected.append(cb.data) # Lấy giá trị từ thuộc tính data
+            # Pass the list of selected option texts
+            on_answer_change(e, selected)
         return handler
     
-    for i, option in enumerate(question.get('options', [])):
+    for i, option in enumerate(options_data):
+        original_option_text = option['option_text']
         checkbox = ft.Checkbox(
             label=option['option_text'],
+            # Lưu trữ giá trị gốc (option text) vào thuộc tính data
+            data=original_option_text,
             value=False,
             label_style=ft.TextStyle(size=Typography.SIZE_BASE),
-            on_change=create_checkbox_handler(i)
+            on_change=create_checkbox_handler(original_option_text)
         )
         checkboxes.append(checkbox)
     
@@ -574,26 +592,26 @@ def create_short_answer_question(question, on_answer_change):
         answer_field
     ])
 
-def create_question_by_type(question, on_answer_change):
+def create_question_by_type(question, on_answer_change, shuffle_answers=False):
     """Create question component based on question type"""
     question_type = question.get('question_type', 'multiple_choice')
     
     def answer_handler(e, answer_value):
         on_answer_change(question['id'], answer_value)
 
+    # Chỉ truyền cờ shuffle_answers cho các loại câu hỏi có lựa chọn
     if question_type == 'multiple_choice':
-        return create_multiple_choice_question(question, answer_handler)
+        return create_multiple_choice_question(question, answer_handler, shuffle_answers)
     elif question_type == 'true_false':
         return create_true_false_question(question, answer_handler)
     elif question_type == 'fill_in_blank':
         return create_fill_in_blank_question(question, answer_handler)
     elif question_type == 'multiple_select':
-        return create_multiple_select_question(question, answer_handler)
+        return create_multiple_select_question(question, answer_handler, shuffle_answers)
     elif question_type == 'short_answer':
         return create_short_answer_question(question, answer_handler)
     else:
-        # Default to multiple choice
-        return create_multiple_choice_question(question, answer_handler)
+        return create_multiple_choice_question(question, answer_handler, shuffle_answers)
 
 # =============================================================================
 # NAVIGATION COMPONENTS
@@ -1231,6 +1249,9 @@ def show_quiz_management():
     quiz_duration_field = create_text_input("Duration (minutes)", width=140, icon=ft.Icons.TIMER)
     quiz_password_field = create_text_input("Quiz Password (optional)", password=True, width=400, icon=ft.Icons.LOCK, can_reveal=True)
     
+    shuffle_questions_switch = ft.Switch(label="Xáo trộn câu hỏi", value=False)
+    shuffle_answers_switch = ft.Switch(label="Xáo trộn đáp án", value=True)
+
     # Lấy danh sách các lớp mà giảng viên hiện tại được phân công
     instructor_classes = [c for c in mock_classes if c['instructor_id'] == current_user['id']]
     class_dropdown = ft.Dropdown(
@@ -1255,6 +1276,8 @@ def show_quiz_management():
         quiz_duration_field.value = ""
         quiz_password_field.value = ""
         class_dropdown.value = None
+        shuffle_questions_switch.value = False
+        shuffle_answers_switch.value = True
         current_page.update()
     
     def hide_create_form(e):
@@ -1268,6 +1291,8 @@ def show_quiz_management():
         duration_str = quiz_duration_field.value or ""
         password = quiz_password_field.value or None
         class_id = class_dropdown.value
+        shuffle_questions = shuffle_questions_switch.value
+        shuffle_answers = shuffle_answers_switch.value
         
         if not title.strip():
             quiz_error_text.value = "Quiz title is required"
@@ -1307,7 +1332,9 @@ def show_quiz_management():
             'duration_minutes': duration_minutes,
             'class_id': int(class_id),
             'password': password.strip() if password else None,
-            'is_active': True # Bài thi mới tạo mặc định được kích hoạt
+            'is_active': True, # Bài thi mới tạo mặc định được kích hoạt
+            'shuffle_questions': shuffle_questions,
+            'shuffle_answers': shuffle_answers
         }
         mock_quizzes.append(new_quiz)
         
@@ -1334,6 +1361,11 @@ def show_quiz_management():
             ], spacing=Spacing.MD),
             ft.Container(height=Spacing.LG),
             quiz_password_field,
+            ft.Container(height=Spacing.LG),
+            ft.Row([
+                shuffle_questions_switch,
+                shuffle_answers_switch
+            ], spacing=Spacing.XL),
             ft.Container(height=Spacing.MD),
             quiz_error_text,
             ft.Container(height=Spacing.XL),
@@ -1350,6 +1382,10 @@ def show_quiz_management():
     # --- Function to create a single quiz card ---
     def create_quiz_card(quiz):
         class_name = next((c['name'] for c in mock_classes if c['id'] == quiz.get('class_id')), "Unassigned")
+
+        shuffle_info = []
+        if quiz.get('shuffle_questions'): shuffle_info.append("Câu hỏi")
+        if quiz.get('shuffle_answers'): shuffle_info.append("Đáp án")
 
         def toggle_active_state(e):
             # Tìm bài thi trong mock_quizzes và cập nhật trạng thái
@@ -1382,6 +1418,8 @@ def show_quiz_management():
                         ),
                         ft.Container(height=Spacing.XS),
                         create_badge(class_name, color=Colors.WARNING),
+                        ft.Container(height=Spacing.XS),
+                        create_badge(f"Xáo trộn: {', '.join(shuffle_info) if shuffle_info else 'Không'}", color=Colors.PRIMARY_LIGHT) if 'shuffle_questions' in quiz else ft.Container(),
                         ft.Container(height=Spacing.XS),
                         ft.Switch(value=quiz.get('is_active', False), on_change=toggle_active_state, label="Active", label_position=ft.LabelPosition.LEFT)
                     ], alignment=ft.MainAxisAlignment.START),
@@ -2145,6 +2183,11 @@ def show_quiz_taking(quiz_basic_info):
     
     # Load quiz questions
     quiz_questions = mock_questions.get(quiz_basic_info['id'], [])
+
+    # Xáo trộn câu hỏi nếu được yêu cầu
+    if quiz_basic_info.get('shuffle_questions', False):
+        random.shuffle(quiz_questions)
+
     
     if not quiz_questions:
         show_examinee_dashboard()
@@ -2169,7 +2212,8 @@ def show_quiz_taking(quiz_basic_info):
         question_text_display.value = question['question_text']
         
         # Create question component based on type
-        question_component = create_question_by_type(question, handle_answer_change)
+        shuffle_answers = quiz_basic_info.get('shuffle_answers', False)
+        question_component = create_question_by_type(question, handle_answer_change, shuffle_answers)
         question_component_container.content = question_component
         
         # Update navigation buttons
@@ -2334,9 +2378,11 @@ def show_quiz_results(quiz_data, user_answers, start_time):
             question_type = question.get('question_type', 'multiple_choice')
             
             if question_type == 'multiple_choice':
-                if isinstance(user_answer, int) and 'options' in question:
-                    if question['options'][user_answer]['is_correct']:
-                        correct_count += 1
+                # user_answer bây giờ là text của lựa chọn
+                correct_option = next((opt for opt in question['options'] if opt['is_correct']), None)
+                if correct_option and user_answer == correct_option['option_text']:
+                    correct_count += 1
+
             elif question_type == 'true_false':
                 if user_answer == question.get('correct_answer'):
                     correct_count += 1
@@ -2347,9 +2393,11 @@ def show_quiz_results(quiz_data, user_answers, start_time):
                 if user_answer_clean == correct_answer or user_answer_clean in answer_variations:
                     correct_count += 1
             elif question_type == 'multiple_select':
-                if isinstance(user_answer, list) and 'options' in question:
-                    correct_options = [i for i, opt in enumerate(question['options']) if opt['is_correct']]
-                    if set(user_answer) == set(correct_options):
+                # user_answer bây giờ là list các text của lựa chọn
+                if isinstance(user_answer, list):
+                    correct_options_texts = {opt['option_text'] for opt in question['options'] if opt['is_correct']}
+                    user_answers_texts = set(user_answer)
+                    if user_answers_texts == correct_options_texts:
                         correct_count += 1
             elif question_type == 'short_answer':
                 # For now, manual grading needed - give partial credit
