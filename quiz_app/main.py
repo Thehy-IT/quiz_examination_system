@@ -115,17 +115,16 @@ mock_users = {
 # - title: tiêu đề quiz
 # - description: mô tả quiz
 # - created_by: ID của người tạo (liên kết với mock_users)
-# - created_at: ngày tạo (string)
+# - created_at: ngày tạo (string) 
 # - creator: tên người tạo
 # - questions_count: số câu hỏi trong quiz
-# - difficulty: độ khó ('Beginner', 'Intermediate', 'Advanced')
 # - start_time: thời gian bắt đầu (YYYY-MM-DD HH:MM)
 # - duration_minutes: thời gian làm bài (phút)
 # Mục đích: Để hiển thị danh sách quiz và quản lý quiz
 mock_quizzes = [
-    {'id': 1, 'title': 'Python Basics', 'description': 'Learn Python fundamentals', 'created_by': 1, 'created_at': '2025-01-15', 'creator': 'instructor', 'questions_count': 5, 'difficulty': 'Beginner', 'start_time': '2024-01-01 00:00', 'duration_minutes': 10, 'class_id': 1, 'password': '123'},
-    {'id': 2, 'title': 'Web Development', 'description': 'HTML, CSS, JavaScript basics', 'created_by': 1, 'created_at': '2025-01-14', 'creator': 'instructor', 'questions_count': 8, 'difficulty': 'Intermediate', 'start_time': '2025-07-20 10:00', 'duration_minutes': 20, 'class_id': 2, 'password': None},
-    {'id': 3, 'title': 'Data Structures', 'description': 'Arrays, Lists, Trees, Algorithms', 'created_by': 2, 'created_at': '2025-01-13', 'creator': 'admin', 'questions_count': 12, 'difficulty': 'Advanced', 'start_time': '2025-07-22 14:00', 'duration_minutes': 30, 'class_id': 1, 'password': 'dsa'}
+    {'id': 1, 'title': 'Python Basics', 'description': 'Learn Python fundamentals', 'created_by': 1, 'created_at': '2025-01-15', 'creator': 'instructor', 'questions_count': 5, 'start_time': '2024-01-01 00:00', 'duration_minutes': 10, 'class_id': 1, 'password': '123'},
+    {'id': 2, 'title': 'Web Development', 'description': 'HTML, CSS, JavaScript basics', 'created_by': 1, 'created_at': '2025-01-14', 'creator': 'instructor', 'questions_count': 8, 'start_time': '2025-07-20 10:00', 'duration_minutes': 20, 'class_id': 2, 'password': None},
+    {'id': 3, 'title': 'Data Structures', 'description': 'Arrays, Lists, Trees, Algorithms', 'created_by': 2, 'created_at': '2025-01-13', 'creator': 'admin', 'questions_count': 12, 'start_time': '2025-07-22 14:00', 'duration_minutes': 30, 'class_id': 1, 'password': 'dsa'}
 ]
 
 # mock_classes: List chứa thông tin các lớp học mẫu
@@ -1101,7 +1100,6 @@ def show_instructor_dashboard():
                                                     ft.Text(quiz['title'], size=Typography.SIZE_LG, weight=ft.FontWeight.W_600, color=Colors.TEXT_PRIMARY),
                                                     ft.Text(quiz['description'], size=Typography.SIZE_SM, color=Colors.TEXT_SECONDARY)
                                                 ], expand=True),
-                                                create_badge(quiz['difficulty'])
                                             ]),
                                             ft.Container(height=Spacing.SM),
                                             ft.Row([
@@ -1184,6 +1182,19 @@ def show_quiz_management():
     # --- Search and Filter Logic ---
     search_field = create_text_input("Search by quiz title...", width=300, icon=ft.Icons.SEARCH)
     quiz_list_view = ft.Column(spacing=Spacing.LG)
+
+    def handle_delete_quiz(quiz_to_delete):
+        def on_delete(e):
+            global mock_quizzes, mock_questions
+            # Remove quiz
+            mock_quizzes = [q for q in mock_quizzes if q['id'] != quiz_to_delete['id']]
+            # Remove associated questions
+            if quiz_to_delete['id'] in mock_questions:
+                del mock_questions[quiz_to_delete['id']]
+            
+            # Refresh the page
+            show_quiz_management()
+        return on_delete
 
     def update_quiz_list(e=None):
         search_term = search_field.value.lower() if search_field.value else ""
@@ -1292,7 +1303,6 @@ def show_quiz_management():
             'created_at': '2025-01-15',
             'creator': current_user['username'],
             'questions_count': 0,
-            'difficulty': 'Beginner',
             'start_time': start_time_str.strip(),
             'duration_minutes': duration_minutes,
             'class_id': int(class_id),
@@ -1358,9 +1368,7 @@ def show_quiz_management():
                     ], expand=True, spacing=Spacing.XS),
                     ft.Column([
                         create_badge(class_name, color=Colors.WARNING),
-                    ], alignment=ft.MainAxisAlignment.START)
-                    ,
-                    create_badge(quiz['difficulty'])
+                    ], alignment=ft.MainAxisAlignment.START),
                 ]),
                 ft.Container(height=Spacing.SM),
                 ft.Row([
@@ -1385,7 +1393,7 @@ def show_quiz_management():
                         color=Colors.TEXT_MUTED
                     ),
                     ft.Container(expand=True),
-                    create_secondary_button("Delete", width=80),
+                    create_secondary_button("Delete", on_click=handle_delete_quiz(quiz), width=80),
                     ft.Container(width=Spacing.SM),
                     create_primary_button("Manage Questions", on_click=edit_quiz(quiz), width=150)
                 ])
@@ -1469,6 +1477,21 @@ def show_question_management(quiz):
     
     sidebar = create_sidebar(current_user['role'], "questions")
     
+    def handle_delete_question(quiz, question_to_delete):
+        def on_delete(e):
+            global mock_questions, mock_quizzes
+            if quiz['id'] in mock_questions:
+                # Remove the question
+                mock_questions[quiz['id']] = [q for q in mock_questions[quiz['id']] if q['id'] != question_to_delete['id']]
+                
+                # Update quiz questions count
+                for q_quiz in mock_quizzes:
+                    if q_quiz['id'] == quiz['id']:
+                        q_quiz['questions_count'] = len(mock_questions[quiz['id']])
+                        break
+            show_question_management(quiz) # Refresh the page
+        return on_delete
+
     # Question form fields
     question_text_field = create_text_input("Question Text", width=500, multiline=True, min_lines=2)
     question_error_text = ft.Text("", color=Colors.ERROR, size=Typography.SIZE_SM)
@@ -1809,7 +1832,7 @@ def show_question_management(quiz):
                     create_badge(question_type.replace('_', ' ').title(), color=Colors.PRIMARY_LIGHT),
                     create_badge(difficulty, color=difficulty_color_map.get(difficulty, Colors.GRAY_400)),
                     ft.Container(expand=True),
-                    create_secondary_button("Delete", width=80)
+                    create_secondary_button("Delete", on_click=handle_delete_question(quiz, question), width=80)
                 ]),
                 ft.Container(height=Spacing.SM),
                 ft.Text(
@@ -2014,8 +2037,7 @@ def show_examinee_dashboard():
                     ft.Row([
                         ft.Icon(ft.Icons.LOCK, color=Colors.WARNING, size=16) if quiz.get('password') else ft.Container(),
                         ft.Container(width=Spacing.SM) if quiz.get('password') else ft.Container(),
-                        create_badge(quiz['difficulty'])
-                    ])
+                    ], alignment=ft.MainAxisAlignment.START)
                     
                 ]),
                 ft.Container(height=Spacing.SM),
