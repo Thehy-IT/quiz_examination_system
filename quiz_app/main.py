@@ -2294,6 +2294,13 @@ def show_class_management():
 
     sidebar = create_sidebar(current_user['role'], "classes")
 
+    def handle_delete_class(class_id_to_delete):
+        def on_delete(e):
+            global mock_classes
+            mock_classes = [c for c in mock_classes if c['id'] != class_id_to_delete]
+            show_class_management() # Tải lại trang
+        return on_delete
+
     # --- Form tạo lớp học (ẩn ban đầu) ---
     class_name_field = create_text_input("Tên lớp học", width=400)
     
@@ -2379,7 +2386,7 @@ def show_class_management():
                     ft.Text(cls['name'], size=Typography.SIZE_LG, weight=ft.FontWeight.W_600),
                     ft.Text(f"Giảng viên: {instructor_name}", color=Colors.TEXT_SECONDARY),
                 ], expand=True),
-                create_secondary_button("Xóa", width=80),
+                create_secondary_button("Xóa", width=80, on_click=handle_delete_class(cls['id'])),
             ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
             padding=Spacing.LG
         )
