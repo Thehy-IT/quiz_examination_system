@@ -1199,29 +1199,90 @@ def show_quiz_management():
     
     # --- Search and Filter Logic ---
     search_field = create_text_input("Search by quiz title...", width=300, icon=ft.Icons.SEARCH)
+
+    # --- Bộ lọc theo Lớp học ---
+    instructor_classes = [c for c in mock_classes if c['instructor_id'] == current_user['id']]
+    class_filter_options = [ft.dropdown.Option(key="all", text="Tất cả các lớp")]
+    class_filter_options.extend([ft.dropdown.Option(key=str(cls['id']), text=cls['name']) for cls in instructor_classes])
+    
+    class_filter_dropdown = ft.Dropdown(
+        label="Lọc theo lớp",
+        width=220,
+        value="all",
+        options=class_filter_options,
+    )
+
+    # --- Bộ lọc theo Trạng thái ---
+    status_filter_dropdown = ft.Dropdown(
+        label="Lọc theo trạng thái",
+        width=180,
+        value="all",
+        options=[
+            ft.dropdown.Option(key="all", text="Tất cả trạng thái"),
+            ft.dropdown.Option(key="active", text="Active"),
+            ft.dropdown.Option(key="disabled", text="Disabled"),
+        ],
+    )
+
+    # --- Bộ lọc theo Xáo trộn ---
+    shuffle_filter_dropdown = ft.Dropdown(
+        label="Lọc theo xáo trộn",
+        width=200,
+        value="all",
+        options=[
+            ft.dropdown.Option(key="all", text="Tất cả (Xáo trộn)"),
+            ft.dropdown.Option(key="questions", text="Chỉ xáo trộn câu hỏi"),
+            ft.dropdown.Option(key="answers", text="Chỉ xáo trộn đáp án"),
+            ft.dropdown.Option(key="both", text="Xáo trộn cả hai"),
+            ft.dropdown.Option(key="none", text="Không xáo trộn"),
+        ],
+    )
+
     quiz_list_view = ft.Column(spacing=Spacing.LG)
 
     def handle_delete_quiz(quiz_to_delete):
         def on_delete(e):
             global mock_quizzes, mock_questions
-            # Remove quiz
             mock_quizzes = [q for q in mock_quizzes if q['id'] != quiz_to_delete['id']]
-            # Remove associated questions
             if quiz_to_delete['id'] in mock_questions:
                 del mock_questions[quiz_to_delete['id']]
             
-            # Refresh the page
             show_quiz_management()
         return on_delete
 
     def update_quiz_list(e=None):
         search_term = search_field.value.lower() if search_field.value else ""
+        selected_class_id = class_filter_dropdown.value
+        selected_status = status_filter_dropdown.value
+        selected_shuffle = shuffle_filter_dropdown.value
         
         # Filter quizzes based on current user and search term
         user_quizzes = [q for q in mock_quizzes if q['created_by'] == current_user['id']]
         filtered_quizzes = [
             q for q in user_quizzes if search_term in q['title'].lower()
         ]
+
+        # Apply class filter
+        if selected_class_id and selected_class_id != "all":
+            filtered_quizzes = [q for q in filtered_quizzes if str(q.get('class_id')) == selected_class_id]
+
+        # Apply status filter
+        if selected_status and selected_status != "all":
+            is_active = (selected_status == "active")
+            filtered_quizzes = [q for q in filtered_quizzes if q.get('is_active', False) == is_active]
+
+        # Apply shuffle filter
+        if selected_shuffle and selected_shuffle != "all":
+            if selected_shuffle == "questions":
+                filtered_quizzes = [q for q in filtered_quizzes if q.get('shuffle_questions') and not q.get('shuffle_answers')]
+            elif selected_shuffle == "answers":
+                filtered_quizzes = [q for q in filtered_quizzes if not q.get('shuffle_questions') and q.get('shuffle_answers')]
+            elif selected_shuffle == "both":
+                filtered_quizzes = [q for q in filtered_quizzes if q.get('shuffle_questions') and q.get('shuffle_answers')]
+            elif selected_shuffle == "none":
+                filtered_quizzes = [q for q in filtered_quizzes if not q.get('shuffle_questions') and not q.get('shuffle_answers')]
+
+
 
         quiz_list_view.controls.clear()
         if filtered_quizzes:
@@ -1241,6 +1302,9 @@ def show_quiz_management():
         current_page.update()
 
     search_field.on_change = update_quiz_list
+    class_filter_dropdown.on_change = update_quiz_list
+    status_filter_dropdown.on_change = update_quiz_list
+    shuffle_filter_dropdown.on_change = update_quiz_list
 
     # Quiz creation form (initially hidden)
     quiz_title_field = create_text_input("Quiz Title", width=400)
@@ -1413,16 +1477,24 @@ def show_quiz_management():
                     ], expand=True, spacing=Spacing.XS),
                     ft.Column([
                         create_badge(
-                            "Active" if quiz.get('is_active', False) else "Disabled",
-                            color=Colors.SUCCESS if quiz.get('is_active', False) else Colors.GRAY_400
+                            f"Xáo trộn: {', '.join(shuffle_info) if shuffle_info else 'Không'}", 
+                            color=Colors.PRIMARY_LIGHT
+                        ) if 'shuffle_questions' in quiz else ft.Container(),
+                        ft.Row([
+                            create_badge(
+                                "Active" if quiz.get('is_active', False) else "Disabled",
+                                color=Colors.SUCCESS if quiz.get('is_active', False) else Colors.GRAY_400
+                            ),
+                            create_badge(class_name, color=Colors.WARNING),
+                        ], spacing=Spacing.SM),
+                        ft.Container(height=Spacing.XS),
+                        ft.Switch(
+                            value=quiz.get('is_active', False), 
+                            on_change=toggle_active_state, 
+                            label="Active", 
+                            label_position=ft.LabelPosition.LEFT
                         ),
-                        ft.Container(height=Spacing.XS),
-                        create_badge(class_name, color=Colors.WARNING),
-                        ft.Container(height=Spacing.XS),
-                        create_badge(f"Xáo trộn: {', '.join(shuffle_info) if shuffle_info else 'Không'}", color=Colors.PRIMARY_LIGHT) if 'shuffle_questions' in quiz else ft.Container(),
-                        ft.Container(height=Spacing.XS),
-                        ft.Switch(value=quiz.get('is_active', False), on_change=toggle_active_state, label="Active", label_position=ft.LabelPosition.LEFT)
-                    ], alignment=ft.MainAxisAlignment.START),
+                    ], alignment=ft.CrossAxisAlignment.END, spacing=Spacing.XS),
                 ]),
                 ft.Container(height=Spacing.SM),
                 ft.Row([
@@ -1471,6 +1543,9 @@ def show_quiz_management():
                             create_subtitle("Create and manage your quizzes")
                         ], expand=True, spacing=Spacing.XS),
                         search_field,
+                        status_filter_dropdown,
+                        shuffle_filter_dropdown,
+                        class_filter_dropdown,
                         create_primary_button("Create New Quiz", on_click=show_create_form, width=150)
                     ]),
                     
