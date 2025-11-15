@@ -2597,6 +2597,79 @@ def show_user_management():
 
     sidebar = create_sidebar(current_user['role'], "users")
 
+    # --- Edit User Dialog ---
+    def open_edit_dialog(user_to_edit):
+        username = user_to_edit['username']
+        
+        # Controls for the dialog
+        edit_password_field = create_text_input("New Password (leave blank to keep unchanged)", password=True, width=400)
+        
+        edit_role_dropdown = ft.Dropdown(
+            label="Select Role",
+            width=400,
+            value=user_to_edit['role'],
+            options=[
+                ft.dropdown.Option(key='instructor', text='Instructor'),
+                ft.dropdown.Option(key='admin', text='Admin'),
+                ft.dropdown.Option(key='examinee', text='Examinee (Student)'),
+            ]
+        )
+
+        edit_class_assignment_dropdown = ft.Dropdown(
+            label="Gán vào lớp học (tùy chọn)",
+            width=400,
+            value=user_to_edit.get('class_id'),
+            options=[ft.dropdown.Option(key=cls['id'], text=cls['name']) for cls in mock_classes],
+            visible=(user_to_edit['role'] == 'examinee')
+        )
+
+        def on_edit_role_change(e):
+            edit_class_assignment_dropdown.visible = e.control.value == 'examinee'
+            edit_dialog.content.update()
+        edit_role_dropdown.on_change = on_edit_role_change
+
+        def save_changes(e):
+            # Get new values
+            new_password = edit_password_field.value.strip()
+            new_role = edit_role_dropdown.value
+            new_class_id = edit_class_assignment_dropdown.value if new_role == 'examinee' else None
+
+            # Update mock data
+            if new_password:
+                mock_users[username]['password'] = new_password
+            
+            mock_users[username]['role'] = new_role
+            mock_users[username]['class_id'] = int(new_class_id) if new_class_id else None
+
+            # Close dialog and refresh page
+            edit_dialog.open = False
+            current_page.update()
+            show_user_management()
+
+        def close_dialog(e):
+            edit_dialog.open = False
+            current_page.update()
+
+        edit_dialog = ft.AlertDialog(
+            modal=True,
+            title=ft.Text(f"Edit User: {username}"),
+            content=ft.Column([
+                edit_password_field,
+                edit_role_dropdown,
+                edit_class_assignment_dropdown
+            ], tight=True),
+            actions=[
+                create_secondary_button("Cancel", on_click=close_dialog),
+                create_primary_button("Save Changes", on_click=save_changes),
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
+        )
+
+        current_page.dialog = edit_dialog
+        edit_dialog.open = True
+        current_page.update()
+
+
     # --- Form to create a new user (initially hidden) ---
     username_field = create_text_input("Username", width=400)
     password_field = create_text_input("Password", password=True, width=400)
@@ -2730,6 +2803,8 @@ def show_user_management():
                 ft.Icon(ft.Icons.PERSON_OUTLINE, color=Colors.PRIMARY, size=32),
                 ft.Container(width=Spacing.LG),
                 ft.Column(details_column, expand=True, spacing=2),
+                create_primary_button("Edit", width=80, on_click=lambda e, u=user_data: open_edit_dialog(u)),
+                ft.Container(width=Spacing.SM),
                 create_secondary_button("Delete", width=80, on_click=handle_delete_user(username)),
             ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
             padding=Spacing.LG
