@@ -123,9 +123,9 @@ mock_users = {
 # - duration_minutes: thời gian làm bài (phút)
 # Mục đích: Để hiển thị danh sách quiz và quản lý quiz
 mock_quizzes = [
-    {'id': 1, 'title': 'Python Basics', 'description': 'Learn Python fundamentals', 'created_by': 1, 'created_at': '2025-01-15', 'creator': 'instructor', 'questions_count': 5, 'difficulty': 'Beginner', 'start_time': '2024-01-01 00:00', 'duration_minutes': 10, 'class_id': 1},
-    {'id': 2, 'title': 'Web Development', 'description': 'HTML, CSS, JavaScript basics', 'created_by': 1, 'created_at': '2025-01-14', 'creator': 'instructor', 'questions_count': 8, 'difficulty': 'Intermediate', 'start_time': '2025-07-20 10:00', 'duration_minutes': 20, 'class_id': 2},
-    {'id': 3, 'title': 'Data Structures', 'description': 'Arrays, Lists, Trees, Algorithms', 'created_by': 2, 'created_at': '2025-01-13', 'creator': 'admin', 'questions_count': 12, 'difficulty': 'Advanced', 'start_time': '2025-07-22 14:00', 'duration_minutes': 30, 'class_id': 1}
+    {'id': 1, 'title': 'Python Basics', 'description': 'Learn Python fundamentals', 'created_by': 1, 'created_at': '2025-01-15', 'creator': 'instructor', 'questions_count': 5, 'difficulty': 'Beginner', 'start_time': '2024-01-01 00:00', 'duration_minutes': 10, 'class_id': 1, 'password': '123'},
+    {'id': 2, 'title': 'Web Development', 'description': 'HTML, CSS, JavaScript basics', 'created_by': 1, 'created_at': '2025-01-14', 'creator': 'instructor', 'questions_count': 8, 'difficulty': 'Intermediate', 'start_time': '2025-07-20 10:00', 'duration_minutes': 20, 'class_id': 2, 'password': None},
+    {'id': 3, 'title': 'Data Structures', 'description': 'Arrays, Lists, Trees, Algorithms', 'created_by': 2, 'created_at': '2025-01-13', 'creator': 'admin', 'questions_count': 12, 'difficulty': 'Advanced', 'start_time': '2025-07-22 14:00', 'duration_minutes': 30, 'class_id': 1, 'password': 'dsa'}
 ]
 
 # mock_classes: List chứa thông tin các lớp học mẫu
@@ -274,11 +274,26 @@ def create_secondary_button(text, on_click=None, width=None):
         )
     )
 
-def create_text_input(label, password=False, width=None, multiline=False, min_lines=1, icon=None):
+def create_text_input(label, password=False, width=None, multiline=False, min_lines=1, icon=None, can_reveal=False):
     """Create a text input with consistent styling"""
-    return ft.TextField(
+    
+    def toggle_password_visibility(e):
+        text_field.password = not text_field.password
+        e.control.icon = ft.Icons.VISIBILITY_OFF if text_field.password else ft.Icons.VISIBILITY
+        current_page.update()
+
+    suffix_icon = None
+    if password and can_reveal:
+        suffix_icon = ft.IconButton(
+            icon=ft.Icons.VISIBILITY_OFF,
+            on_click=toggle_password_visibility,
+            icon_color=Colors.TEXT_MUTED
+        )
+
+    text_field = ft.TextField(
         label=label,
         password=password,
+        can_reveal_password=password and not can_reveal, # Use built-in reveal if custom one is not used
         width=width,
         prefix_icon=icon,
         multiline=multiline,
@@ -289,8 +304,10 @@ def create_text_input(label, password=False, width=None, multiline=False, min_li
         bgcolor=Colors.WHITE,
         color=Colors.TEXT_PRIMARY,
         label_style=ft.TextStyle(color=Colors.TEXT_SECONDARY),
-        cursor_color=Colors.PRIMARY
+        cursor_color=Colors.PRIMARY,
+        suffix=suffix_icon
     )
+    return text_field
 
 def create_card(content, padding=Spacing.XL, elevation=2):
     """Create a card container with consistent styling"""
@@ -1169,6 +1186,7 @@ def show_quiz_management():
     quiz_description_field = create_text_input("Description", width=400, multiline=True, min_lines=3)
     quiz_start_time_field = create_text_input("Start Time (YYYY-MM-DD HH:MM)", width=250, icon=ft.Icons.CALENDAR_MONTH)
     quiz_duration_field = create_text_input("Duration (minutes)", width=140, icon=ft.Icons.TIMER)
+    quiz_password_field = create_text_input("Quiz Password (optional)", password=True, width=400, icon=ft.Icons.LOCK, can_reveal=True)
     
     # Lấy danh sách các lớp mà giảng viên hiện tại được phân công
     instructor_classes = [c for c in mock_classes if c['instructor_id'] == current_user['id']]
@@ -1192,6 +1210,7 @@ def show_quiz_management():
         quiz_error_text.value = ""
         quiz_start_time_field.value = ""
         quiz_duration_field.value = ""
+        quiz_password_field.value = ""
         class_dropdown.value = None
         current_page.update()
     
@@ -1204,6 +1223,7 @@ def show_quiz_management():
         description = quiz_description_field.value or ""
         start_time_str = quiz_start_time_field.value or ""
         duration_str = quiz_duration_field.value or ""
+        password = quiz_password_field.value or None
         class_id = class_dropdown.value
         
         if not title.strip():
@@ -1243,7 +1263,8 @@ def show_quiz_management():
             'difficulty': 'Beginner',
             'start_time': start_time_str.strip(),
             'duration_minutes': duration_minutes,
-            'class_id': int(class_id)
+            'class_id': int(class_id),
+            'password': password.strip() if password else None
         }
         mock_quizzes.append(new_quiz)
         
@@ -1271,6 +1292,8 @@ def show_quiz_management():
                 quiz_start_time_field,
                 quiz_duration_field
             ], spacing=Spacing.MD),
+            ft.Container(height=Spacing.LG),
+            quiz_password_field,
             ft.Container(height=Spacing.MD),
             quiz_error_text,
             ft.Container(height=Spacing.XL),
@@ -1866,6 +1889,49 @@ def show_examinee_dashboard():
     
     sidebar = create_sidebar(current_user['role'], "home")
     
+    def handle_start_quiz(quiz):
+        def start_action(e):
+            if quiz.get('password'):
+                password_field = create_text_input("Quiz Password", password=True)
+                error_text = ft.Text("", color=Colors.ERROR, size=Typography.SIZE_SM)
+
+                def check_password(e_dialog):
+                    if password_field.value == quiz['password']:
+                        password_dialog.open = False
+                        current_page.update()
+                        show_quiz_taking(quiz)
+                    else:
+                        error_text.value = "Incorrect password. Please try again."
+                        password_field.value = ""
+                        current_page.update()
+
+                def close_dialog(e_dialog):
+                    password_dialog.open = False
+                    current_page.update()
+
+                password_dialog = ft.AlertDialog(
+                    modal=True,
+                    title=ft.Text("Password Required"),
+                    content=ft.Column([
+                        ft.Text(f"This quiz '{quiz['title']}' is password protected."),
+                        password_field,
+                        error_text
+                    ]),
+                    actions=[
+                        create_secondary_button("Cancel", on_click=close_dialog),
+                        create_primary_button("Enter", on_click=check_password),
+                    ],
+                    actions_alignment=ft.MainAxisAlignment.END,
+                )
+
+                current_page.dialog = password_dialog
+                password_dialog.open = True
+                current_page.update()
+            else:
+                # No password, start directly
+                show_quiz_taking(quiz)
+        return start_action
+
     # Available quizzes
     quiz_cards = []
     for quiz in mock_quizzes:
@@ -1885,7 +1951,12 @@ def show_examinee_dashboard():
                             color=Colors.TEXT_SECONDARY
                         )
                     ], expand=True),
-                    create_badge(quiz['difficulty'])
+                    ft.Row([
+                        ft.Icon(ft.Icons.LOCK, color=Colors.WARNING, size=16) if quiz.get('password') else ft.Container(),
+                        ft.Container(width=Spacing.SM) if quiz.get('password') else ft.Container(),
+                        create_badge(quiz['difficulty'])
+                    ])
+                    
                 ]),
                 ft.Container(height=Spacing.SM),
                 ft.Row([
@@ -1903,7 +1974,7 @@ def show_examinee_dashboard():
                     ft.Text(f"| {quiz.get('duration_minutes', 'N/A')} min", size=Typography.SIZE_SM, color=Colors.TEXT_MUTED),
                     ft.Container(expand=True),
                     create_primary_button(
-                        "Start Quiz", on_click=lambda e, q=quiz: show_quiz_taking(q), width=120,
+                        "Start Quiz", on_click=handle_start_quiz(quiz), width=120,
                         disabled=datetime.datetime.now() < datetime.datetime.strptime(quiz.get('start_time', '1970-01-01 00:00'), '%Y-%m-%d %H:%M')
                     )
                 ])
