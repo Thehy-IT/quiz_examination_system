@@ -1099,6 +1099,32 @@ def show_instructor_dashboard():
                                 padding=Spacing.XL
                             ),
                             ft.Container(height=Spacing.XL),
+                            
+                            # --- INSTRUCTOR: My Assigned Classes ---
+                            create_section_title("Các lớp được phân công"),
+                            ft.Container(height=Spacing.LG),
+                            ft.Column(
+                                [
+                                    create_card(
+                                        content=ft.Row([
+                                            ft.Icon(ft.Icons.SCHOOL_OUTLINED, color=Colors.PRIMARY),
+                                            ft.Container(width=Spacing.LG),
+                                            ft.Text(
+                                                cls['name'],
+                                                size=Typography.SIZE_LG,
+                                                weight=ft.FontWeight.W_600,
+                                                color=Colors.TEXT_PRIMARY
+                                            )
+                                        ]),
+                                        padding=Spacing.LG
+                                    ) for cls in [c for c in mock_classes if c['instructor_id'] == current_user['id']]
+                                ],
+                                spacing=Spacing.LG
+                            ) if any(c for c in mock_classes if c['instructor_id'] == current_user['id']) else ft.Container(
+                                content=ft.Text("Bạn chưa được phân công vào lớp nào.", color=Colors.TEXT_MUTED),
+                                padding=Spacing.XL
+                            ),
+                            ft.Container(height=Spacing.XL),
                             create_primary_button("Create New Quiz", on_click=lambda e: show_quiz_management(), width=200)
                         ])
                     ])
@@ -2641,10 +2667,10 @@ def main_page(page: ft.Page):
     # 3. Để bật lại trang đăng nhập, hãy xóa/bình luận các dòng dưới và bỏ bình luận dòng `show_login()`.
     
     # --- Chế độ phát triển ---
-    current_user = mock_users['admin']  # Đăng nhập với tư cách 'admin'
-    show_instructor_dashboard()         # Đi thẳng vào dashboard của admin
-    # current_user = mock_users['instructor']  # Đăng nhập với tư cách 'instructor'
-    # show_instructor_dashboard()              # Đi thẳng vào dashboard của instructor
+    # current_user = mock_users['admin']  # Đăng nhập với tư cách 'admin'
+    # show_instructor_dashboard()         # Đi thẳng vào dashboard của admin
+    current_user = mock_users['instructor']  # Đăng nhập với tư cách 'instructor'
+    show_instructor_dashboard()              # Đi thẳng vào dashboard của instructor
 
     # --- Chế độ hoạt động bình thường ---
     #show_login()                       # Bắt đầu từ trang đăng nhập
