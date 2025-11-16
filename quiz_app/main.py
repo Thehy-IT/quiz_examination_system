@@ -3417,37 +3417,111 @@ def show_instructor_results_page():
     current_page.update()
 
 def show_settings_page():
-    """Show a placeholder settings page"""
-    global current_page
-    global sidebar_drawer
+    """Show the settings page for instructors and admins."""
+    global current_page, sidebar_drawer, current_user
     current_page.clean()
 
+    # This page serves as a profile/settings page for non-examinee roles
     sidebar = create_sidebar(current_user['role'], "settings")
 
+    # --- Change Password Form ---
+    current_password_field = create_text_input("Mật khẩu hiện tại", password=True, can_reveal=True)
+    new_password_field = create_text_input("Mật khẩu mới", password=True, can_reveal=True)
+    confirm_password_field = create_text_input("Xác nhận mật khẩu mới", password=True, can_reveal=True)
+    password_message_text = ft.Text("", size=Typography.SIZE_SM)
+
+    def handle_save_password(e):
+        current_pass = current_password_field.value
+        new_pass = new_password_field.value
+        confirm_pass = confirm_password_field.value
+
+        # Validation
+        if not all([current_pass, new_pass, confirm_pass]):
+            password_message_text.value = "Vui lòng điền đầy đủ các trường."
+            password_message_text.color = Colors.ERROR
+            current_page.update()
+            return
+
+        if current_pass != current_user['password']:
+            password_message_text.value = "Mật khẩu hiện tại không đúng."
+            password_message_text.color = Colors.ERROR
+            current_password_field.value = ""
+            current_page.update()
+            return
+
+        if new_pass != confirm_pass:
+            password_message_text.value = "Mật khẩu mới không khớp."
+            password_message_text.color = Colors.ERROR
+            new_password_field.value = ""
+            confirm_password_field.value = ""
+            current_page.update()
+            return
+
+        # Update password
+        mock_users[current_user['username']]['password'] = new_pass
+        current_user['password'] = new_pass # Update current session user
+
+        password_message_text.value = "Đổi mật khẩu thành công!"
+        password_message_text.color = Colors.SUCCESS
+        current_password_field.value = ""
+        new_password_field.value = ""
+        confirm_password_field.value = ""
+        current_page.update()
+
+    # --- User Info ---
+    info_details = [
+        ft.Row([ft.Text("Username:", weight=ft.FontWeight.W_600), ft.Text(current_user['username'])]),
+        ft.Divider(),
+        ft.Row([ft.Text("Vai trò:", weight=ft.FontWeight.W_600), ft.Text(current_user['role'].title())]),
+    ]
+
+    if current_user['role'] == 'instructor':
+        assigned_classes = [c['name'] for c in mock_classes if c.get('instructor_id') == current_user['id']]
+        if assigned_classes:
+            info_details.append(ft.Divider())
+            info_details.append(ft.Row([ft.Text("Các lớp phụ trách:", weight=ft.FontWeight.W_600), ft.Text(", ".join(assigned_classes))]))
+
+    # --- Main page content ---
     main_content = ft.Container(
         content=ft.Column(spacing=0, controls=[
             create_app_header(),
             ft.Container(
                 content=ft.Column(scroll=ft.ScrollMode.AUTO, controls=[
-                    # Header
                     ft.Container(
                         content=ft.Column([
-                            create_page_title("Settings"),
-                            create_subtitle("Manage your application settings.")
+                            create_page_title("Account Settings"),
+                            create_subtitle("Manage your personal information and account settings.")
                         ]),
                         padding=ft.padding.only(bottom=Spacing.XXL)
                     ),
 
-                    # Placeholder content
-                    create_card(
-                        content=ft.Column([
-                            ft.Icon(ft.Icons.SETTINGS_SUGGEST, size=48, color=Colors.GRAY_400),
-                            ft.Container(height=Spacing.SM),
-                            ft.Text("Settings Page", size=Typography.SIZE_LG, weight=ft.FontWeight.W_600, color=Colors.TEXT_SECONDARY),
-                            ft.Text("This feature is under construction.", size=Typography.SIZE_SM, color=Colors.TEXT_MUTED)
-                        ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-                        padding=Spacing.XXXXL
-                    )
+                    ft.Row([
+                        # User Info Card
+                        create_card(
+                            content=ft.Column([
+                                create_section_title("Thông tin tài khoản"),
+                                ft.Container(height=Spacing.LG),
+                                *info_details
+                            ]),
+                            padding=Spacing.XL
+                        ),
+
+                        # Change Password Card
+                        create_card(
+                            content=ft.Column([
+                                create_section_title("Đổi mật khẩu"),
+                                ft.Container(height=Spacing.LG),
+                                current_password_field,
+                                new_password_field,
+                                confirm_password_field,
+                                ft.Container(height=Spacing.SM),
+                                password_message_text,
+                                ft.Container(height=Spacing.LG),
+                                create_primary_button("Lưu thay đổi", on_click=handle_save_password)
+                            ]),
+                            padding=Spacing.XL
+                        ),
+                    ], alignment=ft.MainAxisAlignment.START, vertical_alignment=ft.CrossAxisAlignment.START)
                 ]),
                 padding=Spacing.XXXXL,
                 expand=True, bgcolor=Colors.GRAY_50
