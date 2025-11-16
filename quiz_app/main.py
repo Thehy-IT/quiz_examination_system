@@ -232,6 +232,14 @@ mock_activity_log = [
     {'timestamp': '2025-07-20 14:00', 'user': 'admin', 'action': 'đã tạo một lớp học mới', 'details': 'Lớp Phát triển Web K12'},
 ]
 
+# mock_attempts: List chứa lịch sử làm bài của sinh viên
+# Mục đích: Để sinh viên xem lại các lần làm bài của mình
+mock_attempts = [
+    {'attempt_id': 1, 'user_id': 3, 'quiz_id': 1, 'score': '4/5', 'percentage': 80.0, 'time_taken': '00:05:30', 'completed_at': '2025-07-21 11:00:00', 'user_answers': {1: 'A programming language', 2: True, 3: 'Guido van Rossum', 4: ['Django', 'Flask'], 5: 'Lists are mutable'}},
+    {'attempt_id': 2, 'user_id': 4, 'quiz_id': 1, 'score': '3.5/5', 'percentage': 70.0, 'time_taken': '00:08:15', 'completed_at': '2025-07-21 11:05:00', 'user_answers': {1: 'A snake', 2: True, 3: 'guido', 4: ['Django', 'Flask', 'FastAPI'], 5: 'Lists are mutable and use square brackets, while tuples are immutable and use parentheses.'}},
+    {'attempt_id': 3, 'user_id': 4, 'quiz_id': 2, 'score': '7/8', 'percentage': 87.5, 'time_taken': '00:15:45', 'completed_at': '2025-07-22 14:30:00', 'user_answers': {}},
+]
+
 # =============================================================================
 # COMPONENT HELPER FUNCTIONS
 # =============================================================================
@@ -459,7 +467,7 @@ def create_app_header():
 # QUESTION TYPE COMPONENTS
 # =============================================================================
 
-def create_multiple_choice_question(question, on_answer_change, shuffle_answers=False):
+def create_multiple_choice_question(question, on_answer_change, shuffle_answers=False, is_review=False, user_answer=None):
     """Create a multiple choice question component"""
     options_group = ft.RadioGroup(content=ft.Column([]))
     
@@ -474,17 +482,49 @@ def create_multiple_choice_question(question, on_answer_change, shuffle_answers=
     for i, option in enumerate(options_data):
         # Lưu trữ ID gốc của option (hoặc text) để xác định câu trả lời đúng
         # Ở đây ta dùng chính text của option
-        original_option_text = option['option_text']
-        options.append(
-            ft.Radio(
-                value=original_option_text,
-                label=option['option_text'],
-                label_style=ft.TextStyle(size=Typography.SIZE_BASE)
-            )
+        option_text = option['option_text']
+        is_correct = option['is_correct']
+        
+        radio = ft.Radio(
+            value=option_text,
+            label=option_text,
+            label_style=ft.TextStyle(size=Typography.SIZE_BASE)
         )
+
+        if is_review:
+            radio.disabled = True
+            radio.value = user_answer
+
+            # Hiển thị icon và màu sắc cho chế độ review
+            review_indicator = ft.Container(width=24) # Placeholder
+            if is_correct:
+                # Đây là đáp án đúng
+                radio.label_style.color = Colors.SUCCESS
+                radio.label_style.weight = ft.FontWeight.W_600
+                review_indicator = ft.Icon(ft.Icons.CHECK_CIRCLE, color=Colors.SUCCESS, size=20)
+            elif option_text == user_answer:
+                # Đây là đáp án sai mà người dùng đã chọn
+                radio.label_style.color = Colors.ERROR
+                radio.label_style.weight = ft.FontWeight.W_600
+                review_indicator = ft.Icon(ft.Icons.CANCEL, color=Colors.ERROR, size=20)
+            
+            options.append(ft.Row([review_indicator, radio], spacing=Spacing.SM))
+        else:
+            options.append(radio)
+
     options_group.content = ft.Column(options, spacing=Spacing.MD)
-    options_group.on_change = lambda e: on_answer_change(e, e.control.value)
-    
+
+    if not is_review:
+        options_group.on_change = lambda e: on_answer_change(e, e.control.value)
+    else:
+        options_group.value = user_answer
+
+    # Thêm phần giải thích nếu có (cho chế độ review)
+    explanation_content = []
+    if is_review and question.get('explanation'):
+        explanation_content.append(ft.Container(height=Spacing.LG))
+        explanation_content.append(create_card(content=ft.Text(f"Explanation: {question['explanation']}", color=Colors.TEXT_SECONDARY), elevation=0, padding=Spacing.LG))
+
     return ft.Column([
         ft.Text(
             question['question_text'],
@@ -493,10 +533,11 @@ def create_multiple_choice_question(question, on_answer_change, shuffle_answers=
             color=Colors.TEXT_PRIMARY
         ),
         ft.Container(height=Spacing.XL),
-        options_group
+        options_group,
+        *explanation_content
     ])
 
-def create_true_false_question(question, on_answer_change):
+def create_true_false_question(question, on_answer_change, is_review=False, user_answer=None):
     """Create a true/false question component"""
     true_false_group = ft.RadioGroup(
         content=ft.Column([
@@ -504,8 +545,37 @@ def create_true_false_question(question, on_answer_change):
             ft.Radio(value="false", label="False", label_style=ft.TextStyle(size=Typography.SIZE_BASE))
         ], spacing=Spacing.MD)
     )
-    true_false_group.on_change = lambda e: on_answer_change(e, e.control.value == "true")
+
+    if is_review:
+        true_false_group.disabled = True
+        true_false_group.value = "true" if user_answer else "false"
+        correct_answer = question.get('correct_answer')
+
+        for radio in true_false_group.content.controls:
+            is_this_option_correct = (radio.value == "true") == correct_answer
+            is_this_option_selected = (radio.value == "true") == user_answer
+
+            review_indicator = ft.Container(width=24)
+            if is_this_option_correct:
+                radio.label_style.color = Colors.SUCCESS
+                radio.label_style.weight = ft.FontWeight.W_600
+                review_indicator = ft.Icon(ft.Icons.CHECK_CIRCLE, color=Colors.SUCCESS, size=20)
+            elif is_this_option_selected:
+                radio.label_style.color = Colors.ERROR
+                radio.label_style.weight = ft.FontWeight.W_600
+                review_indicator = ft.Icon(ft.Icons.CANCEL, color=Colors.ERROR, size=20)
+            
+            # Wrap in a Row to show indicator
+            radio.label = ft.Row([review_indicator, ft.Text(radio.label)], spacing=Spacing.SM)
+
+    else:
+        true_false_group.on_change = lambda e: on_answer_change(e, e.control.value == "true")
     
+    explanation_content = []
+    if is_review and question.get('explanation'):
+        explanation_content.append(ft.Container(height=Spacing.LG))
+        explanation_content.append(create_card(content=ft.Text(f"Explanation: {question['explanation']}", color=Colors.TEXT_SECONDARY), elevation=0, padding=Spacing.LG))
+
     return ft.Column([
         ft.Text(
             question['question_text'],
@@ -514,14 +584,34 @@ def create_true_false_question(question, on_answer_change):
             color=Colors.TEXT_PRIMARY
         ),
         ft.Container(height=Spacing.XL),
-        true_false_group
+        true_false_group,
+        *explanation_content
     ])
 
-def create_fill_in_blank_question(question, on_answer_change):
+def create_fill_in_blank_question(question, on_answer_change, is_review=False, user_answer=None):
     """Create a fill-in-the-blank question component"""
     answer_field = create_text_input("Your answer", width=400)
-    answer_field.on_change = lambda e: on_answer_change(e, e.control.value)
     
+    review_content = []
+    if is_review:
+        answer_field.value = user_answer
+        answer_field.disabled = True
+        
+        correct_answer = question.get('correct_answer', '').lower().strip()
+        answer_variations = question.get('answer_variations', [])
+        user_answer_clean = str(user_answer).lower().strip()
+        is_correct = user_answer_clean == correct_answer or user_answer_clean in answer_variations
+
+        answer_field.border_color = Colors.SUCCESS if is_correct else Colors.ERROR
+        review_content.append(ft.Container(height=Spacing.SM))
+        review_content.append(
+            ft.Text(f"Correct Answer: {question.get('correct_answer')}", color=Colors.SUCCESS, weight=ft.FontWeight.W_600)
+        )
+
+    else:
+        answer_field.on_change = lambda e: on_answer_change(e, e.control.value)
+    
+
     return ft.Column([
         ft.Text(
             question['question_text'],
@@ -530,10 +620,11 @@ def create_fill_in_blank_question(question, on_answer_change):
             color=Colors.TEXT_PRIMARY
         ),
         ft.Container(height=Spacing.XL),
-        answer_field
+        answer_field,
+        *review_content
     ])
 
-def create_multiple_select_question(question, on_answer_change, shuffle_answers=False):
+def create_multiple_select_question(question, on_answer_change, shuffle_answers=False, is_review=False, user_answer=None):
     """Create a multiple select question component"""
     checkboxes = []
     options_data = question.get('options', [])
@@ -542,29 +633,57 @@ def create_multiple_select_question(question, on_answer_change, shuffle_answers=
     if shuffle_answers:
         random.shuffle(options_data)
     
-    def create_checkbox_handler(option_text):
-        def handler(e):
-            # Collect all selected checkboxes
-            selected = []
-            for cb in checkboxes:
-                if cb.value:
-                    selected.append(cb.data) # Lấy giá trị từ thuộc tính data
-            # Pass the list of selected option texts
-            on_answer_change(e, selected)
-        return handler
-    
     for i, option in enumerate(options_data):
-        original_option_text = option['option_text']
+        option_text = option['option_text']
+        is_correct = option['is_correct']
+
         checkbox = ft.Checkbox(
-            label=option['option_text'],
-            # Lưu trữ giá trị gốc (option text) vào thuộc tính data
-            data=original_option_text,
+            label=option_text,
+            data=option_text,
             value=False,
             label_style=ft.TextStyle(size=Typography.SIZE_BASE),
-            on_change=create_checkbox_handler(original_option_text)
         )
-        checkboxes.append(checkbox)
-    
+
+        if is_review:
+            checkbox.disabled = True
+            user_answer_set = set(user_answer or [])
+            checkbox.value = option_text in user_answer_set
+
+            review_indicator = ft.Container(width=24)
+            if is_correct:
+                checkbox.label_style.color = Colors.SUCCESS
+                checkbox.label_style.weight = ft.FontWeight.W_600
+                review_indicator = ft.Icon(ft.Icons.CHECK_CIRCLE_OUTLINED, color=Colors.SUCCESS, size=20)
+            elif option_text in user_answer_set: # Incorrectly selected
+                checkbox.label_style.color = Colors.ERROR
+                review_indicator = ft.Icon(ft.Icons.CANCEL_OUTLINED, color=Colors.ERROR, size=20)
+
+            checkboxes.append(ft.Row([review_indicator, checkbox], spacing=Spacing.SM))
+        else:
+            checkboxes.append(checkbox)
+
+    if not is_review:
+        def on_checkbox_change(e):
+            selected = [cb.data for cb in checkboxes if cb.value]
+            on_answer_change(e, selected)
+        
+        for cb in checkboxes:
+            cb.on_change = on_checkbox_change
+
+    explanation_content = []
+    if is_review:
+        correct_options_texts = {opt['option_text'] for opt in question['options'] if opt['is_correct']}
+        explanation_content.append(ft.Container(height=Spacing.LG))
+        explanation_content.append(
+            ft.Text(f"Correct Answer(s): {', '.join(correct_options_texts)}", color=Colors.SUCCESS, weight=ft.FontWeight.W_600)
+        )
+        if question.get('explanation'):
+            explanation_content.append(ft.Container(height=Spacing.SM))
+            explanation_content.append(
+                create_card(content=ft.Text(f"Explanation: {question['explanation']}", color=Colors.TEXT_SECONDARY), elevation=0, padding=Spacing.LG)
+            )
+
+
     return ft.Column([
         ft.Text(
             question['question_text'],
@@ -573,14 +692,33 @@ def create_multiple_select_question(question, on_answer_change, shuffle_answers=
             color=Colors.TEXT_PRIMARY
         ),
         ft.Container(height=Spacing.XL),
-        ft.Column(checkboxes, spacing=Spacing.MD)
+        ft.Column(checkboxes, spacing=Spacing.MD),
+        *explanation_content
     ])
 
-def create_short_answer_question(question, on_answer_change):
+def create_short_answer_question(question, on_answer_change, is_review=False, user_answer=None):
     """Create a short answer question component"""
     answer_field = create_text_input("Your answer", width=500, multiline=True, min_lines=4)
-    answer_field.on_change = lambda e: on_answer_change(e, e.control.value)
     
+    review_content = []
+    if is_review:
+        answer_field.value = user_answer
+        answer_field.disabled = True
+        answer_field.label = "Your Answer"
+
+        # Short answer questions are manually graded, so we just show the sample answer
+        if question.get('sample_answer'):
+            review_content.append(ft.Container(height=Spacing.LG))
+            review_content.append(
+                create_card(
+                    content=ft.Column([
+                        ft.Text("Sample Answer for Grading", weight=ft.FontWeight.W_600, color=Colors.PRIMARY),
+                        ft.Text(question['sample_answer'], color=Colors.TEXT_SECONDARY)
+                    ]), elevation=0, padding=Spacing.LG)
+            )
+    else:
+        answer_field.on_change = lambda e: on_answer_change(e, e.control.value)
+
     return ft.Column([
         ft.Text(
             question['question_text'],
@@ -589,29 +727,30 @@ def create_short_answer_question(question, on_answer_change):
             color=Colors.TEXT_PRIMARY
         ),
         ft.Container(height=Spacing.XL),
-        answer_field
+        answer_field,
+        *review_content
     ])
 
-def create_question_by_type(question, on_answer_change, shuffle_answers=False):
+def create_question_by_type(question, on_answer_change, shuffle_answers=False, is_review=False, user_answer=None):
     """Create question component based on question type"""
     question_type = question.get('question_type', 'multiple_choice')
     
-    def answer_handler(e, answer_value):
-        on_answer_change(question['id'], answer_value)
+    # In review mode, on_answer_change is a dummy function
+    answer_handler = (lambda e, answer_value: on_answer_change(question['id'], answer_value)) if not is_review else (lambda e, v: None)
 
     # Chỉ truyền cờ shuffle_answers cho các loại câu hỏi có lựa chọn
     if question_type == 'multiple_choice':
-        return create_multiple_choice_question(question, answer_handler, shuffle_answers)
+        return create_multiple_choice_question(question, answer_handler, shuffle_answers, is_review, user_answer)
     elif question_type == 'true_false':
-        return create_true_false_question(question, answer_handler)
+        return create_true_false_question(question, answer_handler, is_review, user_answer)
     elif question_type == 'fill_in_blank':
-        return create_fill_in_blank_question(question, answer_handler)
+        return create_fill_in_blank_question(question, answer_handler, is_review, user_answer)
     elif question_type == 'multiple_select':
-        return create_multiple_select_question(question, answer_handler, shuffle_answers)
+        return create_multiple_select_question(question, answer_handler, shuffle_answers, is_review, user_answer)
     elif question_type == 'short_answer':
-        return create_short_answer_question(question, answer_handler)
+        return create_short_answer_question(question, answer_handler, is_review, user_answer)
     else:
-        return create_multiple_choice_question(question, answer_handler, shuffle_answers)
+        return create_multiple_choice_question(question, answer_handler, shuffle_answers, is_review, user_answer)
 
 # =============================================================================
 # NAVIGATION COMPONENTS
@@ -662,7 +801,7 @@ def create_sidebar(user_role, active_page="dashboard"):
     else:  # examinee
         sidebar_items = [
             create_sidebar_item(ft.Icons.HOME, "Home", active_page == "home", on_click=lambda e: show_examinee_dashboard()),
-            create_sidebar_item(ft.Icons.LIBRARY_BOOKS, "My Attempts", active_page == "attempts"),
+            create_sidebar_item(ft.Icons.LIBRARY_BOOKS, "My Attempts", active_page == "attempts", on_click=lambda e: show_my_attempts()),
             create_sidebar_item(ft.Icons.EMOJI_EVENTS, "Results", active_page == "results"),
             create_sidebar_item(ft.Icons.PERSON, "Profile", active_page == "profile"),
         ]
@@ -2518,7 +2657,7 @@ def show_quiz_preview(quiz_basic_info):
 
 def show_quiz_results(quiz_data, user_answers, start_time):
     """Show modern quiz results"""
-    global current_page, current_user
+    global current_page, current_user, mock_attempts
     
     current_page.clean()
     
@@ -2568,6 +2707,22 @@ def show_quiz_results(quiz_data, user_answers, start_time):
     time_minutes = int(time_taken.total_seconds() / 60)
     time_seconds = int(time_taken.total_seconds() % 60)
     
+    # --- Lưu kết quả lần làm bài này vào mock_attempts ---
+    new_attempt_id = len(mock_attempts) + 1
+    new_attempt = {
+        'attempt_id': new_attempt_id,
+        'user_id': current_user['id'],
+        'quiz_id': quiz_data['id'],
+        'score': f"{correct_count}/{total_questions}",
+        'percentage': percentage,
+        'time_taken': f"{time_minutes:02d}:{time_seconds:02d}",
+        'completed_at': end_time.strftime('%Y-%m-%d %H:%M:%S'),
+        'user_answers': user_answers
+    }
+    mock_attempts.append(new_attempt)
+    # Thông báo cho instructor (nếu cần)
+    # ...
+
     # Results content
     results_content = ft.Container(
         content=ft.Column([
@@ -2652,6 +2807,187 @@ def show_quiz_results(quiz_data, user_answers, start_time):
     )
     
     current_page.add(results_content)
+    current_page.update()
+
+def show_attempt_review(attempt):
+    """Show the detailed review of a specific quiz attempt."""
+    global current_page, current_question_index, quiz_questions
+
+    current_page.clean()
+    current_question_index = 0
+
+    # Lấy thông tin quiz và câu hỏi
+    quiz_info = next((q for q in mock_quizzes if q['id'] == attempt['quiz_id']), None)
+    if not quiz_info:
+        show_my_attempts()
+        return
+
+    # Lấy danh sách câu hỏi gốc (không xáo trộn) để đảm bảo thứ tự nhất quán khi xem lại
+    quiz_questions = mock_questions.get(quiz_info['id'], [])
+    user_answers = attempt.get('user_answers', {})
+
+    if not quiz_questions:
+        show_my_attempts()
+        return
+
+    # UI Components
+    question_counter_text = ft.Text("", size=Typography.SIZE_BASE, weight=ft.FontWeight.W_600, color=Colors.TEXT_SECONDARY)
+    question_component_container = ft.Container(content=ft.Column([]))
+
+    def update_review_display():
+        if current_question_index >= len(quiz_questions):
+            return
+
+        question = quiz_questions[current_question_index]
+        user_answer = user_answers.get(question['id'])
+        
+        question_counter_text.value = f"Question {current_question_index + 1} of {len(quiz_questions)}"
+
+        # Tạo component câu hỏi ở chế độ review
+        question_component = create_question_by_type(question, on_answer_change=None, is_review=True, user_answer=user_answer)
+        question_component_container.content = question_component
+
+        prev_button.disabled = (current_question_index == 0)
+        next_button.disabled = (current_question_index == len(quiz_questions) - 1)
+        current_page.update()
+
+    def handle_previous(e):
+        global current_question_index
+        if current_question_index > 0:
+            current_question_index -= 1
+            update_review_display()
+
+    def handle_next(e):
+        global current_question_index
+        if current_question_index < len(quiz_questions) - 1:
+            current_question_index += 1
+            update_review_display()
+
+    def exit_review(e):
+        show_my_attempts()
+
+    prev_button = create_secondary_button("← Previous", on_click=handle_previous, width=120)
+    next_button = create_primary_button("Next →", on_click=handle_next, width=120)
+
+    # Main review interface
+    review_content = ft.Container(
+        content=ft.Column([
+            create_card(content=ft.Row([
+                ft.Icon(ft.Icons.RATE_REVIEW, color=Colors.PRIMARY),
+                ft.Text(f"Reviewing: {quiz_info['title']}", size=Typography.SIZE_LG, weight=ft.FontWeight.W_600),
+                ft.Container(expand=True),
+                create_secondary_button("Back to Attempts", on_click=exit_review, width=150)
+            ]), padding=Spacing.LG),
+            ft.Container(height=Spacing.LG),
+            create_card(content=question_component_container, padding=Spacing.XXXXL),
+            ft.Container(height=Spacing.XL),
+            ft.Row([prev_button, ft.Container(expand=True), question_counter_text, ft.Container(expand=True), next_button])
+        ]), padding=Spacing.XXXXL, expand=True, alignment=ft.alignment.top_center)
+
+    update_review_display()
+    current_page.add(review_content)
+    current_page.update()
+
+def show_my_attempts():
+    """Show the student's history of quiz attempts."""
+    global current_page, sidebar_drawer, current_user
+    current_page.clean()
+
+    sidebar = create_sidebar(current_user['role'], "attempts")
+
+    # --- Lấy lịch sử làm bài của sinh viên hiện tại ---
+    user_attempts = [attempt for attempt in mock_attempts if attempt['user_id'] == current_user['id']]
+    user_attempts.sort(key=lambda x: x['completed_at'], reverse=True) # Sắp xếp mới nhất lên đầu
+
+    attempt_cards = []
+    if user_attempts:
+        for attempt in user_attempts:
+            # Lấy thông tin quiz từ quiz_id
+            quiz_info = next((q for q in mock_quizzes if q['id'] == attempt['quiz_id']), None)
+            if not quiz_info:
+                continue
+
+            percentage = attempt['percentage']
+            score_color = Colors.SUCCESS if percentage >= 70 else (Colors.WARNING if percentage >= 40 else Colors.ERROR)
+
+            attempt_card = create_card(
+                content=ft.Row([
+                    ft.Column([
+                        ft.Text(quiz_info['title'], size=Typography.SIZE_LG, weight=ft.FontWeight.W_600),
+                        ft.Text(f"Completed on: {datetime.datetime.strptime(attempt['completed_at'], '%Y-%m-%d %H:%M:%S').strftime('%B %d, %Y at %I:%M %p')}",
+                                size=Typography.SIZE_SM, color=Colors.TEXT_SECONDARY),
+                        ft.Container(height=Spacing.SM),
+                        ft.Row([
+                            ft.Icon(ft.Icons.TIMER, size=16, color=Colors.TEXT_MUTED),
+                            ft.Text(f"Time: {attempt['time_taken']}", size=Typography.SIZE_SM, color=Colors.TEXT_MUTED),
+                        ], spacing=Spacing.SM)
+                    ], expand=True),
+                    ft.VerticalDivider(color=Colors.GRAY_200),
+                    ft.Container(width=Spacing.LG),
+                    ft.Column([
+                        ft.Text("Score", size=Typography.SIZE_SM, color=Colors.TEXT_SECONDARY),
+                        ft.Text(attempt['score'], size=Typography.SIZE_XL, weight=ft.FontWeight.W_700, color=Colors.TEXT_PRIMARY),
+                    ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                    ft.Container(width=Spacing.LG),
+                    ft.Column([
+                        ft.Text("Percentage", size=Typography.SIZE_SM, color=Colors.TEXT_SECONDARY),
+                        ft.Text(f"{attempt['percentage']:.1f}%", size=Typography.SIZE_XL, weight=ft.FontWeight.W_700, color=score_color),
+                    ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                    ft.Container(width=Spacing.LG),
+                    create_primary_button("Review", on_click=lambda e, a=attempt: show_attempt_review(a), width=100)
+                ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+                padding=Spacing.LG
+            )
+            attempt_cards.append(attempt_card)
+    else:
+        attempt_cards.append(
+            create_card(
+                content=ft.Column([
+                    ft.Icon(ft.Icons.HISTORY_EDU, size=48, color=Colors.GRAY_400),
+                    ft.Container(height=Spacing.SM),
+                    ft.Text("No Attempts Yet", size=Typography.SIZE_LG, weight=ft.FontWeight.W_600, color=Colors.TEXT_SECONDARY),
+                    ft.Text("Your completed quizzes will appear here.", size=Typography.SIZE_SM, color=Colors.TEXT_MUTED)
+                ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                padding=Spacing.XXXXL
+            )
+        )
+
+    # --- Nội dung chính của trang ---
+    main_content = ft.Container(
+        content=ft.Column(spacing=0, controls=[
+            create_app_header(),
+            ft.Container(
+                content=ft.Column(scroll=ft.ScrollMode.AUTO, controls=[
+                    # Header
+                    ft.Container(
+                        content=ft.Column([
+                            create_page_title("My Attempts"),
+                            create_subtitle("Here is a history of all the quizzes you have completed.")
+                        ]),
+                        padding=ft.padding.only(bottom=Spacing.XXL)
+                    ),
+
+                    # Danh sách các lần làm bài
+                    ft.Column(attempt_cards, spacing=Spacing.LG)
+                ]),
+                padding=Spacing.XXXXL,
+                expand=True, bgcolor=Colors.GRAY_50
+            )
+        ]),
+        expand=True
+    )
+
+    # Responsive layout
+    sidebar_drawer = ft.NavigationDrawer(controls=[sidebar])
+    current_page.drawer = sidebar_drawer
+    current_page.appbar = create_app_bar()
+
+    if current_page.width >= 1000:
+        current_page.add(create_app_background(ft.Row([sidebar, main_content], expand=True)))
+        current_page.appbar.visible = False
+    else:
+        current_page.add(create_app_background(main_content))
+        current_page.appbar.visible = True
     current_page.update()
 
 def show_results_overview():
@@ -3305,11 +3641,11 @@ def main_page(page: ft.Page):
     # --- Chế độ phát triển ---
     # current_user = mock_users['admin']  # Đăng nhập với tư cách 'admin'
     # show_instructor_dashboard()         # Đi thẳng vào dashboard của admin
-    current_user = mock_users['instructor']  # Đăng nhập với tư cách 'instructor'
-    show_instructor_dashboard()              # Đi thẳng vào dashboard của instructor
+    current_user = mock_users['THEHY']  # Đăng nhập với tư cách 'examinee' 
+    show_examinee_dashboard()              # Đi thẳng vào dashboard của sinh viên
 
     # --- Chế độ hoạt động bình thường ---
-    #show_login()                       # Bắt đầu từ trang đăng nhập
+    # show_login()                       # Bắt đầu từ trang đăng nhập
 
 if __name__ == "__main__":
     ft.app(target=main_page)
