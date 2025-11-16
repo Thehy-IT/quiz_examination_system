@@ -77,6 +77,7 @@ class BorderRadius:
 # GLOBAL STATE
 # =============================================================================
 # khởi tạo biến toàn cục để theo dõi trạng thái ứng dụng
+current_view_handler = None # NEW: Stores the function to call to redraw the current view
 current_user = None
 current_page = None
 sidebar_drawer = None
@@ -961,6 +962,7 @@ def create_app_background(content_control):
 def show_login():
     """Show the modern login page"""
     global current_page
+    global current_view_handler
     current_page.clean()
     current_page.appbar = None
     
@@ -1086,12 +1088,14 @@ def show_login():
     # Wrap the content with the new background
     login_container = create_app_background(login_content)
     current_page.add(login_container)
+    current_view_handler = show_login # Set the current view handler
     current_page.update()
 
 def show_instructor_dashboard():
     """Show the instructor/admin dashboard"""
     global current_page
     global sidebar_drawer
+    global current_view_handler
     current_page.clean()
     
     # Create main layout with sidebar
@@ -1318,12 +1322,13 @@ def show_instructor_dashboard():
     sidebar_drawer = ft.NavigationDrawer(controls=[sidebar])
     current_page.drawer = sidebar_drawer
     current_page.appbar = create_app_bar()
+    current_view_handler = show_instructor_dashboard # Set the current view handler
 
     if current_page.width >= 1000:
-        current_page.add(create_app_background(ft.Row([sidebar, main_content], expand=True)))
+        current_page.add(ft.Row([sidebar, main_content], expand=True))
         current_page.appbar.visible = False
     else:
-        current_page.add(create_app_background(main_content))
+        current_page.add(main_content)
         current_page.appbar.visible = True
     current_page.update()
 
@@ -1331,6 +1336,7 @@ def show_quiz_management():
     """Show the quiz management page"""
     global current_page
     global sidebar_drawer
+    global current_view_handler
     current_page.clean()
     
     sidebar = create_sidebar(current_user['role'], "quizzes")
@@ -1522,8 +1528,12 @@ def show_quiz_management():
 
         
         # Add to mock data
+        if mock_quizzes:
+            new_id = max(q['id'] for q in mock_quizzes) + 1
+        else:
+            new_id = 1
         new_quiz = {
-            'id': len(mock_quizzes) + 1,
+            'id': new_id,
             'title': title.strip(),
             'description': description.strip(),
             'created_by': current_user['id'],
@@ -1729,12 +1739,13 @@ def show_quiz_management():
     sidebar_drawer = ft.NavigationDrawer(controls=[sidebar])
     current_page.drawer = sidebar_drawer
     current_page.appbar = create_app_bar()
+    current_view_handler = show_quiz_management # Set the current view handler
 
     if current_page.width >= 1000:
-        current_page.add(create_app_background(ft.Row([sidebar, main_content], expand=True)))
+        current_page.add(ft.Row([sidebar, main_content], expand=True))
         current_page.appbar.visible = False
     else:
-        current_page.add(create_app_background(main_content))
+        current_page.add(main_content)
         current_page.appbar.visible = True
     current_page.update()
 
@@ -1742,6 +1753,7 @@ def show_question_management(quiz):
     """Show the enhanced question management page with multiple question types"""
     global current_page
     global sidebar_drawer
+    global current_view_handler
     current_page.clean()
     
     sidebar = create_sidebar(current_user['role'], "questions")
@@ -1891,7 +1903,8 @@ def show_question_management(quiz):
         
         # Create question based on type
         new_question = {
-            'id': len(mock_questions.get(quiz['id'], [])) + 1,
+            # Tìm ID lớn nhất trong danh sách câu hỏi của quiz này và +1
+            'id': (max(q['id'] for q in mock_questions[quiz['id']]) + 1) if quiz['id'] in mock_questions and mock_questions[quiz['id']] else 1,
             'question_type': question_type,
             'question_text': question_text.strip(),
             'difficulty': difficulty,
@@ -2194,12 +2207,13 @@ def show_question_management(quiz):
     sidebar_drawer = ft.NavigationDrawer(controls=[sidebar])
     current_page.drawer = sidebar_drawer
     current_page.appbar = create_app_bar()
+    current_view_handler = lambda e=None: show_question_management(quiz) # Set the current view handler
 
     if current_page.width >= 1000:
-        current_page.add(create_app_background(ft.Row([sidebar, main_content], expand=True)))
+        current_page.add(ft.Row([sidebar, main_content], expand=True))
         current_page.appbar.visible = False
     else:
-        current_page.add(create_app_background(main_content))
+        current_page.add(main_content)
         current_page.appbar.visible = True
     current_page.update()
 
@@ -2207,6 +2221,7 @@ def show_examinee_dashboard():
     """Show the examinee dashboard"""
     global current_page
     global sidebar_drawer
+    global current_view_handler
     current_page.clean()
     
     sidebar = create_sidebar(current_user['role'], "home")
@@ -2379,12 +2394,13 @@ def show_examinee_dashboard():
     sidebar_drawer = ft.NavigationDrawer(controls=[sidebar])
     current_page.drawer = sidebar_drawer
     current_page.appbar = create_app_bar()
+    current_view_handler = show_examinee_dashboard # Set the current view handler
 
     if current_page.width >= 1000:
-        current_page.add(create_app_background(ft.Row([sidebar, main_content], expand=True)))
+        current_page.add(ft.Row([sidebar, main_content], expand=True))
         current_page.appbar.visible = False
     else:
-        current_page.add(create_app_background(main_content))
+        current_page.add(main_content)
         current_page.appbar.visible = True
 
     current_page.update()
@@ -2392,6 +2408,7 @@ def show_examinee_dashboard():
 def show_quiz_taking(quiz_basic_info):
     """Show the modern quiz taking interface with multiple question types"""
     global current_page, current_user, current_question_index, user_answers, quiz_questions, quiz_start_time, quiz_timer_thread
+    global current_view_handler
     
     current_page.clean()
     current_question_index = 0
@@ -2576,6 +2593,7 @@ def show_quiz_taking(quiz_basic_info):
     update_progress()
     
     current_page.add(quiz_content)
+    current_view_handler = None # Disable resizing for this page
     current_page.update()
 
 def show_quiz_preview(quiz_basic_info):
@@ -2654,11 +2672,13 @@ def show_quiz_preview(quiz_basic_info):
 
     update_preview_display()
     current_page.add(preview_content)
+    current_view_handler = None # Disable resizing for this page
     current_page.update()
 
 def show_quiz_results(quiz_data, user_answers, start_time):
     """Show modern quiz results"""
     global current_page, current_user, mock_attempts
+    global current_view_handler
     
     current_page.clean()
     
@@ -2708,7 +2728,11 @@ def show_quiz_results(quiz_data, user_answers, start_time):
     time_seconds = int(time_taken.total_seconds() % 60)
     
     # --- Lưu kết quả lần làm bài này vào mock_attempts ---
-    new_attempt_id = len(mock_attempts) + 1
+    if mock_attempts:
+        new_attempt_id = max(a['attempt_id'] for a in mock_attempts) + 1
+    else:
+        new_attempt_id = 1
+
     new_attempt = {
         'attempt_id': new_attempt_id,
         'user_id': current_user['id'],
@@ -2807,11 +2831,13 @@ def show_quiz_results(quiz_data, user_answers, start_time):
     )
     
     current_page.add(results_content)
+    current_view_handler = None # Disable resizing for this page
     current_page.update()
 
 def show_student_results_overview():
     """Show the student's results overview with a chart."""
     global current_page, sidebar_drawer, current_user
+    global current_view_handler
     current_page.clean()
 
     sidebar = create_sidebar(current_user['role'], "results")
@@ -2933,18 +2959,20 @@ def show_student_results_overview():
     sidebar_drawer = ft.NavigationDrawer(controls=[sidebar])
     current_page.drawer = sidebar_drawer
     current_page.appbar = create_app_bar()
+    current_view_handler = show_student_results_overview # Set the current view handler
 
     if current_page.width >= 1000:
-        current_page.add(create_app_background(ft.Row([sidebar, main_content], expand=True)))
+        current_page.add(ft.Row([sidebar, main_content], expand=True))
         current_page.appbar.visible = False
     else:
-        current_page.add(create_app_background(main_content))
+        current_page.add(main_content)
         current_page.appbar.visible = True
     current_page.update()
 
 def show_attempt_review(attempt):
     """Show the detailed review of a specific quiz attempt."""
     global current_page, current_question_index, quiz_questions
+    global current_view_handler
 
     current_page.clean()
     current_question_index = 0
@@ -3019,11 +3047,13 @@ def show_attempt_review(attempt):
 
     update_review_display()
     current_page.add(review_content)
+    current_view_handler = None # Disable resizing for this page
     current_page.update()
 
 def show_my_attempts():
     """Show the student's history of quiz attempts."""
     global current_page, sidebar_drawer, current_user
+    global current_view_handler
     current_page.clean()
 
     sidebar = create_sidebar(current_user['role'], "attempts")
@@ -3114,18 +3144,20 @@ def show_my_attempts():
     sidebar_drawer = ft.NavigationDrawer(controls=[sidebar])
     current_page.drawer = sidebar_drawer
     current_page.appbar = create_app_bar()
+    current_view_handler = show_my_attempts # Set the current view handler
 
     if current_page.width >= 1000:
-        current_page.add(create_app_background(ft.Row([sidebar, main_content], expand=True)))
+        current_page.add(ft.Row([sidebar, main_content], expand=True))
         current_page.appbar.visible = False
     else:
-        current_page.add(create_app_background(main_content))
+        current_page.add(main_content)
         current_page.appbar.visible = True
     current_page.update()
 
 def show_profile_page():
     """Show the user's profile page to view info and change password."""
     global current_page, sidebar_drawer, current_user
+    global current_view_handler
     current_page.clean()
 
     sidebar = create_sidebar(current_user['role'], "profile")
@@ -3240,12 +3272,13 @@ def show_profile_page():
     sidebar_drawer = ft.NavigationDrawer(controls=[sidebar])
     current_page.drawer = sidebar_drawer
     current_page.appbar = create_app_bar()
+    current_view_handler = show_profile_page # Set the current view handler
 
     if current_page.width >= 1000:
-        current_page.add(create_app_background(ft.Row([sidebar, main_content], expand=True)))
+        current_page.add(ft.Row([sidebar, main_content], expand=True))
         current_page.appbar.visible = False
     else:
-        current_page.add(create_app_background(main_content))
+        current_page.add(main_content)
         current_page.appbar.visible = True
     current_page.update()
 
@@ -3261,6 +3294,7 @@ def show_results_overview():
 def show_instructor_results_page():
     """Show the detailed results page for instructors, filterable by class and quiz."""
     global current_page, sidebar_drawer, current_user
+    global current_view_handler
     current_page.clean()
 
     sidebar = create_sidebar(current_user['role'], "results")
@@ -3407,18 +3441,20 @@ def show_instructor_results_page():
     sidebar_drawer = ft.NavigationDrawer(controls=[sidebar])
     current_page.drawer = sidebar_drawer
     current_page.appbar = create_app_bar()
+    current_view_handler = show_instructor_results_page # Set the current view handler
 
     if current_page.width >= 1000:
-        current_page.add(create_app_background(ft.Row([sidebar, main_content], expand=True)))
+        current_page.add(ft.Row([sidebar, main_content], expand=True))
         current_page.appbar.visible = False
     else:
-        current_page.add(create_app_background(main_content))
+        current_page.add(main_content)
         current_page.appbar.visible = True
     current_page.update()
 
 def show_settings_page():
     """Show the settings page for instructors and admins."""
     global current_page, sidebar_drawer, current_user
+    global current_view_handler
     current_page.clean()
 
     # This page serves as a profile/settings page for non-examinee roles
@@ -3534,18 +3570,20 @@ def show_settings_page():
     sidebar_drawer = ft.NavigationDrawer(controls=[sidebar])
     current_page.drawer = sidebar_drawer
     current_page.appbar = create_app_bar()
+    current_view_handler = show_settings_page # Set the current view handler
 
     if current_page.width >= 1000:
-        current_page.add(create_app_background(ft.Row([sidebar, main_content], expand=True)))
+        current_page.add(ft.Row([sidebar, main_content], expand=True))
         current_page.appbar.visible = False
     else:
-        current_page.add(create_app_background(main_content))
+        current_page.add(main_content)
         current_page.appbar.visible = True
     current_page.update()
 
 def show_class_management():
     """Show the class management page for admins."""
     global current_page, sidebar_drawer
+    global current_view_handler
     current_page.clean()
 
     sidebar = create_sidebar(current_user['role'], "classes")
@@ -3627,8 +3665,12 @@ def show_class_management():
             return
 
         # Thêm vào dữ liệu mẫu
+        if mock_classes:
+            new_id = max(c['id'] for c in mock_classes) + 1
+        else:
+            new_id = 1
         new_class = {
-            'id': len(mock_classes) + 1,
+            'id': new_id,
             'name': class_name.strip(),
             'instructor_id': int(instructor_id)
         }
@@ -3709,18 +3751,20 @@ def show_class_management():
     sidebar_drawer = ft.NavigationDrawer(controls=[sidebar])
     current_page.drawer = sidebar_drawer
     current_page.appbar = create_app_bar()
+    current_view_handler = show_class_management # Set the current view handler
 
     if current_page.width >= 1000:
-        current_page.add(create_app_background(ft.Row([sidebar, main_content], expand=True)))
+        current_page.add(ft.Row([sidebar, main_content], expand=True))
         current_page.appbar.visible = False
     else:
-        current_page.add(create_app_background(main_content))
+        current_page.add(main_content)
         current_page.appbar.visible = True
     current_page.update()
 
 def show_user_management():
     """Show the user management page for admins."""
     global current_page, sidebar_drawer
+    global current_view_handler
     current_page.clean()
 
     sidebar = create_sidebar(current_user['role'], "users")
@@ -3914,7 +3958,11 @@ def show_user_management():
             return
 
         # Add to mock data
-        new_id = max(user['id'] for user in mock_users.values()) + 1
+        if mock_users:
+            new_id = max(user['id'] for user in mock_users.values()) + 1
+        else:
+            new_id = 1
+
         new_user = {
             'id': new_id,
             'username': username.strip(),
@@ -4023,12 +4071,13 @@ def show_user_management():
     sidebar_drawer = ft.NavigationDrawer(controls=[sidebar])
     current_page.drawer = sidebar_drawer
     current_page.appbar = create_app_bar()
+    current_view_handler = show_user_management # Set the current view handler
 
     if current_page.width >= 1000:
-        current_page.add(create_app_background(ft.Row([sidebar, main_content], expand=True)))
+        current_page.add(ft.Row([sidebar, main_content], expand=True))
         current_page.appbar.visible = False
     else:
-        current_page.add(create_app_background(main_content))
+        current_page.add(main_content)
         current_page.appbar.visible = True
     current_page.update()
 
@@ -4038,7 +4087,7 @@ def show_user_management():
 
 def main_page(page: ft.Page):
     """Main application entry point""" 
-    global current_page, current_user, sidebar_drawer
+    global current_page, current_user, sidebar_drawer, current_view_handler
     current_page = page
     
     # Page configuration
@@ -4053,32 +4102,11 @@ def main_page(page: ft.Page):
     
     def handle_resize(e):
         """Handle window resize to show/hide sidebar."""
-        # This check is to avoid errors on pages without a sidebar (like login)
-        if not hasattr(page, "appbar") or not page.appbar:
+        # If a view handler is set, call it to redraw the page.
+        # This is a much cleaner way to handle responsiveness.
+        if current_view_handler:
+            current_view_handler()
             return
-
-        is_wide = page.width >= 1000
-        page.appbar.visible = not is_wide
-
-        # Check if the main layout is a Row (meaning sidebar is visible)
-        is_sidebar_visible = (
-            len(page.controls) > 0 and 
-            hasattr(page.controls[0], 'content') and 
-            isinstance(page.controls[0].content, ft.Row) and
-            len(page.controls[0].content.controls) > 1
-        )
-
-        if is_wide and not is_sidebar_visible:
-            # Switch to wide view: show sidebar
-            main_content = page.controls[0]
-            # The background is the root control, its content is the Row
-            page.controls[0].content = ft.Row([page.drawer.controls[0], main_content.content.controls[1]], expand=True)
-        elif not is_wide and is_sidebar_visible:
-            # Switch to narrow view: hide sidebar
-            main_content = page.controls[0].content.controls[1]
-            # The background is the root control, its content is now just the main content
-            page.controls[0].content = main_content
-        page.update()
 
     page.on_resize = handle_resize
 
