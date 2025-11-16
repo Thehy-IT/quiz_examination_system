@@ -123,9 +123,9 @@ mock_users = {
 # - duration_minutes: thời gian làm bài (phút)
 # Mục đích: Để hiển thị danh sách quiz và quản lý quiz
 mock_quizzes = [
-    {'id': 1, 'title': 'Python Basics', 'description': 'Learn Python fundamentals', 'created_by': 1, 'created_at': '2025-01-15', 'creator': 'instructor', 'questions_count': 5, 'start_time': '2024-01-01 00:00', 'duration_minutes': 10, 'class_id': 1, 'password': '123', 'is_active': True, 'shuffle_questions': True, 'shuffle_answers': True},
-    {'id': 2, 'title': 'Web Development', 'description': 'HTML, CSS, JavaScript basics', 'created_by': 1, 'created_at': '2025-01-14', 'creator': 'instructor', 'questions_count': 8, 'start_time': '2025-07-20 10:00', 'duration_minutes': 20, 'class_id': 2, 'password': None, 'is_active': True, 'shuffle_questions': False, 'shuffle_answers': True},
-    {'id': 3, 'title': 'Data Structures', 'description': 'Arrays, Lists, Trees, Algorithms', 'created_by': 2, 'created_at': '2025-01-13', 'creator': 'admin', 'questions_count': 12, 'start_time': '2025-07-22 14:00', 'duration_minutes': 30, 'class_id': 1, 'password': 'dsa', 'is_active': False, 'shuffle_questions': True, 'shuffle_answers': False}
+    {'id': 1, 'title': 'Python Basics', 'description': 'Learn Python fundamentals', 'created_by': 1, 'created_at': '2024-01-15', 'creator': 'instructor', 'questions_count': 5, 'start_time': '2025-01-15 14:20', 'duration_minutes': 10, 'class_id': 1, 'password': '123', 'is_active': True, 'shuffle_questions': True, 'shuffle_answers': True},
+    {'id': 2, 'title': 'Web Development', 'description': 'HTML, CSS, JavaScript basics', 'created_by': 1, 'created_at': '2024-01-14', 'creator': 'instructor', 'questions_count': 8, 'start_time': '2024-01-20 10:00', 'duration_minutes': 20, 'class_id': 2, 'password': None, 'is_active': True, 'shuffle_questions': False, 'shuffle_answers': True},
+    {'id': 3, 'title': 'Data Structures', 'description': 'Arrays, Lists, Trees, Algorithms', 'created_by': 2, 'created_at': '2024-01-13', 'creator': 'admin', 'questions_count': 12, 'start_time': '2024-01-22 14:00', 'duration_minutes': 30, 'class_id': 1, 'password': 'dsa', 'is_active': False, 'shuffle_questions': True, 'shuffle_answers': False}
 ]
 
 # mock_classes: List chứa thông tin các lớp học mẫu
@@ -135,8 +135,8 @@ mock_quizzes = [
 # - instructor_id: ID của giảng viên dạy lớp (liên kết với mock_users)
 # Mục đích: Để quản lý lớp học (tính năng admin)
 mock_classes = [
-    {'id': 1, 'name': 'Lớp Lập trình Python K18', 'instructor_id': 1},
-    {'id': 2, 'name': 'Lớp Phát triển Web K12', 'instructor_id': 1},
+    {'id': 1, 'name': 'Lớp K22', 'instructor_id': 1},
+    {'id': 2, 'name': 'Lớp SE K23', 'instructor_id': 1},
 ]
 
 # mock_questions: Từ điển chứa câu hỏi cho từng quiz
@@ -2257,17 +2257,19 @@ def show_examinee_dashboard():
     def handle_start_quiz(quiz):
         def start_action(e):
             if quiz.get('password'):
-                password_field = create_text_input("Quiz Password", password=True)
+                password_field = create_text_input("Quiz Password", password=True, can_reveal=True)
                 error_text = ft.Text("", color=Colors.ERROR, size=Typography.SIZE_SM)
 
                 def check_password(e_dialog):
                     if password_field.value == quiz['password']:
                         password_dialog.open = False
-                        current_page.update()
+                        current_page.update() # Đóng dialog trước khi chuyển trang
                         show_quiz_taking(quiz)
                     else:
                         error_text.value = "Incorrect password. Please try again."
                         password_field.value = ""
+                        # Cập nhật trực tiếp nội dung của dialog để hiển thị lỗi
+                        # Gọi page.update() thay vì content.update() để đảm bảo dialog được vẽ lại
                         current_page.update()
 
                 def close_dialog(e_dialog):
@@ -4086,19 +4088,12 @@ def main_page(page: ft.Page):
     # 1. Đặt người dùng hiện tại (current_user) thành một người dùng mẫu.
     # 2. Gọi hàm hiển thị dashboard tương ứng.
     # 3. Để bật lại trang đăng nhập, hãy xóa/bình luận các dòng dưới và bỏ bình luận dòng `show_login()`.
-    
+
     # --- Chế độ phát triển ---
-<<<<<<< HEAD
-    # current_user = mock_users['instructor']  # Đăng nhập với tư cách 'instructor'
-    # show_instructor_dashboard()         # Đi thẳng vào dashboard của instructor
-=======
-    current_user = mock_users['admin']  # Đăng nhập với tư cách 'instructor'
-    show_instructor_dashboard()         # Đi thẳng vào dashboard của instructor
->>>>>>> db651d61bc691759f8208ec6bb41bfc5587db4ce
-    # current_user = mock_users['THEHY']  # Đăng nhập với tư cách 'examinee' 
-    # show_examinee_dashboard()              # Đi thẳng vào dashboard của sinh viên
-    current_user = mock_users['admin'] 
-    show_instructor_dashboard()
+    current_user = mock_users['THEHY']  # Đăng nhập với tư cách 'examinee' 
+    show_examinee_dashboard()              # Đi thẳng vào dashboard của sinh viên
+    # current_user = mock_users['admin']  # Đăng nhập với tư cách 'admin'
+    # show_instructor_dashboard()         # Đi thẳng vào dashboard
 
     # --- Chế độ hoạt động bình thường ---
     # show_login()                       # Bắt đầu từ trang đăng nhập
