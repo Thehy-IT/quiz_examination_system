@@ -1,6 +1,7 @@
 # Modern Quiz App - Clean Light Theme UI
 # Beautiful, modern design with clean components and navigation
 
+import random
 import flet as ft # Nạp thư viện Flet để xây dựng giao diện người dùng
 import datetime
 import time
@@ -76,6 +77,7 @@ class BorderRadius:
 # GLOBAL STATE
 # =============================================================================
 # khởi tạo biến toàn cục để theo dõi trạng thái ứng dụng
+current_view_handler = None # NEW: Stores the function to call to redraw the current view
 current_user = None
 current_page = None
 sidebar_drawer = None
@@ -101,12 +103,12 @@ quiz_timer_thread = None
 mock_users = {
     'instructor': {'id': 1, 'username': 'instructor', 'password': 'instructor', 'role': 'instructor'},
     'admin': {'id': 2, 'username': 'admin', 'password': 'admin', 'role': 'admin'},
-    'student': {'id': 3, 'username': 'student', 'password': 'student', 'role': 'examinee'},
+    'student': {'id': 3, 'username': 'student', 'password': 'student', 'role': 'examinee', 'class_id': 1},
     # dùng tải khoản sau để test nhiều người thi
-    'THEHY': {'id': 4, 'username': 'THEHY', 'password': 'THEHY', 'role': 'examinee'},
-    'TAI': {'id': 5, 'username': 'TAI', 'password': 'TAI', 'role': 'examinee'},
-    'HUNG': {'id': 6, 'username': 'HUNG', 'password': 'HUNG', 'role': 'examinee'},
-    'HUY': {'id': 7, 'username': 'HUY', 'password': 'HUY', 'role': 'examinee'},
+    'THEHY': {'id': 4, 'username': 'THEHY', 'password': 'THEHY', 'role': 'examinee', 'class_id': 1},
+    'TAI': {'id': 5, 'username': 'TAI', 'password': 'TAI', 'role': 'examinee', 'class_id': 2},
+    'HUNG': {'id': 6, 'username': 'HUNG', 'password': 'HUNG', 'role': 'examinee', 'class_id': 2},
+    'HUY': {'id': 7, 'username': 'HUY', 'password': 'HUY', 'role': 'examinee', 'class_id': None},
 }
 
 # mock_quizzes: List chứa các bài quiz mẫu
@@ -115,17 +117,20 @@ mock_users = {
 # - title: tiêu đề quiz
 # - description: mô tả quiz
 # - created_by: ID của người tạo (liên kết với mock_users)
-# - created_at: ngày tạo (string)
+# - created_at: ngày tạo (string) 
 # - creator: tên người tạo
 # - questions_count: số câu hỏi trong quiz
-# - difficulty: độ khó ('Beginner', 'Intermediate', 'Advanced')
 # - start_time: thời gian bắt đầu (YYYY-MM-DD HH:MM)
 # - duration_minutes: thời gian làm bài (phút)
 # Mục đích: Để hiển thị danh sách quiz và quản lý quiz
+
+# có các file...
+# show_answer_after_quiz:file lưu trạng thái bật/tắt xem đáp án, kiểu boolean (mặc định false)
+#  ...
 mock_quizzes = [
-    {'id': 1, 'title': 'Python Basics', 'description': 'Learn Python fundamentals', 'created_by': 1, 'created_at': '2025-01-15', 'creator': 'instructor', 'questions_count': 5, 'difficulty': 'Beginner', 'start_time': '2024-01-01 00:00', 'duration_minutes': 10, 'class_id': 1, 'password': '123'},
-    {'id': 2, 'title': 'Web Development', 'description': 'HTML, CSS, JavaScript basics', 'created_by': 1, 'created_at': '2025-01-14', 'creator': 'instructor', 'questions_count': 8, 'difficulty': 'Intermediate', 'start_time': '2025-07-20 10:00', 'duration_minutes': 20, 'class_id': 2, 'password': None},
-    {'id': 3, 'title': 'Data Structures', 'description': 'Arrays, Lists, Trees, Algorithms', 'created_by': 2, 'created_at': '2025-01-13', 'creator': 'admin', 'questions_count': 12, 'difficulty': 'Advanced', 'start_time': '2025-07-22 14:00', 'duration_minutes': 30, 'class_id': 1, 'password': 'dsa'}
+    {'id': 1, 'title': 'Python Basics', 'description': 'Learn Python fundamentals', 'created_by': 1, 'created_at': '2024-01-15', 'creator': 'instructor', 'questions_count': 5, 'start_time': '2025-01-15 14:20', 'duration_minutes': 10, 'class_id': 1, 'password': '123', 'is_active': True, 'shuffle_questions': True, 'shuffle_answers': True, 'show_answers_after_quiz': True},
+    {'id': 2, 'title': 'Web Development', 'description': 'HTML, CSS, JavaScript basics', 'created_by': 1, 'created_at': '2024-01-14', 'creator': 'instructor', 'questions_count': 8, 'start_time': '2024-01-20 10:00', 'duration_minutes': 20, 'class_id': 2, 'password': None, 'is_active': True, 'shuffle_questions': False, 'shuffle_answers': True, 'show_answers_after_quiz': False},
+    {'id': 3, 'title': 'Data Structures', 'description': 'Arrays, Lists, Trees, Algorithms', 'created_by': 2, 'created_at': '2024-01-13', 'creator': 'admin', 'questions_count': 12, 'start_time': '2024-01-22 14:00', 'duration_minutes': 30, 'class_id': 1, 'password': 'dsa', 'is_active': False, 'shuffle_questions': True, 'shuffle_answers': False, 'show_answers_after_quiz': False}
 ]
 
 # mock_classes: List chứa thông tin các lớp học mẫu
@@ -135,8 +140,8 @@ mock_quizzes = [
 # - instructor_id: ID của giảng viên dạy lớp (liên kết với mock_users)
 # Mục đích: Để quản lý lớp học (tính năng admin)
 mock_classes = [
-    {'id': 1, 'name': 'Lớp Lập trình Python K18', 'instructor_id': 1},
-    {'id': 2, 'name': 'Lớp Phát triển Web K12', 'instructor_id': 1},
+    {'id': 1, 'name': 'Lớp K22', 'instructor_id': 1},
+    {'id': 2, 'name': 'Lớp SE K23', 'instructor_id': 1},
 ]
 
 # mock_questions: Từ điển chứa câu hỏi cho từng quiz
@@ -230,6 +235,14 @@ mock_activity_log = [
     {'timestamp': '2025-07-21 09:30', 'user': 'THEHY', 'action': 'đã hoàn thành bài thi', 'details': 'Python Basics'},
     {'timestamp': '2025-07-20 15:00', 'user': 'admin', 'action': 'đã tạo người dùng mới', 'details': 'HUNG'},
     {'timestamp': '2025-07-20 14:00', 'user': 'admin', 'action': 'đã tạo một lớp học mới', 'details': 'Lớp Phát triển Web K12'},
+]
+
+# mock_attempts: List chứa lịch sử làm bài của sinh viên
+# Mục đích: Để sinh viên xem lại các lần làm bài của mình
+mock_attempts = [
+    {'attempt_id': 1, 'user_id': 3, 'quiz_id': 1, 'score': '4/5', 'percentage': 80.0, 'time_taken': '00:05:30', 'completed_at': '2025-07-21 11:00:00', 'user_answers': {1: 'A programming language', 2: True, 3: 'Guido van Rossum', 4: ['Django', 'Flask'], 5: 'Lists are mutable'}},
+    {'attempt_id': 2, 'user_id': 4, 'quiz_id': 1, 'score': '3.5/5', 'percentage': 70.0, 'time_taken': '00:08:15', 'completed_at': '2025-07-21 11:05:00', 'user_answers': {1: 'A snake', 2: True, 3: 'guido', 4: ['Django', 'Flask', 'FastAPI'], 5: 'Lists are mutable and use square brackets, while tuples are immutable and use parentheses.'}},
+    {'attempt_id': 3, 'user_id': 4, 'quiz_id': 2, 'score': '7/8', 'percentage': 87.5, 'time_taken': '00:15:45', 'completed_at': '2025-07-22 14:30:00', 'user_answers': {}},
 ]
 
 # =============================================================================
@@ -459,23 +472,64 @@ def create_app_header():
 # QUESTION TYPE COMPONENTS
 # =============================================================================
 
-def create_multiple_choice_question(question, on_answer_change):
+def create_multiple_choice_question(question, on_answer_change, shuffle_answers=False, is_review=False, user_answer=None, show_correct_answers=False):
     """Create a multiple choice question component"""
     options_group = ft.RadioGroup(content=ft.Column([]))
     
+    options_data = question.get('options', [])
+    
+    # Xáo trộn đáp án nếu được yêu cầu
+    if shuffle_answers:
+        random.shuffle(options_data)
+
     # Create radio options
     options = []
-    for i, option in enumerate(question.get('options', [])):
-        options.append(
-            ft.Radio(
-                value=str(i),
-                label=option['option_text'],
-                label_style=ft.TextStyle(size=Typography.SIZE_BASE)
-            )
+    for i, option in enumerate(options_data):
+        # Lưu trữ ID gốc của option (hoặc text) để xác định câu trả lời đúng
+        # Ở đây ta dùng chính text của option
+        option_text = option['option_text']
+        is_correct = option['is_correct']
+        
+        radio = ft.Radio(
+            value=option_text,
+            label=option_text,
+            label_style=ft.TextStyle(size=Typography.SIZE_BASE)
         )
+
+        if is_review:
+            radio.disabled = True
+            radio.value = user_answer
+
+            # Hiển thị icon và màu sắc cho chế độ review
+            review_indicator = ft.Container(width=24) # Placeholder
+            if is_correct:
+                # Đây là đáp án đúng
+                radio.label_style.color = Colors.SUCCESS
+                radio.label_style.weight = ft.FontWeight.W_600
+                review_indicator = ft.Icon(ft.Icons.CHECK_CIRCLE, color=Colors.SUCCESS, size=20)
+            elif option_text == user_answer: 
+                # Đây là đáp án sai mà người dùng đã chọn
+                radio.label_style.color = Colors.ERROR
+                radio.label_style.weight = ft.FontWeight.W_600
+                review_indicator = ft.Icon(ft.Icons.CANCEL, color=Colors.ERROR, size=20)
+            
+            options.append(ft.Row([review_indicator, radio], spacing=Spacing.SM))
+        else:
+            options.append(radio)
+
     options_group.content = ft.Column(options, spacing=Spacing.MD)
-    options_group.on_change = lambda e: on_answer_change(e, int(e.control.value))
-    
+
+    if not is_review:
+        options_group.on_change = lambda e: on_answer_change(e, e.control.value)
+    else:
+        options_group.value = user_answer
+
+    # Thêm phần giải thích nếu có (cho chế độ review)
+    explanation_content = []
+    if is_review and question.get('explanation'):
+        explanation_content.append(ft.Container(height=Spacing.LG))
+        explanation_content.append(create_card(content=ft.Text(f"Explanation: {question['explanation']}", color=Colors.TEXT_SECONDARY), elevation=0, padding=Spacing.LG))
+
     return ft.Column([
         ft.Text(
             question['question_text'],
@@ -484,10 +538,11 @@ def create_multiple_choice_question(question, on_answer_change):
             color=Colors.TEXT_PRIMARY
         ),
         ft.Container(height=Spacing.XL),
-        options_group
+        options_group,
+        *explanation_content
     ])
 
-def create_true_false_question(question, on_answer_change):
+def create_true_false_question(question, on_answer_change, is_review=False, user_answer=None, show_correct_answers=False):
     """Create a true/false question component"""
     true_false_group = ft.RadioGroup(
         content=ft.Column([
@@ -495,8 +550,39 @@ def create_true_false_question(question, on_answer_change):
             ft.Radio(value="false", label="False", label_style=ft.TextStyle(size=Typography.SIZE_BASE))
         ], spacing=Spacing.MD)
     )
-    true_false_group.on_change = lambda e: on_answer_change(e, e.control.value == "true")
+
+    if is_review:
+        true_false_group.disabled = True
+        # Chuyển user_answer về kiểu bool để so sánh
+        user_answer_bool = user_answer if isinstance(user_answer, bool) else (str(user_answer).lower() == "true")
+        true_false_group.value = "true" if user_answer_bool else "false"
+        correct_answer = question.get('correct_answer')
+
+        for radio in true_false_group.content.controls:
+            is_this_option_correct = (radio.value == "true") == correct_answer
+            is_this_option_selected = (radio.value == "true") == user_answer
+
+            review_indicator = ft.Container(width=24)
+            if is_this_option_correct:
+                radio.label_style.color = Colors.SUCCESS
+                radio.label_style.weight = ft.FontWeight.W_600
+                review_indicator = ft.Icon(ft.Icons.CHECK_CIRCLE, color=Colors.SUCCESS, size=20)
+            elif is_this_option_selected:
+                radio.label_style.color = Colors.ERROR
+                radio.label_style.weight = ft.FontWeight.W_600
+                review_indicator = ft.Icon(ft.Icons.CANCEL, color=Colors.ERROR, size=20)
+            
+            # Wrap in a Row to show indicator
+            radio.label = ft.Row([review_indicator, ft.Text(radio.label)], spacing=Spacing.SM)
+
+    else:
+        true_false_group.on_change = lambda e: on_answer_change(e, e.control.value == "true")
     
+    explanation_content = []
+    if is_review and question.get('explanation'):
+        explanation_content.append(ft.Container(height=Spacing.LG))
+        explanation_content.append(create_card(content=ft.Text(f"Explanation: {question['explanation']}", color=Colors.TEXT_SECONDARY), elevation=0, padding=Spacing.LG))
+
     return ft.Column([
         ft.Text(
             question['question_text'],
@@ -505,14 +591,34 @@ def create_true_false_question(question, on_answer_change):
             color=Colors.TEXT_PRIMARY
         ),
         ft.Container(height=Spacing.XL),
-        true_false_group
+        true_false_group,
+        *explanation_content
     ])
 
-def create_fill_in_blank_question(question, on_answer_change):
+def create_fill_in_blank_question(question, on_answer_change, is_review=False, user_answer=None, show_correct_answers=False):
     """Create a fill-in-the-blank question component"""
     answer_field = create_text_input("Your answer", width=400)
-    answer_field.on_change = lambda e: on_answer_change(e, e.control.value)
     
+    review_content = []
+    if is_review:
+        answer_field.value = user_answer
+        answer_field.disabled = True
+        
+        correct_answer = question.get('correct_answer', '').lower().strip()
+        answer_variations = question.get('answer_variations', [])
+        user_answer_clean = str(user_answer).lower().strip()
+        is_correct = user_answer_clean == correct_answer or user_answer_clean in answer_variations
+
+        answer_field.border_color = Colors.SUCCESS if is_correct else Colors.ERROR
+        review_content.append(ft.Container(height=Spacing.SM))
+        review_content.append(
+            ft.Text(f"Correct Answer: {question.get('correct_answer')}", color=Colors.SUCCESS, weight=ft.FontWeight.W_600)
+        )
+
+    else:
+        answer_field.on_change = lambda e: on_answer_change(e, e.control.value)
+    
+
     return ft.Column([
         ft.Text(
             question['question_text'],
@@ -521,33 +627,70 @@ def create_fill_in_blank_question(question, on_answer_change):
             color=Colors.TEXT_PRIMARY
         ),
         ft.Container(height=Spacing.XL),
-        answer_field
+        answer_field,
+        *review_content
     ])
 
-def create_multiple_select_question(question, on_answer_change):
+def create_multiple_select_question(question, on_answer_change, shuffle_answers=False, is_review=False, user_answer=None, show_correct_answers=False):
     """Create a multiple select question component"""
     checkboxes = []
+    options_data = question.get('options', [])
+
+    # Xáo trộn đáp án nếu được yêu cầu
+    if shuffle_answers:
+        random.shuffle(options_data)
     
-    def create_checkbox_handler(index):
-        def handler(e):
-            # Collect all selected checkboxes
-            selected = []
-            for i, cb in enumerate(checkboxes):
-                if cb.value:
-                    selected.append(str(i))
-            # Pass the list of selected indices
-            on_answer_change(e, [int(s) for s in selected])
-        return handler
-    
-    for i, option in enumerate(question.get('options', [])):
+    for i, option in enumerate(options_data):
+        option_text = option['option_text']
+        is_correct = option['is_correct']
+
         checkbox = ft.Checkbox(
-            label=option['option_text'],
+            label=option_text,
+            data=option_text,
             value=False,
             label_style=ft.TextStyle(size=Typography.SIZE_BASE),
-            on_change=create_checkbox_handler(i)
         )
-        checkboxes.append(checkbox)
-    
+
+        if is_review:
+            checkbox.disabled = True
+            user_answer_set = set(user_answer or [])
+            checkbox.value = option_text in user_answer_set
+
+            review_indicator = ft.Container(width=24)
+            if is_correct:
+                checkbox.label_style.color = Colors.SUCCESS
+                checkbox.label_style.weight = ft.FontWeight.W_600
+                review_indicator = ft.Icon(ft.Icons.CHECK_CIRCLE_OUTLINED, color=Colors.SUCCESS, size=20)
+            elif option_text in user_answer_set: # Incorrectly selected
+                checkbox.label_style.color = Colors.ERROR
+                review_indicator = ft.Icon(ft.Icons.CANCEL_OUTLINED, color=Colors.ERROR, size=20)
+
+            checkboxes.append(ft.Row([review_indicator, checkbox], spacing=Spacing.SM))
+        else:
+            checkboxes.append(checkbox)
+
+    if not is_review:
+        def on_checkbox_change(e):
+            selected = [cb.data for cb in checkboxes if cb.value]
+            on_answer_change(e, selected)
+        
+        for cb in checkboxes:
+            cb.on_change = on_checkbox_change
+
+    explanation_content = []
+    if is_review:
+        correct_options_texts = {opt['option_text'] for opt in question['options'] if opt['is_correct']}
+        explanation_content.append(ft.Container(height=Spacing.LG))
+        explanation_content.append(
+            ft.Text(f"Correct Answer(s): {', '.join(correct_options_texts)}", color=Colors.SUCCESS, weight=ft.FontWeight.W_600)
+        )
+        if question.get('explanation'):
+            explanation_content.append(ft.Container(height=Spacing.SM))
+            explanation_content.append(
+                create_card(content=ft.Text(f"Explanation: {question['explanation']}", color=Colors.TEXT_SECONDARY), elevation=0, padding=Spacing.LG)
+            )
+
+
     return ft.Column([
         ft.Text(
             question['question_text'],
@@ -556,14 +699,34 @@ def create_multiple_select_question(question, on_answer_change):
             color=Colors.TEXT_PRIMARY
         ),
         ft.Container(height=Spacing.XL),
-        ft.Column(checkboxes, spacing=Spacing.MD)
+        ft.Column(checkboxes, spacing=Spacing.MD),
+        *explanation_content
     ])
 
-def create_short_answer_question(question, on_answer_change):
+def create_short_answer_question(question, on_answer_change, is_review=False, user_answer=None, show_correct_answers=False):
     """Create a short answer question component"""
     answer_field = create_text_input("Your answer", width=500, multiline=True, min_lines=4)
-    answer_field.on_change = lambda e: on_answer_change(e, e.control.value)
     
+    review_content = []
+    if is_review:
+        answer_field.value = user_answer
+        answer_field.disabled = True
+        answer_field.label = "Your Answer"
+
+        # Short answer questions are manually graded, so we just show the sample answer
+        if question.get('sample_answer'):
+            review_content.append(ft.Container(height=Spacing.LG))
+            review_content.append(
+                create_card(
+                    content=ft.Column([
+                        ft.Text("Sample Answer for Grading", weight=ft.FontWeight.W_600, color=Colors.PRIMARY),
+                        ft.Text(question['sample_answer'], color=Colors.TEXT_SECONDARY)
+                    ]), elevation=0, padding=Spacing.LG)
+            )
+        
+    else:
+        answer_field.on_change = lambda e: on_answer_change(e, e.control.value)
+
     return ft.Column([
         ft.Text(
             question['question_text'],
@@ -572,29 +735,30 @@ def create_short_answer_question(question, on_answer_change):
             color=Colors.TEXT_PRIMARY
         ),
         ft.Container(height=Spacing.XL),
-        answer_field
+        answer_field,
+        *review_content
     ])
 
-def create_question_by_type(question, on_answer_change):
+def create_question_by_type(question, on_answer_change, shuffle_answers=False, is_review=False, user_answer=None, show_correct_answers=False):
     """Create question component based on question type"""
     question_type = question.get('question_type', 'multiple_choice')
     
-    def answer_handler(e, answer_value):
-        on_answer_change(question['id'], answer_value)
+    # In review mode, on_answer_change is a dummy function
+    answer_handler = (lambda e, answer_value: on_answer_change(question['id'], answer_value)) if not is_review else (lambda e, v: None)
 
+    # Chỉ truyền cờ shuffle_answers cho các loại câu hỏi có lựa chọn
     if question_type == 'multiple_choice':
-        return create_multiple_choice_question(question, answer_handler)
+        return create_multiple_choice_question(question, answer_handler, shuffle_answers, is_review, user_answer, show_correct_answers)
     elif question_type == 'true_false':
-        return create_true_false_question(question, answer_handler)
+        return create_true_false_question(question, answer_handler, is_review, user_answer,show_correct_answers)
     elif question_type == 'fill_in_blank':
-        return create_fill_in_blank_question(question, answer_handler)
+        return create_fill_in_blank_question(question, answer_handler, is_review, user_answer, show_correct_answers)
     elif question_type == 'multiple_select':
-        return create_multiple_select_question(question, answer_handler)
+        return create_multiple_select_question(question, answer_handler, shuffle_answers, is_review, user_answer, show_correct_answers)
     elif question_type == 'short_answer':
-        return create_short_answer_question(question, answer_handler)
+        return create_short_answer_question(question, answer_handler, is_review, user_answer, show_correct_answers)
     else:
-        # Default to multiple choice
-        return create_multiple_choice_question(question, answer_handler)
+        return create_multiple_choice_question(question, answer_handler, shuffle_answers, is_review, user_answer, show_correct_answers)
 
 # =============================================================================
 # NAVIGATION COMPONENTS
@@ -638,16 +802,15 @@ def create_sidebar(user_role, active_page="dashboard"):
         if user_role == 'admin':
             sidebar_items.append(create_sidebar_item(ft.Icons.SCHOOL, "Classes Management", active_page == "classes", on_click=lambda e: show_class_management()))
             sidebar_items.append(create_sidebar_item(ft.Icons.PEOPLE, "User Management", active_page == "users", on_click=lambda e: show_user_management()))
-            sidebar_items.append(create_sidebar_item(ft.Icons.EMOJI_EVENTS, "View Results", active_page == "results", on_click=lambda e: show_results_overview()))
         sidebar_items.extend([
             create_sidebar_item(ft.Icons.SETTINGS, "Settings", active_page == "settings", on_click=lambda e: show_settings_page()),
         ])
     else:  # examinee
         sidebar_items = [
             create_sidebar_item(ft.Icons.HOME, "Home", active_page == "home", on_click=lambda e: show_examinee_dashboard()),
-            create_sidebar_item(ft.Icons.LIBRARY_BOOKS, "My Attempts", active_page == "attempts"),
-            create_sidebar_item(ft.Icons.EMOJI_EVENTS, "Results", active_page == "results"),
-            create_sidebar_item(ft.Icons.PERSON, "Profile", active_page == "profile"),
+            create_sidebar_item(ft.Icons.LIBRARY_BOOKS, "My Attempts", active_page == "attempts", on_click=lambda e: show_my_attempts()),
+            create_sidebar_item(ft.Icons.EMOJI_EVENTS, "Results", active_page == "results", on_click=lambda e: show_student_results_overview()),
+            create_sidebar_item(ft.Icons.PERSON, "Profile", active_page == "profile", on_click=lambda e: show_profile_page()),
         ]
     
     # Add logout item
@@ -806,6 +969,7 @@ def create_app_background(content_control):
 def show_login():
     """Show the modern login page"""
     global current_page
+    global current_view_handler
     current_page.clean()
     current_page.appbar = None
     
@@ -931,12 +1095,14 @@ def show_login():
     # Wrap the content with the new background
     login_container = create_app_background(login_content)
     current_page.add(login_container)
+    current_view_handler = show_login # Set the current view handler
     current_page.update()
 
 def show_instructor_dashboard():
     """Show the instructor/admin dashboard"""
     global current_page
     global sidebar_drawer
+    global current_view_handler
     current_page.clean()
     
     # Create main layout with sidebar
@@ -1101,7 +1267,6 @@ def show_instructor_dashboard():
                                                     ft.Text(quiz['title'], size=Typography.SIZE_LG, weight=ft.FontWeight.W_600, color=Colors.TEXT_PRIMARY),
                                                     ft.Text(quiz['description'], size=Typography.SIZE_SM, color=Colors.TEXT_SECONDARY)
                                                 ], expand=True),
-                                                create_badge(quiz['difficulty'])
                                             ]),
                                             ft.Container(height=Spacing.SM),
                                             ft.Row([
@@ -1164,12 +1329,13 @@ def show_instructor_dashboard():
     sidebar_drawer = ft.NavigationDrawer(controls=[sidebar])
     current_page.drawer = sidebar_drawer
     current_page.appbar = create_app_bar()
+    current_view_handler = show_instructor_dashboard # Set the current view handler
 
     if current_page.width >= 1000:
-        current_page.add(create_app_background(ft.Row([sidebar, main_content], expand=True)))
+        current_page.add(ft.Row([sidebar, main_content], expand=True))
         current_page.appbar.visible = False
     else:
-        current_page.add(create_app_background(main_content))
+        current_page.add(main_content)
         current_page.appbar.visible = True
     current_page.update()
 
@@ -1177,10 +1343,120 @@ def show_quiz_management():
     """Show the quiz management page"""
     global current_page
     global sidebar_drawer
+    global current_view_handler
     current_page.clean()
     
     sidebar = create_sidebar(current_user['role'], "quizzes")
     
+    # --- Search and Filter Logic ---
+    search_field = create_text_input("Search by quiz title...", width=300, icon=ft.Icons.SEARCH)
+
+    # --- Bộ lọc theo Lớp học ---
+    instructor_classes = [c for c in mock_classes if c['instructor_id'] == current_user['id']]
+    class_filter_options = [ft.dropdown.Option(key="all", text="Tất cả các lớp")]
+    class_filter_options.extend([ft.dropdown.Option(key=str(cls['id']), text=cls['name']) for cls in instructor_classes])
+    
+    class_filter_dropdown = ft.Dropdown(
+        label="Lọc theo lớp",
+        width=220,
+        value="all",
+        options=class_filter_options,
+    )
+
+    # --- Bộ lọc theo Trạng thái ---
+    status_filter_dropdown = ft.Dropdown(
+        label="Lọc theo trạng thái",
+        width=180,
+        value="all",
+        options=[
+            ft.dropdown.Option(key="all", text="Tất cả trạng thái"),
+            ft.dropdown.Option(key="active", text="Active"),
+            ft.dropdown.Option(key="disabled", text="Disabled"),
+        ],
+    )
+
+    # --- Bộ lọc theo Xáo trộn ---
+    shuffle_filter_dropdown = ft.Dropdown(
+        label="Lọc theo xáo trộn",
+        width=200,
+        value="all",
+        options=[
+            ft.dropdown.Option(key="all", text="Tất cả (Xáo trộn)"),
+            ft.dropdown.Option(key="questions", text="Chỉ xáo trộn câu hỏi"),
+            ft.dropdown.Option(key="answers", text="Chỉ xáo trộn đáp án"),
+            ft.dropdown.Option(key="both", text="Xáo trộn cả hai"),
+            ft.dropdown.Option(key="none", text="Không xáo trộn"),
+        ],
+    )
+
+    quiz_list_view = ft.Column(spacing=Spacing.LG)
+
+    def handle_delete_quiz(quiz_to_delete):
+        def on_delete(e):
+            global mock_quizzes, mock_questions
+            mock_quizzes = [q for q in mock_quizzes if q['id'] != quiz_to_delete['id']]
+            if quiz_to_delete['id'] in mock_questions:
+                del mock_questions[quiz_to_delete['id']]
+            
+            show_quiz_management()
+        return on_delete
+
+    def update_quiz_list(e=None):
+        search_term = search_field.value.lower() if search_field.value else ""
+        selected_class_id = class_filter_dropdown.value
+        selected_status = status_filter_dropdown.value
+        selected_shuffle = shuffle_filter_dropdown.value
+        
+        # Filter quizzes based on current user and search term
+        user_quizzes = [q for q in mock_quizzes if q['created_by'] == current_user['id']]
+        filtered_quizzes = [
+            q for q in user_quizzes if search_term in q['title'].lower()
+        ]
+
+        # Apply class filter
+        if selected_class_id and selected_class_id != "all":
+            filtered_quizzes = [q for q in filtered_quizzes if str(q.get('class_id')) == selected_class_id]
+
+        # Apply status filter
+        if selected_status and selected_status != "all":
+            is_active = (selected_status == "active")
+            filtered_quizzes = [q for q in filtered_quizzes if q.get('is_active', False) == is_active]
+
+        # Apply shuffle filter
+        if selected_shuffle and selected_shuffle != "all":
+            if selected_shuffle == "questions":
+                filtered_quizzes = [q for q in filtered_quizzes if q.get('shuffle_questions') and not q.get('shuffle_answers')]
+            elif selected_shuffle == "answers":
+                filtered_quizzes = [q for q in filtered_quizzes if not q.get('shuffle_questions') and q.get('shuffle_answers')]
+            elif selected_shuffle == "both":
+                filtered_quizzes = [q for q in filtered_quizzes if q.get('shuffle_questions') and q.get('shuffle_answers')]
+            elif selected_shuffle == "none":
+                filtered_quizzes = [q for q in filtered_quizzes if not q.get('shuffle_questions') and not q.get('shuffle_answers')]
+
+
+
+        quiz_list_view.controls.clear()
+        if filtered_quizzes:
+            for quiz in filtered_quizzes:
+                quiz_list_view.controls.append(create_quiz_card(quiz))
+        else:
+            quiz_list_view.controls.append(create_card(
+                content=ft.Column([
+                    ft.Icon(ft.Icons.SEARCH_OFF, size=48, color=Colors.GRAY_400),
+                    ft.Container(height=Spacing.SM),
+                    ft.Text("No quizzes found", size=Typography.SIZE_LG, weight=ft.FontWeight.W_600, color=Colors.TEXT_SECONDARY),
+                    ft.Text(f"Your search for '{search_field.value}' did not match any quizzes.", size=Typography.SIZE_SM, color=Colors.TEXT_MUTED)
+                ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                padding=Spacing.XXXXL
+            ))
+        
+        current_page.update()
+
+    search_field.on_change = update_quiz_list
+    class_filter_dropdown.on_change = update_quiz_list
+    status_filter_dropdown.on_change = update_quiz_list
+    shuffle_filter_dropdown.on_change = update_quiz_list
+
     # Quiz creation form (initially hidden)
     quiz_title_field = create_text_input("Quiz Title", width=400)
     quiz_description_field = create_text_input("Description", width=400, multiline=True, min_lines=3)
@@ -1188,6 +1464,13 @@ def show_quiz_management():
     quiz_duration_field = create_text_input("Duration (minutes)", width=140, icon=ft.Icons.TIMER)
     quiz_password_field = create_text_input("Quiz Password (optional)", password=True, width=400, icon=ft.Icons.LOCK, can_reveal=True)
     
+    shuffle_questions_switch = ft.Switch(label="Xáo trộn câu hỏi", value=False)
+    shuffle_answers_switch = ft.Switch(label="Xáo trộn đáp án", value=True)
+
+    # --- Thêm switch mới cho tùy chọn xem đáp án ---
+    # cho phép instructor bật/tắt tùy chọn xem đáp án khi tạo quiz mới, giá trị măc định là tắt (false)
+    show_answers_switch = ft.Switch(label="Allow student to view the answers after the exam", value=False)
+
     # Lấy danh sách các lớp mà giảng viên hiện tại được phân công
     instructor_classes = [c for c in mock_classes if c['instructor_id'] == current_user['id']]
     class_dropdown = ft.Dropdown(
@@ -1212,6 +1495,11 @@ def show_quiz_management():
         quiz_duration_field.value = ""
         quiz_password_field.value = ""
         class_dropdown.value = None
+        shuffle_questions_switch.value = False
+        shuffle_answers_switch.value = True
+        # --- Reset switch mới --
+        # Đảm bảo switch luôn được reset khi tạo quiz
+        show_answers_switch.value = False
         current_page.update()
     
     def hide_create_form(e):
@@ -1225,7 +1513,12 @@ def show_quiz_management():
         duration_str = quiz_duration_field.value or ""
         password = quiz_password_field.value or None
         class_id = class_dropdown.value
-        
+        shuffle_questions = shuffle_questions_switch.value
+        shuffle_answers = shuffle_answers_switch.value
+        # --- Lấy giá trị từ switch mới ---
+        # Lưu giá trị của switch vào quiz mới khi tạo 
+        show_answers_after_quiz = show_answers_switch.value
+
         if not title.strip():
             quiz_error_text.value = "Quiz title is required"
             current_page.update()
@@ -1252,19 +1545,28 @@ def show_quiz_management():
 
         
         # Add to mock data
+        if mock_quizzes:
+            new_id = max(q['id'] for q in mock_quizzes) + 1
+        else:
+            new_id = 1
         new_quiz = {
-            'id': len(mock_quizzes) + 1,
+            'id': new_id,
             'title': title.strip(),
             'description': description.strip(),
             'created_by': current_user['id'],
             'created_at': '2025-01-15',
             'creator': current_user['username'],
             'questions_count': 0,
-            'difficulty': 'Beginner',
             'start_time': start_time_str.strip(),
             'duration_minutes': duration_minutes,
             'class_id': int(class_id),
-            'password': password.strip() if password else None
+            'password': password.strip() if password else None,
+            'is_active': True, # Bài thi mới tạo mặc định được kích hoạt
+            'shuffle_questions': shuffle_questions,
+            'shuffle_answers': shuffle_answers,
+            # --- Đảm bảo khi taoh quiz mới UI sẽ kiểm tra có được quyền xem đáp án hay không 
+            'show_answers_after_quiz': show_answers_after_quiz
+            # --- Thêm file mớ
         }
         mock_quizzes.append(new_quiz)
         
@@ -1273,12 +1575,9 @@ def show_quiz_management():
         show_quiz_management()  # Refresh the page
     
     def edit_quiz(quiz):
-        def handler(e):
-            show_question_management(quiz)
-        return handler
+        return lambda e: show_question_management(quiz)
     
-    # Quiz creation form
-    quiz_form_container = create_card(
+    quiz_form_container = create_card( # Quiz creation form
         content=ft.Column([
             create_section_title("Create New Quiz"),
             ft.Container(height=Spacing.LG),
@@ -1294,6 +1593,16 @@ def show_quiz_management():
             ], spacing=Spacing.MD),
             ft.Container(height=Spacing.LG),
             quiz_password_field,
+            ft.Container(height=Spacing.LG),
+            ft.Row([
+                shuffle_questions_switch,
+                shuffle_answers_switch
+            ], spacing=Spacing.XL),
+
+            ft.Container(height=Spacing.LG),
+            # --- Thêm switch mới vào form ---
+            show_answers_switch,
+
             ft.Container(height=Spacing.MD),
             quiz_error_text,
             ft.Container(height=Spacing.XL),
@@ -1307,12 +1616,21 @@ def show_quiz_management():
     )
     quiz_form_container.visible = False
     
-    # User's quizzes
-    user_quizzes = [q for q in mock_quizzes if q['created_by'] == current_user['id']]
-    quiz_cards = []
-    
-    for quiz in user_quizzes:
+    # --- Function to create a single quiz card ---
+    def create_quiz_card(quiz):
         class_name = next((c['name'] for c in mock_classes if c['id'] == quiz.get('class_id')), "Unassigned")
+
+        shuffle_info = []
+        if quiz.get('shuffle_questions'): shuffle_info.append("Câu hỏi")
+        if quiz.get('shuffle_answers'): shuffle_info.append("Đáp án")
+
+        def toggle_active_state(e):
+            # Tìm bài thi trong mock_quizzes và cập nhật trạng thái
+            for q in mock_quizzes:
+                if q['id'] == quiz['id']:
+                    q['is_active'] = e.control.value
+                    break
+            show_quiz_management() # Tải lại trang để cập nhật giao diện
 
         quiz_card = create_card(
             content=ft.Column([
@@ -1331,10 +1649,25 @@ def show_quiz_management():
                         )
                     ], expand=True, spacing=Spacing.XS),
                     ft.Column([
-                        create_badge(class_name, color=Colors.WARNING),
-                    ], alignment=ft.MainAxisAlignment.START)
-                    ,
-                    create_badge(quiz['difficulty'])
+                        create_badge(
+                            f"Xáo trộn: {', '.join(shuffle_info) if shuffle_info else 'Không'}", 
+                            color=Colors.PRIMARY_LIGHT
+                        ) if 'shuffle_questions' in quiz else ft.Container(),
+                        ft.Row([
+                            create_badge(
+                                "Active" if quiz.get('is_active', False) else "Disabled",
+                                color=Colors.SUCCESS if quiz.get('is_active', False) else Colors.GRAY_400
+                            ),
+                            create_badge(class_name, color=Colors.WARNING),
+                        ], spacing=Spacing.SM),
+                        ft.Container(height=Spacing.XS),
+                        ft.Switch(
+                            value=quiz.get('is_active', False), 
+                            on_change=toggle_active_state, 
+                            label="Active", 
+                            label_position=ft.LabelPosition.LEFT
+                        ),
+                    ], alignment=ft.CrossAxisAlignment.END, spacing=Spacing.XS),
                 ]),
                 ft.Container(height=Spacing.SM),
                 ft.Row([
@@ -1359,15 +1692,19 @@ def show_quiz_management():
                         color=Colors.TEXT_MUTED
                     ),
                     ft.Container(expand=True),
-                    create_secondary_button("Delete", width=80),
+                    create_secondary_button("Preview", on_click=lambda e, q=quiz: show_quiz_preview(q), width=80),
+                    ft.Container(width=Spacing.SM),
+                    create_secondary_button("Delete", on_click=handle_delete_quiz(quiz), width=80),
                     ft.Container(width=Spacing.SM),
                     create_primary_button("Manage Questions", on_click=edit_quiz(quiz), width=150)
                 ])
             ]),
             padding=Spacing.LG
         )
-        quiz_cards.append(quiz_card)
-    
+        return quiz_card
+
+    # Initial population of the list
+    update_quiz_list()
     # Main content
     main_content = ft.Container(
         content=ft.Column(spacing=0, controls=[
@@ -1379,7 +1716,11 @@ def show_quiz_management():
                         ft.Column([
                             create_page_title("Quiz Management"),
                             create_subtitle("Create and manage your quizzes")
-                        ], expand=True),
+                        ], expand=True, spacing=Spacing.XS),
+                        search_field,
+                        status_filter_dropdown,
+                        shuffle_filter_dropdown,
+                        class_filter_dropdown,
                         create_primary_button("Create New Quiz", on_click=show_create_form, width=150)
                     ]),
                     
@@ -1393,7 +1734,7 @@ def show_quiz_management():
                     # Quizzes list
                     create_section_title("Your Quizzes"),
                     ft.Container(height=Spacing.LG),
-                    ft.Column(quiz_cards, spacing=Spacing.LG) if quiz_cards else create_card(
+                    quiz_list_view if quiz_list_view.controls else create_card(
                         content=ft.Column([
                             ft.Image(src="assets/logo.png", width=48, height=48),
                             ft.Container(height=Spacing.SM),
@@ -1423,12 +1764,13 @@ def show_quiz_management():
     sidebar_drawer = ft.NavigationDrawer(controls=[sidebar])
     current_page.drawer = sidebar_drawer
     current_page.appbar = create_app_bar()
+    current_view_handler = show_quiz_management # Set the current view handler
 
     if current_page.width >= 1000:
-        current_page.add(create_app_background(ft.Row([sidebar, main_content], expand=True)))
+        current_page.add(ft.Row([sidebar, main_content], expand=True))
         current_page.appbar.visible = False
     else:
-        current_page.add(create_app_background(main_content))
+        current_page.add(main_content)
         current_page.appbar.visible = True
     current_page.update()
 
@@ -1436,10 +1778,26 @@ def show_question_management(quiz):
     """Show the enhanced question management page with multiple question types"""
     global current_page
     global sidebar_drawer
+    global current_view_handler
     current_page.clean()
     
     sidebar = create_sidebar(current_user['role'], "questions")
     
+    def handle_delete_question(quiz, question_to_delete):
+        def on_delete(e):
+            global mock_questions, mock_quizzes
+            if quiz['id'] in mock_questions:
+                # Remove the question
+                mock_questions[quiz['id']] = [q for q in mock_questions[quiz['id']] if q['id'] != question_to_delete['id']]
+                
+                # Update quiz questions count
+                for q_quiz in mock_quizzes:
+                    if q_quiz['id'] == quiz['id']:
+                        q_quiz['questions_count'] = len(mock_questions[quiz['id']])
+                        break
+            show_question_management(quiz) # Refresh the page
+        return on_delete
+
     # Question form fields
     question_text_field = create_text_input("Question Text", width=500, multiline=True, min_lines=2)
     question_error_text = ft.Text("", color=Colors.ERROR, size=Typography.SIZE_SM)
@@ -1570,7 +1928,8 @@ def show_question_management(quiz):
         
         # Create question based on type
         new_question = {
-            'id': len(mock_questions.get(quiz['id'], [])) + 1,
+            # Tìm ID lớn nhất trong danh sách câu hỏi của quiz này và +1
+            'id': (max(q['id'] for q in mock_questions[quiz['id']]) + 1) if quiz['id'] in mock_questions and mock_questions[quiz['id']] else 1,
             'question_type': question_type,
             'question_text': question_text.strip(),
             'difficulty': difficulty,
@@ -1780,7 +2139,7 @@ def show_question_management(quiz):
                     create_badge(question_type.replace('_', ' ').title(), color=Colors.PRIMARY_LIGHT),
                     create_badge(difficulty, color=difficulty_color_map.get(difficulty, Colors.GRAY_400)),
                     ft.Container(expand=True),
-                    create_secondary_button("Delete", width=80)
+                    create_secondary_button("Delete", on_click=handle_delete_question(quiz, question), width=80)
                 ]),
                 ft.Container(height=Spacing.SM),
                 ft.Text(
@@ -1840,7 +2199,8 @@ def show_question_management(quiz):
                     ft.Row([
                         create_section_title("Questions"),
                         ft.Container(expand=True),
-                        create_primary_button("Add Question", on_click=show_question_form, width=120)
+                        create_secondary_button("Preview Quiz", on_click=lambda e: show_quiz_preview(quiz), width=120),
+                        create_primary_button("Add Question", on_click=show_question_form, width=120),
                     ]),
                     
                     ft.Container(height=Spacing.LG),
@@ -1872,12 +2232,13 @@ def show_question_management(quiz):
     sidebar_drawer = ft.NavigationDrawer(controls=[sidebar])
     current_page.drawer = sidebar_drawer
     current_page.appbar = create_app_bar()
+    current_view_handler = lambda e=None: show_question_management(quiz) # Set the current view handler
 
     if current_page.width >= 1000:
-        current_page.add(create_app_background(ft.Row([sidebar, main_content], expand=True)))
+        current_page.add(ft.Row([sidebar, main_content], expand=True))
         current_page.appbar.visible = False
     else:
-        current_page.add(create_app_background(main_content))
+        current_page.add(main_content)
         current_page.appbar.visible = True
     current_page.update()
 
@@ -1885,24 +2246,70 @@ def show_examinee_dashboard():
     """Show the examinee dashboard"""
     global current_page
     global sidebar_drawer
+    global current_view_handler
     current_page.clean()
     
     sidebar = create_sidebar(current_user['role'], "home")
     
+    # --- Search and Filter Logic ---
+    search_field = create_text_input("Search by quiz title...", width=300, icon=ft.Icons.SEARCH)
+    quiz_list_view = ft.Column(spacing=Spacing.LG)
+
+    def update_quiz_list(e=None):
+        search_term = search_field.value.lower() if search_field.value else ""
+        student_class_id = current_user.get('class_id')
+        
+        # Filter quizzes based on class assignment, active state, and search term
+        available_quizzes = []
+        if student_class_id is not None:
+            available_quizzes = [
+                q for q in mock_quizzes 
+                if q.get('is_active', False) and q.get('class_id') == student_class_id
+            ]
+        filtered_quizzes = [
+            q for q in available_quizzes if search_term in q['title'].lower()
+        ]
+
+        quiz_list_view.controls.clear()
+        if filtered_quizzes:
+            for quiz in filtered_quizzes:
+                quiz_list_view.controls.append(create_quiz_card(quiz))
+        else:
+            quiz_list_view.controls.append(create_card(
+                content=ft.Column([
+                    ft.Icon(ft.Icons.SEARCH_OFF, size=48, color=Colors.GRAY_400),
+                    ft.Container(height=Spacing.SM),
+                    ft.Text("No quizzes found", size=Typography.SIZE_LG, weight=ft.FontWeight.W_600, color=Colors.TEXT_SECONDARY),
+                    ft.Text(
+                        "There are no available quizzes for your class at the moment." if not search_field.value else f"Your search for '{search_field.value}' did not match any quizzes in your class.",
+                        size=Typography.SIZE_SM,
+                        color=Colors.TEXT_MUTED
+                    )
+                ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                padding=Spacing.XXXXL
+            ))
+        
+        current_page.update()
+
+    search_field.on_change = update_quiz_list
+
+
     def handle_start_quiz(quiz):
         def start_action(e):
             if quiz.get('password'):
-                password_field = create_text_input("Quiz Password", password=True)
+                password_field = create_text_input("Quiz Password", password=True, can_reveal=True)
                 error_text = ft.Text("", color=Colors.ERROR, size=Typography.SIZE_SM)
 
                 def check_password(e_dialog):
                     if password_field.value == quiz['password']:
                         password_dialog.open = False
-                        current_page.update()
+                        current_page.update() # Đóng dialog trước khi chuyển trang
                         show_quiz_taking(quiz)
                     else:
                         error_text.value = "Incorrect password. Please try again."
                         password_field.value = ""
+                        # Cập nhật trực tiếp nội dung của dialog để hiển thị lỗi
+                        # Gọi page.update() thay vì content.update() để đảm bảo dialog được vẽ lại
                         current_page.update()
 
                 def close_dialog(e_dialog):
@@ -1932,9 +2339,8 @@ def show_examinee_dashboard():
                 show_quiz_taking(quiz)
         return start_action
 
-    # Available quizzes
-    quiz_cards = []
-    for quiz in mock_quizzes:
+    # --- Function to create a single quiz card for examinee ---
+    def create_quiz_card(quiz):
         quiz_card = create_card(
             content=ft.Column([
                 ft.Row([
@@ -1954,8 +2360,7 @@ def show_examinee_dashboard():
                     ft.Row([
                         ft.Icon(ft.Icons.LOCK, color=Colors.WARNING, size=16) if quiz.get('password') else ft.Container(),
                         ft.Container(width=Spacing.SM) if quiz.get('password') else ft.Container(),
-                        create_badge(quiz['difficulty'])
-                    ])
+                    ], alignment=ft.MainAxisAlignment.START)
                     
                 ]),
                 ft.Container(height=Spacing.SM),
@@ -1981,9 +2386,10 @@ def show_examinee_dashboard():
             ]),
             padding=Spacing.XL
         )
-        quiz_cards.append(quiz_card)
-    
-    # Main content
+        return quiz_card
+
+    # Initial population of the list
+    update_quiz_list()
     main_content = ft.Container(
         content=ft.Column(spacing=0, controls=[
             create_app_header(),
@@ -1993,15 +2399,15 @@ def show_examinee_dashboard():
                     ft.Container(
                         content=ft.Column([
                             create_page_title(f"Welcome, {current_user['username']}!"),
-                            create_subtitle("Choose a quiz to test your knowledge.")
-                        ]),
+                            create_subtitle("Choose a quiz to test your knowledge."),
+                        ], spacing=Spacing.XS),
                         padding=ft.padding.only(bottom=Spacing.XXL)
                     ),
                     
                     # Available quizzes
-                    create_section_title("Available Quizzes"),
+                    ft.Row([create_section_title("Available Quizzes"), ft.Container(expand=True), search_field]),
                     ft.Container(height=Spacing.LG),
-                    ft.Column(quiz_cards, spacing=Spacing.LG)
+                    quiz_list_view
                 ]),
                 padding=Spacing.XXXXL,
                 expand=True, bgcolor=Colors.GRAY_50)
@@ -2013,12 +2419,13 @@ def show_examinee_dashboard():
     sidebar_drawer = ft.NavigationDrawer(controls=[sidebar])
     current_page.drawer = sidebar_drawer
     current_page.appbar = create_app_bar()
+    current_view_handler = show_examinee_dashboard # Set the current view handler
 
     if current_page.width >= 1000:
-        current_page.add(create_app_background(ft.Row([sidebar, main_content], expand=True)))
+        current_page.add(ft.Row([sidebar, main_content], expand=True))
         current_page.appbar.visible = False
     else:
-        current_page.add(create_app_background(main_content))
+        current_page.add(main_content)
         current_page.appbar.visible = True
 
     current_page.update()
@@ -2026,6 +2433,7 @@ def show_examinee_dashboard():
 def show_quiz_taking(quiz_basic_info):
     """Show the modern quiz taking interface with multiple question types"""
     global current_page, current_user, current_question_index, user_answers, quiz_questions, quiz_start_time, quiz_timer_thread
+    global current_view_handler
     
     current_page.clean()
     current_question_index = 0
@@ -2035,6 +2443,11 @@ def show_quiz_taking(quiz_basic_info):
     
     # Load quiz questions
     quiz_questions = mock_questions.get(quiz_basic_info['id'], [])
+
+    # Xáo trộn câu hỏi nếu được yêu cầu
+    if quiz_basic_info.get('shuffle_questions', False):
+        random.shuffle(quiz_questions)
+
     
     if not quiz_questions:
         show_examinee_dashboard()
@@ -2059,7 +2472,8 @@ def show_quiz_taking(quiz_basic_info):
         question_text_display.value = question['question_text']
         
         # Create question component based on type
-        question_component = create_question_by_type(question, handle_answer_change)
+        shuffle_answers = quiz_basic_info.get('shuffle_answers', False)
+        question_component = create_question_by_type(question, handle_answer_change, shuffle_answers)
         question_component_container.content = question_component
         
         # Update navigation buttons
@@ -2204,11 +2618,92 @@ def show_quiz_taking(quiz_basic_info):
     update_progress()
     
     current_page.add(quiz_content)
+    current_view_handler = None # Disable resizing for this page
+    current_page.update()
+
+def show_quiz_preview(quiz_basic_info):
+    """Show the quiz in a preview mode for instructors."""
+    global current_page, current_question_index, quiz_questions
+
+    current_page.clean()
+    current_question_index = 0
+
+    # Load quiz questions
+    quiz_questions = mock_questions.get(quiz_basic_info['id'], [])
+
+    # Xáo trộn câu hỏi nếu được yêu cầu
+    if quiz_basic_info.get('shuffle_questions', False):
+        random.shuffle(quiz_questions)
+
+    if not quiz_questions:
+        show_quiz_management() # Go back if no questions
+        return
+
+    # UI Components
+    question_counter_text = ft.Text("", size=Typography.SIZE_BASE, weight=ft.FontWeight.W_600, color=Colors.TEXT_SECONDARY)
+    question_component_container = ft.Container(content=ft.Column([]))
+
+    def update_preview_display():
+        if current_question_index >= len(quiz_questions):
+            return
+
+        question = quiz_questions[current_question_index]
+        question_counter_text.value = f"Question {current_question_index + 1} of {len(quiz_questions)}"
+
+        # Use a dummy answer handler as we don't save answers in preview
+        def dummy_answer_handler(q_id, answer):
+            pass
+
+        shuffle_answers = quiz_basic_info.get('shuffle_answers', False)
+        question_component = create_question_by_type(question, dummy_answer_handler, shuffle_answers)
+        question_component_container.content = question_component
+
+        prev_button.disabled = (current_question_index == 0)
+        next_button.disabled = (current_question_index == len(quiz_questions) - 1)
+        current_page.update()
+
+    def handle_previous(e):
+        global current_question_index
+        if current_question_index > 0:
+            current_question_index -= 1
+            update_preview_display()
+
+    def handle_next(e):
+        global current_question_index
+        if current_question_index < len(quiz_questions) - 1:
+            current_question_index += 1
+            update_preview_display()
+
+    def exit_preview(e):
+        show_question_management(quiz_basic_info)
+
+    prev_button = create_secondary_button("← Previous", on_click=handle_previous, width=120)
+    next_button = create_primary_button("Next →", on_click=handle_next, width=120)
+
+    # Main preview interface
+    preview_content = ft.Container(
+        content=ft.Column([
+            create_card(content=ft.Row([
+                ft.Icon(ft.Icons.VISIBILITY, color=Colors.PRIMARY),
+                ft.Text("Quiz Preview Mode", size=Typography.SIZE_LG, weight=ft.FontWeight.W_600),
+                ft.Container(expand=True),
+                create_secondary_button("Exit Preview", on_click=exit_preview, width=120)
+            ]), padding=Spacing.LG),
+            ft.Container(height=Spacing.LG),
+            create_card(content=question_component_container, padding=Spacing.XXXXL),
+            ft.Container(height=Spacing.XL),
+            ft.Row([prev_button, ft.Container(expand=True), next_button])
+        ]), padding=Spacing.XXXXL, expand=True, alignment=ft.alignment.top_center)
+
+    update_preview_display()
+    current_page.add(preview_content)
+    current_view_handler = None # Disable resizing for this page
     current_page.update()
 
 def show_quiz_results(quiz_data, user_answers, start_time):
     """Show modern quiz results"""
-    global current_page, current_user
+    global current_page, current_user, mock_attempts
+    global current_view_handler
     
     current_page.clean()
     
@@ -2224,9 +2719,10 @@ def show_quiz_results(quiz_data, user_answers, start_time):
             question_type = question.get('question_type', 'multiple_choice')
             
             if question_type == 'multiple_choice':
-                if isinstance(user_answer, int) and 'options' in question:
-                    if question['options'][user_answer]['is_correct']:
-                        correct_count += 1
+                # user_answer bây giờ là text của lựa chọn
+                correct_option_text = next((opt['option_text'] for opt in question['options'] if opt['is_correct']), None)
+                if correct_option_text and user_answer == correct_option_text:
+                    correct_count += 1
             elif question_type == 'true_false':
                 if user_answer == question.get('correct_answer'):
                     correct_count += 1
@@ -2237,9 +2733,11 @@ def show_quiz_results(quiz_data, user_answers, start_time):
                 if user_answer_clean == correct_answer or user_answer_clean in answer_variations:
                     correct_count += 1
             elif question_type == 'multiple_select':
-                if isinstance(user_answer, list) and 'options' in question:
-                    correct_options = [i for i, opt in enumerate(question['options']) if opt['is_correct']]
-                    if set(user_answer) == set(correct_options):
+                # user_answer bây giờ là list các text của lựa chọn
+                if isinstance(user_answer, list):
+                    correct_options_texts = {opt['option_text'] for opt in question['options'] if opt['is_correct']}
+                    user_answers_texts = set(user_answer)
+                    if user_answers_texts == correct_options_texts:
                         correct_count += 1
             elif question_type == 'short_answer':
                 # For now, manual grading needed - give partial credit
@@ -2254,6 +2752,26 @@ def show_quiz_results(quiz_data, user_answers, start_time):
     time_minutes = int(time_taken.total_seconds() / 60)
     time_seconds = int(time_taken.total_seconds() % 60)
     
+    # --- Lưu kết quả lần làm bài này vào mock_attempts ---
+    if mock_attempts:
+        new_attempt_id = max(a['attempt_id'] for a in mock_attempts) + 1
+    else:
+        new_attempt_id = 1
+
+    new_attempt = {
+        'attempt_id': new_attempt_id,
+        'user_id': current_user['id'],
+        'quiz_id': quiz_data['id'],
+        'score': f"{correct_count}/{total_questions}",
+        'percentage': percentage,
+        'time_taken': f"{time_minutes:02d}:{time_seconds:02d}",
+        'completed_at': end_time.strftime('%Y-%m-%d %H:%M:%S'),
+        'user_answers': user_answers
+    }
+    mock_attempts.append(new_attempt)
+    # Thông báo cho instructor (nếu cần)
+    # ...
+
     # Results content
     results_content = ft.Container(
         content=ft.Column([
@@ -2326,7 +2844,7 @@ def show_quiz_results(quiz_data, user_answers, start_time):
             # Actions
             ft.Row([
                 ft.Container(expand=True),
-                create_secondary_button("Review Answers", width=140),
+                create_secondary_button("Review Answers", on_click=lambda e, a=new_attempt: show_attempt_review(a), width=140),
                 ft.Container(width=Spacing.LG),
                 create_primary_button("Back to Dashboard", on_click=lambda e: show_examinee_dashboard(), width=160),
                 ft.Container(expand=True)
@@ -2338,69 +2856,82 @@ def show_quiz_results(quiz_data, user_answers, start_time):
     )
     
     current_page.add(results_content)
+    current_view_handler = None # Disable resizing for this page
     current_page.update()
 
-def show_results_overview():
-    """Show a placeholder page for viewing quiz results overview"""
-    global current_page
-    global sidebar_drawer
+def show_student_results_overview():
+    """Show the student's results overview with a chart."""
+    global current_page, sidebar_drawer, current_user
+    global current_view_handler
     current_page.clean()
 
     sidebar = create_sidebar(current_user['role'], "results")
 
-    main_content = ft.Container(
-        content=ft.Column(spacing=0, controls=[
-            create_app_header(),
-            ft.Container(
-                content=ft.Column(scroll=ft.ScrollMode.AUTO, controls=[
-                    # Header
-                    ft.Container(
-                        content=ft.Column([
-                            create_page_title("Quiz Results"),
-                            create_subtitle("Review attempts and results for your quizzes.")
-                        ]),
-                        padding=ft.padding.only(bottom=Spacing.XXL)
-                    ),
+    # --- Get and process attempt data ---
+    user_attempts = [attempt for attempt in mock_attempts if attempt['user_id'] == current_user['id']]
+    user_attempts.sort(key=lambda x: x['completed_at']) # Sắp xếp theo thời gian để biểu đồ có thứ tự
 
-                    # Placeholder content
-                    create_card(
-                        content=ft.Column([
-                            ft.Icon(ft.Icons.CONSTRUCTION, size=48, color=Colors.GRAY_400),
-                            ft.Container(height=Spacing.SM),
-                            ft.Text("Results Overview", size=Typography.SIZE_LG, weight=ft.FontWeight.W_600, color=Colors.TEXT_SECONDARY),
-                            ft.Text("This feature is under construction.", size=Typography.SIZE_SM, color=Colors.TEXT_MUTED)
-                        ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-                        padding=Spacing.XXXXL
-                    )
-                ]),
-                padding=Spacing.XXXXL,
-                expand=True, bgcolor=Colors.GRAY_50
+    bar_groups = []
+    total_score_10 = 0
+    highest_score_10 = 0
+
+    if user_attempts:
+        for i, attempt in enumerate(user_attempts):
+            quiz_info = next((q for q in mock_quizzes if q['id'] == attempt['quiz_id']), None)
+            quiz_title = quiz_info['title'] if quiz_info else f"Quiz {attempt['quiz_id']}"
+            
+            score_10 = attempt['percentage'] / 10.0
+            total_score_10 += score_10
+            if score_10 > highest_score_10:
+                highest_score_10 = score_10
+
+            bar_groups.append(
+                ft.BarChartGroup(
+                    x=i,
+                    bar_rods=[
+                        ft.BarChartRod(
+                            from_y=0,
+                            to_y=score_10,
+                            width=20,
+                            color=Colors.PRIMARY,
+                            tooltip=f"{quiz_title}\nĐiểm: {score_10:.1f}",
+                            border_radius=BorderRadius.SM,
+                        ),
+                    ],
+                )
             )
-        ]),
-        expand=True
+
+    avg_score_10 = (total_score_10 / len(user_attempts)) if user_attempts else 0
+
+    # --- Chart component ---
+    chart = ft.BarChart(
+        bar_groups=bar_groups,
+        border=ft.border.all(1, Colors.GRAY_300),
+        left_axis=ft.ChartAxis(
+            labels=[
+                ft.ChartAxisLabel(value=0, label=ft.Text("0")),
+                ft.ChartAxisLabel(value=2, label=ft.Text("2")),
+                ft.ChartAxisLabel(value=4, label=ft.Text("4")),
+                ft.ChartAxisLabel(value=6, label=ft.Text("6")),
+                ft.ChartAxisLabel(value=8, label=ft.Text("8")),
+                ft.ChartAxisLabel(value=10, label=ft.Text("10")),
+            ],
+            labels_size=40,
+        ),
+        bottom_axis=ft.ChartAxis(
+            labels=[ft.ChartAxisLabel(value=i, label=ft.Text(f"Lần {i+1}", size=Typography.SIZE_XS)) for i in range(len(user_attempts))],
+            labels_size=30,
+        ),
+        horizontal_grid_lines=ft.ChartGridLines(
+            interval=2, color=Colors.GRAY_200, width=1
+        ),
+        tooltip_bgcolor=ft.Colors.with_opacity(0.8, Colors.GRAY_800),
+        max_y=10,
+        interactive=True,
+        expand=True,
     )
 
-    # Responsive layout (same as other pages)
-    sidebar_drawer = ft.NavigationDrawer(controls=[sidebar])
-    current_page.drawer = sidebar_drawer
-    current_page.appbar = create_app_bar()
-
-    if current_page.width >= 1000:
-        current_page.add(create_app_background(ft.Row([sidebar, main_content], expand=True)))
-        current_page.appbar.visible = False
-    else:
-        current_page.add(create_app_background(main_content))
-        current_page.appbar.visible = True
-    current_page.update()
-
-def show_settings_page():
-    """Show a placeholder settings page"""
-    global current_page
-    global sidebar_drawer
-    current_page.clean()
-
-    sidebar = create_sidebar(current_user['role'], "settings")
-
+    # --- Main page content ---
     main_content = ft.Container(
         content=ft.Column(spacing=0, controls=[
             create_app_header(),
@@ -2409,21 +2940,37 @@ def show_settings_page():
                     # Header
                     ft.Container(
                         content=ft.Column([
-                            create_page_title("Settings"),
-                            create_subtitle("Manage your application settings.")
+                            create_page_title("My Results Overview"),
+                            create_subtitle("A visual summary of your performance across all quizzes.")
                         ]),
                         padding=ft.padding.only(bottom=Spacing.XXL)
                     ),
 
-                    # Placeholder content
+                    # Stats Cards
+                    ft.Row([
+                        create_card(ft.Column([ft.Row([ft.Icon(ft.Icons.STAR_HALF, color=Colors.PRIMARY), ft.Text("Điểm trung bình")]), ft.Text(f"{avg_score_10:.2f}", size=Typography.SIZE_3XL, weight=ft.FontWeight.W_700)])),
+                        create_card(ft.Column([ft.Row([ft.Icon(ft.Icons.WORKSPACE_PREMIUM, color=Colors.WARNING), ft.Text("Điểm cao nhất")]), ft.Text(f"{highest_score_10:.2f}", size=Typography.SIZE_3XL, weight=ft.FontWeight.W_700)])),
+                        create_card(ft.Column([ft.Row([ft.Icon(ft.Icons.QUIZ, color=Colors.SUCCESS), ft.Text("Tổng số bài đã làm")]), ft.Text(str(len(user_attempts)), size=Typography.SIZE_3XL, weight=ft.FontWeight.W_700)])),
+                    ], alignment=ft.MainAxisAlignment.SPACE_AROUND),
+
+                    ft.Container(height=Spacing.XXXXL),
+
+                    # Chart
                     create_card(
                         content=ft.Column([
-                            ft.Icon(ft.Icons.SETTINGS_SUGGEST, size=48, color=Colors.GRAY_400),
-                            ft.Container(height=Spacing.SM),
-                            ft.Text("Settings Page", size=Typography.SIZE_LG, weight=ft.FontWeight.W_600, color=Colors.TEXT_SECONDARY),
-                            ft.Text("This feature is under construction.", size=Typography.SIZE_SM, color=Colors.TEXT_MUTED)
-                        ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-                        padding=Spacing.XXXXL
+                            create_section_title("Biểu đồ tiến độ (Thang điểm 10)"),
+                            ft.Container(height=Spacing.LG),
+                            ft.Container(
+                                content=chart if user_attempts else ft.Column([
+                                    ft.Icon(ft.Icons.CHART, size=48, color=Colors.GRAY_400),
+                                    ft.Text("No data to display", size=Typography.SIZE_LG, color=Colors.TEXT_MUTED),
+                                    ft.Text("Complete a quiz to see your progress here.", color=Colors.TEXT_MUTED)
+                                ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, alignment=ft.MainAxisAlignment.CENTER, expand=True),
+                                height=400,
+                                padding=Spacing.LG
+                            )
+                        ]),
+                        padding=Spacing.XL
                     )
                 ]),
                 padding=Spacing.XXXXL,
@@ -2437,21 +2984,683 @@ def show_settings_page():
     sidebar_drawer = ft.NavigationDrawer(controls=[sidebar])
     current_page.drawer = sidebar_drawer
     current_page.appbar = create_app_bar()
+    current_view_handler = show_student_results_overview # Set the current view handler
 
     if current_page.width >= 1000:
-        current_page.add(create_app_background(ft.Row([sidebar, main_content], expand=True)))
+        current_page.add(ft.Row([sidebar, main_content], expand=True))
         current_page.appbar.visible = False
     else:
-        current_page.add(create_app_background(main_content))
+        current_page.add(main_content)
+        current_page.appbar.visible = True
+    current_page.update()
+
+def show_attempt_review(attempt):
+    global current_page, current_question_index, quiz_questions
+    global current_view_handler
+
+    current_page.clean()
+    current_question_index = 0
+
+    quiz_info = next((q for q in mock_quizzes if q['id'] == attempt['quiz_id']), None)
+    if not quiz_info:
+        show_my_attempts()
+        return
+
+    quiz_questions = mock_questions.get(quiz_info['id'], [])
+    user_answers = attempt.get('user_answers', {})
+
+    if not quiz_questions:
+        show_my_attempts()
+        return
+
+    show_correct_answers = quiz_info.get('show_answers_after_quiz', False)
+
+    if not show_correct_answers:
+        # Nếu không được phép xem đáp án, chỉ hiện thông báo
+        notice_content = ft.Container(
+            content=ft.Column([
+                create_card(content=ft.Row([
+                    ft.Icon(ft.Icons.LOCK, color=Colors.ERROR),
+                    ft.Text("Bạn không được phép xem đáp án của bài quiz này.", size=Typography.SIZE_LG, color=Colors.ERROR, weight=ft.FontWeight.W_600),
+                    ft.Container(expand=True),
+                    create_secondary_button("Back to Attempts", on_click=lambda e: show_my_attempts(), width=150)
+                ]), padding=Spacing.XXXXL)
+            ], alignment=ft.MainAxisAlignment.CENTER),
+            padding=Spacing.XXXXL,
+            expand=True
+        )
+        current_page.add(notice_content)
+        current_view_handler = None
+        current_page.update()
+        return
+
+    # UI Components
+    question_counter_text = ft.Text("", size=Typography.SIZE_BASE, weight=ft.FontWeight.W_600, color=Colors.TEXT_SECONDARY)
+    question_component_container = ft.Container(content=ft.Column([]))
+
+    def update_review_display():
+        if current_question_index >= len(quiz_questions):
+            return
+        question = quiz_questions[current_question_index]
+        user_answer = user_answers.get(question['id'])
+        question_counter_text.value = f"Question {current_question_index + 1} of {len(quiz_questions)}"
+
+        # Tạo component câu hỏi ở chế độ review, truyền show_correct_answers=True
+        question_component = create_question_by_type(
+            question,
+            on_answer_change=None,
+            is_review=True,
+            user_answer=user_answer,
+            show_correct_answers=True
+        )
+        question_component_container.content = question_component
+
+        prev_button.disabled = (current_question_index == 0)
+        next_button.disabled = (current_question_index == len(quiz_questions) - 1)
+        current_page.update()
+
+    def handle_previous(e):
+        global current_question_index
+        if current_question_index > 0:
+            current_question_index -= 1
+            update_review_display()
+
+    def handle_next(e):
+        global current_question_index
+        if current_question_index < len(quiz_questions) - 1:
+            current_question_index += 1
+            update_review_display()
+
+    def exit_review(e):
+        show_my_attempts()
+
+    prev_button = create_secondary_button("← Previous", on_click=handle_previous, width=120)
+    next_button = create_primary_button("Next →", on_click=handle_next, width=120)
+
+    review_content = ft.Container(
+        content=ft.Column([
+            create_card(content=ft.Row([
+                ft.Icon(ft.Icons.RATE_REVIEW, color=Colors.PRIMARY),
+                ft.Text(f"Reviewing: {quiz_info['title']}", size=Typography.SIZE_LG, weight=ft.FontWeight.W_600),
+                ft.Container(expand=True),
+                create_secondary_button("Back to Attempts", on_click=exit_review, width=150)
+            ]), padding=Spacing.LG),
+            ft.Container(height=Spacing.LG),
+            create_card(content=question_component_container, padding=Spacing.XXXXL),
+            ft.Container(height=Spacing.XL),
+            ft.Row([prev_button, ft.Container(expand=True), question_counter_text, ft.Container(expand=True), next_button])
+        ]), padding=Spacing.XXXXL, expand=True, alignment=ft.alignment.top_center)
+
+    update_review_display()
+    current_page.add(review_content)
+    current_view_handler = None
+    current_page.update()
+
+def show_my_attempts():
+    """Show the student's history of quiz attempts."""
+    global current_page, sidebar_drawer, current_user
+    global current_view_handler
+    current_page.clean()
+
+    sidebar = create_sidebar(current_user['role'], "attempts")
+
+    # --- Lấy lịch sử làm bài của sinh viên hiện tại ---
+    user_attempts = [attempt for attempt in mock_attempts if attempt['user_id'] == current_user['id']]
+    user_attempts.sort(key=lambda x: x['completed_at'], reverse=True) # Sắp xếp mới nhất lên đầu
+
+    attempt_cards = []
+    if user_attempts:
+        for attempt in user_attempts:
+            # Lấy thông tin quiz từ quiz_id
+            quiz_info = next((q for q in mock_quizzes if q['id'] == attempt['quiz_id']), None)
+            if not quiz_info:
+                continue
+
+            percentage = attempt['percentage']
+            score_color = Colors.SUCCESS if percentage >= 70 else (Colors.WARNING if percentage >= 40 else Colors.ERROR)
+
+            attempt_card = create_card(
+                content=ft.Row([
+                    ft.Column([
+                        ft.Text(quiz_info['title'], size=Typography.SIZE_LG, weight=ft.FontWeight.W_600),
+                        ft.Text(f"Completed on: {datetime.datetime.strptime(attempt['completed_at'], '%Y-%m-%d %H:%M:%S').strftime('%B %d, %Y at %I:%M %p')}",
+                                size=Typography.SIZE_SM, color=Colors.TEXT_SECONDARY),
+                        ft.Container(height=Spacing.SM),
+                        ft.Row([
+                            ft.Icon(ft.Icons.TIMER, size=16, color=Colors.TEXT_MUTED),
+                            ft.Text(f"Time: {attempt['time_taken']}", size=Typography.SIZE_SM, color=Colors.TEXT_MUTED),
+                        ], spacing=Spacing.SM)
+                    ], expand=True),
+                    ft.VerticalDivider(color=Colors.GRAY_200),
+                    ft.Container(width=Spacing.LG),
+                    ft.Column([
+                        ft.Text("Score", size=Typography.SIZE_SM, color=Colors.TEXT_SECONDARY),
+                        ft.Text(attempt['score'], size=Typography.SIZE_XL, weight=ft.FontWeight.W_700, color=Colors.TEXT_PRIMARY),
+                    ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                    ft.Container(width=Spacing.LG),
+                    ft.Column([
+                        ft.Text("Percentage", size=Typography.SIZE_SM, color=Colors.TEXT_SECONDARY),
+                        ft.Text(f"{attempt['percentage']:.1f}%", size=Typography.SIZE_XL, weight=ft.FontWeight.W_700, color=score_color),
+                    ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                    ft.Container(width=Spacing.LG),
+                    create_primary_button("Review", on_click=lambda e, a=attempt: show_attempt_review(a), width=100)
+                ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+                padding=Spacing.LG
+            )
+            attempt_cards.append(attempt_card)
+    else:
+        attempt_cards.append(
+            create_card(
+                content=ft.Column([
+                    ft.Icon(ft.Icons.HISTORY_EDU, size=48, color=Colors.GRAY_400),
+                    ft.Container(height=Spacing.SM),
+                    ft.Text("No Attempts Yet", size=Typography.SIZE_LG, weight=ft.FontWeight.W_600, color=Colors.TEXT_SECONDARY),
+                    ft.Text("Your completed quizzes will appear here.", size=Typography.SIZE_SM, color=Colors.TEXT_MUTED)
+                ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                padding=Spacing.XXXXL
+            )
+        )
+
+    # --- Nội dung chính của trang ---
+    main_content = ft.Container(
+        content=ft.Column(spacing=0, controls=[
+            create_app_header(),
+            ft.Container(
+                content=ft.Column(scroll=ft.ScrollMode.AUTO, controls=[
+                    # Header
+                    ft.Container(
+                        content=ft.Column([
+                            create_page_title("My Attempts"),
+                            create_subtitle("Here is a history of all the quizzes you have completed.")
+                        ]),
+                        padding=ft.padding.only(bottom=Spacing.XXL)
+                    ),
+
+                    # Danh sách các lần làm bài
+                    ft.Column(attempt_cards, spacing=Spacing.LG)
+                ]),
+                padding=Spacing.XXXXL,
+                expand=True, bgcolor=Colors.GRAY_50
+            )
+        ]),
+        expand=True
+    )
+
+    # Responsive layout
+    sidebar_drawer = ft.NavigationDrawer(controls=[sidebar])
+    current_page.drawer = sidebar_drawer
+    current_page.appbar = create_app_bar()
+    current_view_handler = show_my_attempts # Set the current view handler
+
+    if current_page.width >= 1000:
+        current_page.add(ft.Row([sidebar, main_content], expand=True))
+        current_page.appbar.visible = False
+    else:
+        current_page.add(main_content)
+        current_page.appbar.visible = True
+    current_page.update()
+
+def show_profile_page():
+    """Show the user's profile page to view info and change password."""
+    global current_page, sidebar_drawer, current_user
+    global current_view_handler
+    current_page.clean()
+
+    sidebar = create_sidebar(current_user['role'], "profile")
+
+    # --- Change Password Form ---
+    current_password_field = create_text_input("Mật khẩu hiện tại", password=True, can_reveal=True)
+    new_password_field = create_text_input("Mật khẩu mới", password=True, can_reveal=True)
+    confirm_password_field = create_text_input("Xác nhận mật khẩu mới", password=True, can_reveal=True)
+    password_message_text = ft.Text("", size=Typography.SIZE_SM)
+
+    def handle_save_password(e):
+        current_pass = current_password_field.value
+        new_pass = new_password_field.value
+        confirm_pass = confirm_password_field.value
+
+        # Validation
+        if not all([current_pass, new_pass, confirm_pass]):
+            password_message_text.value = "Vui lòng điền đầy đủ các trường."
+            password_message_text.color = Colors.ERROR
+            current_page.update()
+            return
+
+        if current_pass != current_user['password']:
+            password_message_text.value = "Mật khẩu hiện tại không đúng."
+            password_message_text.color = Colors.ERROR
+            current_password_field.value = ""
+            current_page.update()
+            return
+
+        if new_pass != confirm_pass:
+            password_message_text.value = "Mật khẩu mới không khớp."
+            password_message_text.color = Colors.ERROR
+            new_password_field.value = ""
+            confirm_password_field.value = ""
+            current_page.update()
+            return
+
+        # Update password
+        mock_users[current_user['username']]['password'] = new_pass
+        current_user['password'] = new_pass # Update current session user
+
+        password_message_text.value = "Đổi mật khẩu thành công!"
+        password_message_text.color = Colors.SUCCESS
+        current_password_field.value = ""
+        new_password_field.value = ""
+        confirm_password_field.value = ""
+        current_page.update()
+
+    # --- User Info ---
+    class_name = "N/A"
+    if current_user.get('class_id'):
+        class_info = next((c for c in mock_classes if c['id'] == current_user['class_id']), None)
+        if class_info:
+            class_name = class_info['name']
+
+    # --- Main page content ---
+    main_content = ft.Container(
+        content=ft.Column(spacing=0, controls=[
+            create_app_header(),
+            ft.Container(
+                content=ft.Column(scroll=ft.ScrollMode.AUTO, controls=[
+                    # Header
+                    ft.Container(
+                        content=ft.Column([
+                            create_page_title("My Profile"),
+                            create_subtitle("View your personal information and manage your account.")
+                        ]),
+                        padding=ft.padding.only(bottom=Spacing.XXL)
+                    ),
+
+                    # Profile Cards
+                    ft.Row([
+                        # User Info Card
+                        create_card(
+                            content=ft.Column([
+                                create_section_title("Thông tin tài khoản"),
+                                ft.Container(height=Spacing.LG),
+                                ft.Row([ft.Text("Username:", weight=ft.FontWeight.W_600), ft.Text(current_user['username'])]),
+                                ft.Divider(),
+                                ft.Row([ft.Text("Vai trò:", weight=ft.FontWeight.W_600), ft.Text(current_user['role'].title())]),
+                                ft.Divider(),
+                                ft.Row([ft.Text("Lớp học:", weight=ft.FontWeight.W_600), ft.Text(class_name)]),
+                            ]),
+                            padding=Spacing.XL
+                        ),
+
+                        # Change Password Card
+                        create_card(
+                            content=ft.Column([
+                                create_section_title("Đổi mật khẩu"),
+                                ft.Container(height=Spacing.LG),
+                                current_password_field,
+                                new_password_field,
+                                confirm_password_field,
+                                ft.Container(height=Spacing.SM),
+                                password_message_text,
+                                ft.Container(height=Spacing.LG),
+                                create_primary_button("Lưu thay đổi", on_click=handle_save_password)
+                            ]),
+                            padding=Spacing.XL
+                        ),
+                    ], alignment=ft.MainAxisAlignment.START, vertical_alignment=ft.CrossAxisAlignment.START)
+                ]),
+                padding=Spacing.XXXXL,
+                expand=True, bgcolor=Colors.GRAY_50
+            )
+        ]),
+        expand=True
+    )
+
+    # Responsive layout
+    sidebar_drawer = ft.NavigationDrawer(controls=[sidebar])
+    current_page.drawer = sidebar_drawer
+    current_page.appbar = create_app_bar()
+    current_view_handler = show_profile_page # Set the current view handler
+
+    if current_page.width >= 1000:
+        current_page.add(ft.Row([sidebar, main_content], expand=True))
+        current_page.appbar.visible = False
+    else:
+        current_page.add(main_content)
+        current_page.appbar.visible = True
+    current_page.update()
+
+def show_results_overview():
+    """Show a placeholder page for viewing quiz results overview"""
+    # Route to the correct results page based on user role
+    if current_user['role'] == 'instructor':
+        show_instructor_results_page()
+    elif current_user['role'] == 'admin':
+        # Placeholder for admin results page
+        pass
+
+def show_instructor_results_page():
+    """Show the detailed results page for instructors, filterable by class and quiz."""
+    global current_page, sidebar_drawer, current_user
+    global current_view_handler
+    current_page.clean()
+
+    sidebar = create_sidebar(current_user['role'], "results")
+
+    # --- UI Components for filtering and display ---
+    results_container = ft.Column()
+
+    def update_results_display(selected_class_id=None, selected_quiz_id=None):
+        results_container.controls.clear()
+
+        if not selected_class_id or not selected_quiz_id:
+            results_container.controls.append(
+                create_card(ft.Column([
+                    ft.Icon(ft.Icons.FILTER_LIST, size=48, color=Colors.GRAY_400),
+                    ft.Text("Select a Class and Quiz", size=Typography.SIZE_LG, color=Colors.TEXT_MUTED),
+                    ft.Text("Choose from the dropdowns above to view results.", color=Colors.TEXT_MUTED),
+                ], horizontal_alignment=ft.CrossAxisAlignment.CENTER), padding=Spacing.XXXXL)
+            )
+            current_page.update()
+            return
+
+        # --- Data Processing ---
+        students_in_class = [u for u in mock_users.values() if u.get('class_id') == int(selected_class_id)]
+        attempts_for_quiz = [a for a in mock_attempts if a['quiz_id'] == int(selected_quiz_id)]
+
+        # Get the latest attempt for each student in the class
+        student_results = []
+        for student in students_in_class:
+            student_attempts = [a for a in attempts_for_quiz if a['user_id'] == student['id']]
+            if student_attempts:
+                latest_attempt = max(student_attempts, key=lambda x: x['completed_at'])
+                student_results.append({'student': student, 'attempt': latest_attempt})
+
+        # --- Statistics ---
+        total_students = len(students_in_class)
+        completed_count = len(student_results)
+        completion_rate = (completed_count / total_students * 100) if total_students > 0 else 0
+        
+        scores_10 = [res['attempt']['percentage'] / 10.0 for res in student_results]
+        avg_score_10 = sum(scores_10) / len(scores_10) if scores_10 else 0
+        highest_score_10 = max(scores_10) if scores_10 else 0
+
+        # --- Chart ---
+        bar_groups = []
+        for i, res in enumerate(student_results):
+            score_10 = res['attempt']['percentage'] / 10.0
+            bar_groups.append(
+                ft.BarChartGroup(x=i, bar_rods=[
+                    ft.BarChartRod(from_y=0, to_y=score_10, width=15, color=Colors.PRIMARY, tooltip=f"{res['student']['username']}: {score_10:.1f}", border_radius=BorderRadius.SM)
+                ])
+            )
+        
+        chart = ft.BarChart(
+            bar_groups=bar_groups,
+            left_axis=ft.ChartAxis(labels=[ft.ChartAxisLabel(value=v, label=ft.Text(str(v))) for v in range(0, 11, 2)], labels_size=40),
+            bottom_axis=ft.ChartAxis(labels=[ft.ChartAxisLabel(value=i, label=ft.Text(res['student']['username'], size=10, rotate=45)) for i, res in enumerate(student_results)], labels_size=50),
+            horizontal_grid_lines=ft.ChartGridLines(interval=2, color=Colors.GRAY_200, width=1),
+            tooltip_bgcolor=ft.colors.with_opacity(0.8, Colors.GRAY_800), max_y=10, interactive=True, expand=True
+        )
+
+        # --- Results Table ---
+        table_rows = []
+        for res in student_results:
+            attempt = res['attempt']
+            table_rows.append(
+                ft.DataRow(cells=[
+                    ft.DataCell(ft.Text(res['student']['username'])),
+                    ft.DataCell(ft.Text(attempt['score'])),
+                    ft.DataCell(ft.Text(f"{attempt['percentage']:.1f}%")),
+                    ft.DataCell(ft.Text(attempt['time_taken'])),
+                    ft.DataCell(ft.Text(datetime.datetime.strptime(attempt['completed_at'], '%Y-%m-%d %H:%M:%S').strftime('%d-%m-%Y %H:%M'))),
+                ])
+            )
+
+        results_table = ft.DataTable(
+            columns=[
+                ft.DataColumn(ft.Text("Student")), ft.DataColumn(ft.Text("Score")), ft.DataColumn(ft.Text("Percentage")),
+                ft.DataColumn(ft.Text("Time Taken")), ft.DataColumn(ft.Text("Completed At")),
+            ],
+            rows=table_rows, heading_row_color=Colors.GRAY_100, border=ft.border.all(1, Colors.GRAY_200), border_radius=BorderRadius.MD
+        )
+
+        # --- Assemble Content ---
+        results_container.controls.extend([
+            ft.Row([
+                create_card(ft.Column([ft.Row([ft.Icon(ft.Icons.STAR_HALF, color=Colors.PRIMARY), ft.Text("Điểm trung bình")]), ft.Text(f"{avg_score_10:.2f}", size=Typography.SIZE_3XL, weight=ft.FontWeight.W_700)])),
+                create_card(ft.Column([ft.Row([ft.Icon(ft.Icons.WORKSPACE_PREMIUM, color=Colors.WARNING), ft.Text("Điểm cao nhất")]), ft.Text(f"{highest_score_10:.2f}", size=Typography.SIZE_3XL, weight=ft.FontWeight.W_700)])),
+                create_card(ft.Column([ft.Row([ft.Icon(ft.Icons.PIE_CHART, color=Colors.SUCCESS), ft.Text("Tỷ lệ hoàn thành")]), ft.Text(f"{completion_rate:.1f}%", size=Typography.SIZE_3XL, weight=ft.FontWeight.W_700)])),
+            ], alignment=ft.MainAxisAlignment.SPACE_AROUND),
+            ft.Container(height=Spacing.XXL),
+            create_card(ft.Column([create_section_title("Biểu đồ điểm sinh viên (Thang 10)"), ft.Container(chart, height=300, padding=Spacing.LG)]), padding=Spacing.XL),
+            ft.Container(height=Spacing.XXL),
+            create_card(ft.Column([create_section_title("Kết quả chi tiết"), results_table]), padding=Spacing.XL),
+        ])
+        current_page.update()
+
+    # --- Filter Dropdowns ---
+    instructor_classes = [c for c in mock_classes if c['instructor_id'] == current_user['id']]
+    class_dd = ft.Dropdown(label="Chọn Lớp học", width=250, options=[ft.dropdown.Option(key=c['id'], text=c['name']) for c in instructor_classes])
+    quiz_dd = ft.Dropdown(label="Chọn Bài thi", width=300, disabled=True)
+
+    def on_class_change(e):
+        selected_class_id = int(e.control.value)
+        quizzes_in_class = [q for q in mock_quizzes if q.get('class_id') == selected_class_id]
+        quiz_dd.options = [ft.dropdown.Option(key=q['id'], text=q['title']) for q in quizzes_in_class]
+        quiz_dd.value = None
+        quiz_dd.disabled = False
+        update_results_display() # Clear results when class changes
+        current_page.update()
+
+    def on_quiz_change(e):
+        update_results_display(class_dd.value, quiz_dd.value)
+
+    class_dd.on_change = on_class_change
+    quiz_dd.on_change = on_quiz_change
+
+    # --- Main Page Layout ---
+    main_content = ft.Container(
+        content=ft.Column(spacing=0, controls=[
+            create_app_header(),
+            ft.Container(
+                content=ft.Column(scroll=ft.ScrollMode.AUTO, controls=[
+                    ft.Row([
+                        ft.Column([
+                            create_page_title("Quiz Results"),
+                            create_subtitle("Review attempts and results for your quizzes.")
+                        ], expand=True),
+                        class_dd,
+                        quiz_dd,
+                    ]),
+                    ft.Container(height=Spacing.XXL),
+                    results_container,
+                ]),
+                padding=Spacing.XXXXL, expand=True, bgcolor=Colors.GRAY_50
+            )
+        ]),
+        expand=True
+    )
+
+    # Initial state
+    update_results_display()
+
+    # Responsive layout
+    sidebar_drawer = ft.NavigationDrawer(controls=[sidebar])
+    current_page.drawer = sidebar_drawer
+    current_page.appbar = create_app_bar()
+    current_view_handler = show_instructor_results_page # Set the current view handler
+
+    if current_page.width >= 1000:
+        current_page.add(ft.Row([sidebar, main_content], expand=True))
+        current_page.appbar.visible = False
+    else:
+        current_page.add(main_content)
+        current_page.appbar.visible = True
+    current_page.update()
+
+def show_settings_page():
+    """Show the settings page for instructors and admins."""
+    global current_page, sidebar_drawer, current_user
+    global current_view_handler
+    current_page.clean()
+
+    # This page serves as a profile/settings page for non-examinee roles
+    sidebar = create_sidebar(current_user['role'], "settings")
+
+    # --- Change Password Form ---
+    current_password_field = create_text_input("Mật khẩu hiện tại", password=True, can_reveal=True)
+    new_password_field = create_text_input("Mật khẩu mới", password=True, can_reveal=True)
+    confirm_password_field = create_text_input("Xác nhận mật khẩu mới", password=True, can_reveal=True)
+    password_message_text = ft.Text("", size=Typography.SIZE_SM)
+
+    def handle_save_password(e):
+        current_pass = current_password_field.value
+        new_pass = new_password_field.value
+        confirm_pass = confirm_password_field.value
+
+        # Validation
+        if not all([current_pass, new_pass, confirm_pass]):
+            password_message_text.value = "Vui lòng điền đầy đủ các trường."
+            password_message_text.color = Colors.ERROR
+            current_page.update()
+            return
+
+        if current_pass != current_user['password']:
+            password_message_text.value = "Mật khẩu hiện tại không đúng."
+            password_message_text.color = Colors.ERROR
+            current_password_field.value = ""
+            current_page.update()
+            return
+
+        if new_pass != confirm_pass:
+            password_message_text.value = "Mật khẩu mới không khớp."
+            password_message_text.color = Colors.ERROR
+            new_password_field.value = ""
+            confirm_password_field.value = ""
+            current_page.update()
+            return
+
+        # Update password
+        mock_users[current_user['username']]['password'] = new_pass
+        current_user['password'] = new_pass # Update current session user
+
+        password_message_text.value = "Đổi mật khẩu thành công!"
+        password_message_text.color = Colors.SUCCESS
+        current_password_field.value = ""
+        new_password_field.value = ""
+        confirm_password_field.value = ""
+        current_page.update()
+
+    # --- User Info ---
+    info_details = [
+        ft.Row([ft.Text("Username:", weight=ft.FontWeight.W_600), ft.Text(current_user['username'])]),
+        ft.Divider(),
+        ft.Row([ft.Text("Vai trò:", weight=ft.FontWeight.W_600), ft.Text(current_user['role'].title())]),
+    ]
+
+    if current_user['role'] == 'instructor':
+        assigned_classes = [c['name'] for c in mock_classes if c.get('instructor_id') == current_user['id']]
+        if assigned_classes:
+            info_details.append(ft.Divider())
+            info_details.append(ft.Row([ft.Text("Các lớp phụ trách:", weight=ft.FontWeight.W_600), ft.Text(", ".join(assigned_classes))]))
+
+    # --- Main page content ---
+    main_content = ft.Container(
+        content=ft.Column(spacing=0, controls=[
+            create_app_header(),
+            ft.Container(
+                content=ft.Column(scroll=ft.ScrollMode.AUTO, controls=[
+                    ft.Container(
+                        content=ft.Column([
+                            create_page_title("Account Settings"),
+                            create_subtitle("Manage your personal information and account settings.")
+                        ]),
+                        padding=ft.padding.only(bottom=Spacing.XXL)
+                    ),
+
+                    ft.Row([
+                        # User Info Card
+                        create_card(
+                            content=ft.Column([
+                                create_section_title("Thông tin tài khoản"),
+                                ft.Container(height=Spacing.LG),
+                                *info_details
+                            ]),
+                            padding=Spacing.XL
+                        ),
+
+                        # Change Password Card
+                        create_card(
+                            content=ft.Column([
+                                create_section_title("Đổi mật khẩu"),
+                                ft.Container(height=Spacing.LG),
+                                current_password_field,
+                                new_password_field,
+                                confirm_password_field,
+                                ft.Container(height=Spacing.SM),
+                                password_message_text,
+                                ft.Container(height=Spacing.LG),
+                                create_primary_button("Lưu thay đổi", on_click=handle_save_password)
+                            ]),
+                            padding=Spacing.XL
+                        ),
+                    ], alignment=ft.MainAxisAlignment.START, vertical_alignment=ft.CrossAxisAlignment.START)
+                ]),
+                padding=Spacing.XXXXL,
+                expand=True, bgcolor=Colors.GRAY_50
+            )
+        ]),
+        expand=True
+    )
+
+    # Responsive layout
+    sidebar_drawer = ft.NavigationDrawer(controls=[sidebar])
+    current_page.drawer = sidebar_drawer
+    current_page.appbar = create_app_bar()
+    current_view_handler = show_settings_page # Set the current view handler
+
+    if current_page.width >= 1000:
+        current_page.add(ft.Row([sidebar, main_content], expand=True))
+        current_page.appbar.visible = False
+    else:
+        current_page.add(main_content)
         current_page.appbar.visible = True
     current_page.update()
 
 def show_class_management():
     """Show the class management page for admins."""
     global current_page, sidebar_drawer
+    global current_view_handler
     current_page.clean()
 
     sidebar = create_sidebar(current_user['role'], "classes")
+
+    # --- Search and Filter Logic ---
+    search_field = create_text_input("Search by class name...", width=300, icon=ft.Icons.SEARCH)
+    class_list_view = ft.Column(spacing=Spacing.LG)
+
+    def update_class_list(e=None):
+        search_term = search_field.value.lower() if search_field.value else ""
+        
+        filtered_classes = [
+            c for c in mock_classes if search_term in c['name'].lower()
+        ]
+
+        class_list_view.controls.clear()
+        if filtered_classes:
+            for cls in filtered_classes:
+                class_list_view.controls.append(create_class_card(cls))
+        else:
+            class_list_view.controls.append(create_card(
+                content=ft.Column([
+                    ft.Icon(ft.Icons.SEARCH_OFF, size=48, color=Colors.GRAY_400),
+                    ft.Container(height=Spacing.SM),
+                    ft.Text("No classes found", size=Typography.SIZE_LG, weight=ft.FontWeight.W_600, color=Colors.TEXT_SECONDARY),
+                ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                padding=Spacing.XXXXL
+            ))
+        current_page.update()
+
+    search_field.on_change = update_class_list
 
     def handle_delete_class(class_id_to_delete):
         def on_delete(e):
@@ -2502,8 +3711,12 @@ def show_class_management():
             return
 
         # Thêm vào dữ liệu mẫu
+        if mock_classes:
+            new_id = max(c['id'] for c in mock_classes) + 1
+        else:
+            new_id = 1
         new_class = {
-            'id': len(mock_classes) + 1,
+            'id': new_id,
             'name': class_name.strip(),
             'instructor_id': int(instructor_id)
         }
@@ -2534,8 +3747,8 @@ def show_class_management():
     class_form_container.visible = False
 
     # --- Danh sách các lớp học hiện có ---
-    class_cards = []
-    for cls in mock_classes:
+    def create_class_card(cls):
+        """Helper function to create a class card."""
         instructor_name = next((user['username'] for user in mock_users.values() if user['id'] == cls['instructor_id']), "N/A")
         class_card = create_card(
             content=ft.Row([
@@ -2549,8 +3762,10 @@ def show_class_management():
             ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
             padding=Spacing.LG
         )
-        class_cards.append(class_card)
+        return class_card
 
+    # Initial population of the list
+    update_class_list()
     # --- Nội dung chính của trang ---
     main_content = ft.Container(
         content=ft.Column(spacing=0, controls=[
@@ -2561,7 +3776,8 @@ def show_class_management():
                         ft.Column([
                             create_page_title("Quản lý Lớp học"),
                             create_subtitle("Tạo và quản lý các lớp học trong hệ thống.")
-                        ], expand=True),
+                        ], expand=True, spacing=Spacing.XS),
+                        search_field,
                         create_primary_button("Tạo Lớp mới", on_click=show_create_form, width=150)
                     ]),
                     ft.Container(height=Spacing.XXL),
@@ -2569,7 +3785,7 @@ def show_class_management():
                     ft.Container(height=Spacing.XL),
                     create_section_title("Danh sách Lớp học"),
                     ft.Container(height=Spacing.LG),
-                    ft.Column(class_cards, spacing=Spacing.LG) if class_cards else ft.Text("Chưa có lớp học nào.")
+                    class_list_view if class_list_view.controls else ft.Text("Chưa có lớp học nào.")
                 ]),
                 padding=Spacing.XXXXL, expand=True, bgcolor=Colors.GRAY_50
             )
@@ -2581,21 +3797,143 @@ def show_class_management():
     sidebar_drawer = ft.NavigationDrawer(controls=[sidebar])
     current_page.drawer = sidebar_drawer
     current_page.appbar = create_app_bar()
+    current_view_handler = show_class_management # Set the current view handler
 
     if current_page.width >= 1000:
-        current_page.add(create_app_background(ft.Row([sidebar, main_content], expand=True)))
+        current_page.add(ft.Row([sidebar, main_content], expand=True))
         current_page.appbar.visible = False
     else:
-        current_page.add(create_app_background(main_content))
+        current_page.add(main_content)
         current_page.appbar.visible = True
     current_page.update()
 
 def show_user_management():
     """Show the user management page for admins."""
     global current_page, sidebar_drawer
+    global current_view_handler
     current_page.clean()
 
     sidebar = create_sidebar(current_user['role'], "users")
+
+    # --- Search and Filter Logic ---
+    search_field = create_text_input("Search by username...", width=300, icon=ft.Icons.SEARCH)
+    role_filter_dropdown = ft.Dropdown(
+        label="Filter by Role",
+        width=200,
+        value="all",
+        options=[
+            ft.dropdown.Option(key="all", text="All Roles"),
+            ft.dropdown.Option(key='instructor', text='Instructor'),
+            ft.dropdown.Option(key='admin', text='Admin'),
+            ft.dropdown.Option(key='examinee', text='Examinee'),
+        ]
+    )
+    user_list_view = ft.Column(spacing=Spacing.LG)
+
+    def update_user_list(e=None):
+        search_term = search_field.value.lower() if search_field.value else ""
+        selected_role = role_filter_dropdown.value
+
+        # Filter users
+        filtered_users = mock_users.items()
+        if search_term:
+            filtered_users = [(u, d) for u, d in filtered_users if search_term in d['username'].lower()]
+        if selected_role and selected_role != "all":
+            filtered_users = [(u, d) for u, d in filtered_users if d['role'] == selected_role]
+
+        user_list_view.controls.clear()
+        if filtered_users:
+            for username, user_data in filtered_users:
+                user_list_view.controls.append(create_user_card(username, user_data))
+        else:
+            user_list_view.controls.append(create_card(
+                content=ft.Column([
+                    ft.Icon(ft.Icons.PERSON_SEARCH, size=48, color=Colors.GRAY_400),
+                    ft.Container(height=Spacing.SM),
+                    ft.Text("No users found", size=Typography.SIZE_LG, weight=ft.FontWeight.W_600, color=Colors.TEXT_SECONDARY),
+                    ft.Text("Your search did not match any users.", size=Typography.SIZE_SM, color=Colors.TEXT_MUTED)
+                ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                padding=Spacing.XXXXL
+            ))
+        
+        current_page.update()
+
+    search_field.on_change = update_user_list
+    role_filter_dropdown.on_change = update_user_list
+
+
+    # --- Edit User Dialog ---
+    def open_edit_dialog(user_to_edit):
+        username = user_to_edit['username']
+        
+        # Controls for the dialog
+        edit_password_field = create_text_input("New Password (leave blank to keep unchanged)", password=True, width=400)
+        
+        edit_role_dropdown = ft.Dropdown(
+            label="Select Role",
+            width=400,
+            value=user_to_edit['role'],
+            options=[
+                ft.dropdown.Option(key='instructor', text='Instructor'),
+                ft.dropdown.Option(key='admin', text='Admin'),
+                ft.dropdown.Option(key='examinee', text='Examinee (Student)'),
+            ]
+        )
+
+        edit_class_assignment_dropdown = ft.Dropdown(
+            label="Gán vào lớp học (tùy chọn)",
+            width=400,
+            value=user_to_edit.get('class_id'),
+            options=[ft.dropdown.Option(key=cls['id'], text=cls['name']) for cls in mock_classes],
+            visible=(user_to_edit['role'] == 'examinee')
+        )
+
+        def on_edit_role_change(e):
+            edit_class_assignment_dropdown.visible = e.control.value == 'examinee'
+            edit_dialog.content.update()
+        edit_role_dropdown.on_change = on_edit_role_change
+
+        def save_changes(e):
+            # Get new values
+            new_password = edit_password_field.value.strip()
+            new_role = edit_role_dropdown.value
+            new_class_id = edit_class_assignment_dropdown.value if new_role == 'examinee' else None
+
+            # Update mock data
+            if new_password:
+                mock_users[username]['password'] = new_password
+            
+            mock_users[username]['role'] = new_role
+            mock_users[username]['class_id'] = int(new_class_id) if new_class_id else None
+
+            # Close dialog and refresh page
+            edit_dialog.open = False
+            current_page.update()
+            show_user_management()
+
+        def close_dialog(e):
+            edit_dialog.open = False
+            current_page.update()
+
+        edit_dialog = ft.AlertDialog(
+            modal=True,
+            title=ft.Text(f"Edit User: {username}"),
+            content=ft.Column([
+                edit_password_field,
+                edit_role_dropdown,
+                edit_class_assignment_dropdown
+            ], tight=True),
+            actions=[
+                create_secondary_button("Cancel", on_click=close_dialog),
+                create_primary_button("Save Changes", on_click=save_changes),
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
+        )
+
+        current_page.dialog = edit_dialog
+        edit_dialog.open = True
+        current_page.update()
+
 
     # --- Form to create a new user (initially hidden) ---
     username_field = create_text_input("Username", width=400)
@@ -2612,6 +3950,18 @@ def show_user_management():
             ft.dropdown.Option(key='examinee', text='Examinee (Student)'),
         ]
     )
+    # --- Thêm Dropdown để gán lớp học, ẩn ban đầu ---
+    class_assignment_dropdown = ft.Dropdown(
+        label="Gán vào lớp học (tùy chọn)",
+        width=400,
+        border_radius=BorderRadius.MD,
+        border_color=Colors.GRAY_300,
+        focused_border_color=Colors.PRIMARY,
+        options=[
+            ft.dropdown.Option(key=cls['id'], text=cls['name']) for cls in mock_classes
+        ],
+        visible=False # Chỉ hiển thị khi role là 'examinee'
+    )
     user_error_text = ft.Text("", color=Colors.ERROR, size=Typography.SIZE_SM)
 
     def show_create_form(e):
@@ -2619,12 +3969,21 @@ def show_user_management():
         username_field.value = ""
         password_field.value = ""
         role_dropdown.value = None
+        class_assignment_dropdown.value = None
+        class_assignment_dropdown.visible = False
         user_error_text.value = ""
         current_page.update()
 
     def hide_create_form(e):
         user_form_container.visible = False
         current_page.update()
+    
+    def on_role_change(e):
+        # Hiển thị dropdown lớp học nếu vai trò là 'examinee'
+        is_examinee = role_dropdown.value == 'examinee'
+        class_assignment_dropdown.visible = is_examinee
+        current_page.update()
+    role_dropdown.on_change = on_role_change
 
     def handle_create_user(e):
         username = username_field.value or ""
@@ -2645,12 +4004,17 @@ def show_user_management():
             return
 
         # Add to mock data
-        new_id = max(user['id'] for user in mock_users.values()) + 1
+        if mock_users:
+            new_id = max(user['id'] for user in mock_users.values()) + 1
+        else:
+            new_id = 1
+
         new_user = {
             'id': new_id,
             'username': username.strip(),
             'password': password.strip(),
-            'role': role
+            'role': role,
+            'class_id': int(class_assignment_dropdown.value) if role == 'examinee' and class_assignment_dropdown.value else None
         }
         mock_users[username.strip()] = new_user
 
@@ -2674,6 +4038,8 @@ def show_user_management():
             password_field,
             ft.Container(height=Spacing.LG),
             role_dropdown,
+            ft.Container(height=Spacing.LG),
+            class_assignment_dropdown, # Thêm dropdown lớp học vào form
             ft.Container(height=Spacing.MD),
             user_error_text,
             ft.Container(height=Spacing.XL),
@@ -2688,41 +4054,58 @@ def show_user_management():
     user_form_container.visible = False
 
     # --- List of existing users ---
-    user_cards = []
-    for username, user_data in mock_users.items():
+    def create_user_card(username, user_data):
+        """Helper function to create a user card."""
+        details_column = [
+            ft.Text(user_data['username'], size=Typography.SIZE_LG, weight=ft.FontWeight.W_600),
+            ft.Text(f"Role: {user_data['role'].title()}", color=Colors.TEXT_SECONDARY),
+        ]
+        # Nếu là sinh viên, hiển thị thêm thông tin lớp học
+        if user_data['role'] == 'examinee' and user_data.get('class_id'):
+            class_name = next((c['name'] for c in mock_classes if c['id'] == user_data['class_id']), "Chưa gán lớp")
+            details_column.append(
+                ft.Text(f"Lớp: {class_name}", color=Colors.TEXT_MUTED, size=Typography.SIZE_SM)
+            )
+
         user_card = create_card(
             content=ft.Row([
                 ft.Icon(ft.Icons.PERSON_OUTLINE, color=Colors.PRIMARY, size=32),
                 ft.Container(width=Spacing.LG),
-                ft.Column([
-                    ft.Text(user_data['username'], size=Typography.SIZE_LG, weight=ft.FontWeight.W_600),
-                    ft.Text(f"Role: {user_data['role'].title()}", color=Colors.TEXT_SECONDARY),
-                ], expand=True),
+                ft.Column(details_column, expand=True, spacing=2),
+                create_primary_button("Edit", width=80, on_click=lambda e, u=user_data: open_edit_dialog(u)),
+                ft.Container(width=Spacing.SM),
                 create_secondary_button("Delete", width=80, on_click=handle_delete_user(username)),
             ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
             padding=Spacing.LG
         )
-        user_cards.append(user_card)
+        return user_card
 
+    # Initial population of the list
+    update_user_list()
     # --- Main page content ---
     main_content = ft.Container(
         content=ft.Column(spacing=0, controls=[
             create_app_header(),
             ft.Container(
                 content=ft.Column(scroll=ft.ScrollMode.AUTO, controls=[
-                    ft.Row([
+                    ft.Column([
                         ft.Column([
                             create_page_title("User Management"),
                             create_subtitle("Create and manage system users.")
-                        ], expand=True),
-                        create_primary_button("Add New User", on_click=show_create_form, width=150)
+                        ], spacing=Spacing.XS),
+                        ft.Container(height=Spacing.LG),
+                        ft.Row([
+                            search_field,
+                            role_filter_dropdown,
+                            create_primary_button("Add New User", on_click=show_create_form, width=150)
+                        ], spacing=Spacing.MD)
                     ]),
                     ft.Container(height=Spacing.XXL),
                     user_form_container,
                     ft.Container(height=Spacing.XL),
                     create_section_title("All Users"),
                     ft.Container(height=Spacing.LG),
-                    ft.Column(user_cards, spacing=Spacing.LG) if user_cards else ft.Text("No users found.")
+                    user_list_view if user_list_view.controls else ft.Text("No users found.")
                 ]),
                 padding=Spacing.XXXXL, expand=True, bgcolor=Colors.GRAY_50
             )
@@ -2734,12 +4117,13 @@ def show_user_management():
     sidebar_drawer = ft.NavigationDrawer(controls=[sidebar])
     current_page.drawer = sidebar_drawer
     current_page.appbar = create_app_bar()
+    current_view_handler = show_user_management # Set the current view handler
 
     if current_page.width >= 1000:
-        current_page.add(create_app_background(ft.Row([sidebar, main_content], expand=True)))
+        current_page.add(ft.Row([sidebar, main_content], expand=True))
         current_page.appbar.visible = False
     else:
-        current_page.add(create_app_background(main_content))
+        current_page.add(main_content)
         current_page.appbar.visible = True
     current_page.update()
 
@@ -2749,7 +4133,7 @@ def show_user_management():
 
 def main_page(page: ft.Page):
     """Main application entry point""" 
-    global current_page, current_user, sidebar_drawer
+    global current_page, current_user, sidebar_drawer, current_view_handler
     current_page = page
     
     # Page configuration
@@ -2764,32 +4148,11 @@ def main_page(page: ft.Page):
     
     def handle_resize(e):
         """Handle window resize to show/hide sidebar."""
-        # This check is to avoid errors on pages without a sidebar (like login)
-        if not hasattr(page, "appbar") or not page.appbar:
+        # If a view handler is set, call it to redraw the page.
+        # This is a much cleaner way to handle responsiveness.
+        if current_view_handler:
+            current_view_handler()
             return
-
-        is_wide = page.width >= 1000
-        page.appbar.visible = not is_wide
-
-        # Check if the main layout is a Row (meaning sidebar is visible)
-        is_sidebar_visible = (
-            len(page.controls) > 0 and 
-            hasattr(page.controls[0], 'content') and 
-            isinstance(page.controls[0].content, ft.Row) and
-            len(page.controls[0].content.controls) > 1
-        )
-
-        if is_wide and not is_sidebar_visible:
-            # Switch to wide view: show sidebar
-            main_content = page.controls[0]
-            # The background is the root control, its content is the Row
-            page.controls[0].content = ft.Row([page.drawer.controls[0], main_content.content.controls[1]], expand=True)
-        elif not is_wide and is_sidebar_visible:
-            # Switch to narrow view: hide sidebar
-            main_content = page.controls[0].content.controls[1]
-            # The background is the root control, its content is now just the main content
-            page.controls[0].content = main_content
-        page.update()
 
     page.on_resize = handle_resize
 
@@ -2798,15 +4161,15 @@ def main_page(page: ft.Page):
     # 1. Đặt người dùng hiện tại (current_user) thành một người dùng mẫu.
     # 2. Gọi hàm hiển thị dashboard tương ứng.
     # 3. Để bật lại trang đăng nhập, hãy xóa/bình luận các dòng dưới và bỏ bình luận dòng `show_login()`.
-    
+
     # --- Chế độ phát triển ---
-    # current_user = mock_users['admin']  # Đăng nhập với tư cách 'admin'
-    # show_instructor_dashboard()         # Đi thẳng vào dashboard của admin
-    current_user = mock_users['instructor']  # Đăng nhập với tư cách 'instructor'
-    show_instructor_dashboard()              # Đi thẳng vào dashboard của instructor
+    current_user = mock_users['THEHY']  # Đăng nhập với tư cách 'examinee' 
+    show_examinee_dashboard()              # Đi thẳng vào dashboard của sinh viên
+    # current_user = mock_users['instructor']  # Đăng nhập với tư cách 'admin'
+    # show_instructor_dashboard()         # Đi thẳng vào dashboard
 
     # --- Chế độ hoạt động bình thường ---
-    #show_login()                       # Bắt đầu từ trang đăng nhập
+    # show_login()                       # Bắt đầu từ trang đăng nhập
 
 if __name__ == "__main__":
-    ft.app(target=main_page)
+    ft.app(target=main_page)   
