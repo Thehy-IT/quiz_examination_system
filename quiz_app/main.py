@@ -802,7 +802,7 @@ def create_sidebar(user_role, active_page="dashboard"):
         sidebar_items = [
             create_sidebar_item(ft.Icons.HOME, "Home", active_page == "home", on_click=lambda e: show_examinee_dashboard()),
             create_sidebar_item(ft.Icons.LIBRARY_BOOKS, "My Attempts", active_page == "attempts", on_click=lambda e: show_my_attempts()),
-            create_sidebar_item(ft.Icons.EMOJI_EVENTS, "Results", active_page == "results"),
+            create_sidebar_item(ft.Icons.EMOJI_EVENTS, "Results", active_page == "results", on_click=lambda e: show_student_results_overview()),
             create_sidebar_item(ft.Icons.PERSON, "Profile", active_page == "profile"),
         ]
     
@@ -2807,6 +2807,139 @@ def show_quiz_results(quiz_data, user_answers, start_time):
     )
     
     current_page.add(results_content)
+    current_page.update()
+
+def show_student_results_overview():
+    """Show the student's results overview with a chart."""
+    global current_page, sidebar_drawer, current_user
+    current_page.clean()
+
+    sidebar = create_sidebar(current_user['role'], "results")
+
+    # --- Get and process attempt data ---
+    user_attempts = [attempt for attempt in mock_attempts if attempt['user_id'] == current_user['id']]
+    user_attempts.sort(key=lambda x: x['completed_at']) # Sắp xếp theo thời gian để biểu đồ có thứ tự
+
+    bar_groups = []
+    total_score_10 = 0
+    highest_score_10 = 0
+
+    if user_attempts:
+        for i, attempt in enumerate(user_attempts):
+            quiz_info = next((q for q in mock_quizzes if q['id'] == attempt['quiz_id']), None)
+            quiz_title = quiz_info['title'] if quiz_info else f"Quiz {attempt['quiz_id']}"
+            
+            score_10 = attempt['percentage'] / 10.0
+            total_score_10 += score_10
+            if score_10 > highest_score_10:
+                highest_score_10 = score_10
+
+            bar_groups.append(
+                ft.BarChartGroup(
+                    x=i,
+                    bar_rods=[
+                        ft.BarChartRod(
+                            from_y=0,
+                            to_y=score_10,
+                            width=20,
+                            color=Colors.PRIMARY,
+                            tooltip=f"{quiz_title}\nĐiểm: {score_10:.1f}",
+                            border_radius=BorderRadius.SM,
+                        ),
+                    ],
+                )
+            )
+
+    avg_score_10 = (total_score_10 / len(user_attempts)) if user_attempts else 0
+
+    # --- Chart component ---
+    chart = ft.BarChart(
+        bar_groups=bar_groups,
+        border=ft.border.all(1, Colors.GRAY_300),
+        left_axis=ft.ChartAxis(
+            labels=[
+                ft.ChartAxisLabel(value=0, label=ft.Text("0")),
+                ft.ChartAxisLabel(value=2, label=ft.Text("2")),
+                ft.ChartAxisLabel(value=4, label=ft.Text("4")),
+                ft.ChartAxisLabel(value=6, label=ft.Text("6")),
+                ft.ChartAxisLabel(value=8, label=ft.Text("8")),
+                ft.ChartAxisLabel(value=10, label=ft.Text("10")),
+            ],
+            labels_size=40,
+        ),
+        bottom_axis=ft.ChartAxis(
+            labels=[ft.ChartAxisLabel(value=i, label=ft.Text(f"Lần {i+1}", size=Typography.SIZE_XS)) for i in range(len(user_attempts))],
+            labels_size=30,
+        ),
+        horizontal_grid_lines=ft.ChartGridLines(
+            interval=2, color=Colors.GRAY_200, width=1
+        ),
+        tooltip_bgcolor=ft.Colors.with_opacity(0.8, Colors.GRAY_800),
+        max_y=10,
+        interactive=True,
+        expand=True,
+    )
+
+    # --- Main page content ---
+    main_content = ft.Container(
+        content=ft.Column(spacing=0, controls=[
+            create_app_header(),
+            ft.Container(
+                content=ft.Column(scroll=ft.ScrollMode.AUTO, controls=[
+                    # Header
+                    ft.Container(
+                        content=ft.Column([
+                            create_page_title("My Results Overview"),
+                            create_subtitle("A visual summary of your performance across all quizzes.")
+                        ]),
+                        padding=ft.padding.only(bottom=Spacing.XXL)
+                    ),
+
+                    # Stats Cards
+                    ft.Row([
+                        create_card(ft.Column([ft.Row([ft.Icon(ft.Icons.STAR_HALF, color=Colors.PRIMARY), ft.Text("Điểm trung bình")]), ft.Text(f"{avg_score_10:.2f}", size=Typography.SIZE_3XL, weight=ft.FontWeight.W_700)])),
+                        create_card(ft.Column([ft.Row([ft.Icon(ft.Icons.WORKSPACE_PREMIUM, color=Colors.WARNING), ft.Text("Điểm cao nhất")]), ft.Text(f"{highest_score_10:.2f}", size=Typography.SIZE_3XL, weight=ft.FontWeight.W_700)])),
+                        create_card(ft.Column([ft.Row([ft.Icon(ft.Icons.QUIZ, color=Colors.SUCCESS), ft.Text("Tổng số bài đã làm")]), ft.Text(str(len(user_attempts)), size=Typography.SIZE_3XL, weight=ft.FontWeight.W_700)])),
+                    ], alignment=ft.MainAxisAlignment.SPACE_AROUND),
+
+                    ft.Container(height=Spacing.XXXXL),
+
+                    # Chart
+                    create_card(
+                        content=ft.Column([
+                            create_section_title("Biểu đồ tiến độ (Thang điểm 10)"),
+                            ft.Container(height=Spacing.LG),
+                            ft.Container(
+                                content=chart if user_attempts else ft.Column([
+                                    ft.Icon(ft.Icons.CHART, size=48, color=Colors.GRAY_400),
+                                    ft.Text("No data to display", size=Typography.SIZE_LG, color=Colors.TEXT_MUTED),
+                                    ft.Text("Complete a quiz to see your progress here.", color=Colors.TEXT_MUTED)
+                                ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, alignment=ft.MainAxisAlignment.CENTER, expand=True),
+                                height=400,
+                                padding=Spacing.LG
+                            )
+                        ]),
+                        padding=Spacing.XL
+                    )
+                ]),
+                padding=Spacing.XXXXL,
+                expand=True, bgcolor=Colors.GRAY_50
+            )
+        ]),
+        expand=True
+    )
+
+    # Responsive layout
+    sidebar_drawer = ft.NavigationDrawer(controls=[sidebar])
+    current_page.drawer = sidebar_drawer
+    current_page.appbar = create_app_bar()
+
+    if current_page.width >= 1000:
+        current_page.add(create_app_background(ft.Row([sidebar, main_content], expand=True)))
+        current_page.appbar.visible = False
+    else:
+        current_page.add(create_app_background(main_content))
+        current_page.appbar.visible = True
     current_page.update()
 
 def show_attempt_review(attempt):
