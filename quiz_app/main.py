@@ -3251,45 +3251,159 @@ def show_profile_page():
 
 def show_results_overview():
     """Show a placeholder page for viewing quiz results overview"""
-    global current_page
-    global sidebar_drawer
+    # Route to the correct results page based on user role
+    if current_user['role'] == 'instructor':
+        show_instructor_results_page()
+    elif current_user['role'] == 'admin':
+        # Placeholder for admin results page
+        pass
+
+def show_instructor_results_page():
+    """Show the detailed results page for instructors, filterable by class and quiz."""
+    global current_page, sidebar_drawer, current_user
     current_page.clean()
 
     sidebar = create_sidebar(current_user['role'], "results")
 
+    # --- UI Components for filtering and display ---
+    results_container = ft.Column()
+
+    def update_results_display(selected_class_id=None, selected_quiz_id=None):
+        results_container.controls.clear()
+
+        if not selected_class_id or not selected_quiz_id:
+            results_container.controls.append(
+                create_card(ft.Column([
+                    ft.Icon(ft.Icons.FILTER_LIST, size=48, color=Colors.GRAY_400),
+                    ft.Text("Select a Class and Quiz", size=Typography.SIZE_LG, color=Colors.TEXT_MUTED),
+                    ft.Text("Choose from the dropdowns above to view results.", color=Colors.TEXT_MUTED),
+                ], horizontal_alignment=ft.CrossAxisAlignment.CENTER), padding=Spacing.XXXXL)
+            )
+            current_page.update()
+            return
+
+        # --- Data Processing ---
+        students_in_class = [u for u in mock_users.values() if u.get('class_id') == int(selected_class_id)]
+        attempts_for_quiz = [a for a in mock_attempts if a['quiz_id'] == int(selected_quiz_id)]
+
+        # Get the latest attempt for each student in the class
+        student_results = []
+        for student in students_in_class:
+            student_attempts = [a for a in attempts_for_quiz if a['user_id'] == student['id']]
+            if student_attempts:
+                latest_attempt = max(student_attempts, key=lambda x: x['completed_at'])
+                student_results.append({'student': student, 'attempt': latest_attempt})
+
+        # --- Statistics ---
+        total_students = len(students_in_class)
+        completed_count = len(student_results)
+        completion_rate = (completed_count / total_students * 100) if total_students > 0 else 0
+        
+        scores_10 = [res['attempt']['percentage'] / 10.0 for res in student_results]
+        avg_score_10 = sum(scores_10) / len(scores_10) if scores_10 else 0
+        highest_score_10 = max(scores_10) if scores_10 else 0
+
+        # --- Chart ---
+        bar_groups = []
+        for i, res in enumerate(student_results):
+            score_10 = res['attempt']['percentage'] / 10.0
+            bar_groups.append(
+                ft.BarChartGroup(x=i, bar_rods=[
+                    ft.BarChartRod(from_y=0, to_y=score_10, width=15, color=Colors.PRIMARY, tooltip=f"{res['student']['username']}: {score_10:.1f}", border_radius=BorderRadius.SM)
+                ])
+            )
+        
+        chart = ft.BarChart(
+            bar_groups=bar_groups,
+            left_axis=ft.ChartAxis(labels=[ft.ChartAxisLabel(value=v, label=ft.Text(str(v))) for v in range(0, 11, 2)], labels_size=40),
+            bottom_axis=ft.ChartAxis(labels=[ft.ChartAxisLabel(value=i, label=ft.Text(res['student']['username'], size=10, rotate=45)) for i, res in enumerate(student_results)], labels_size=50),
+            horizontal_grid_lines=ft.ChartGridLines(interval=2, color=Colors.GRAY_200, width=1),
+            tooltip_bgcolor=ft.colors.with_opacity(0.8, Colors.GRAY_800), max_y=10, interactive=True, expand=True
+        )
+
+        # --- Results Table ---
+        table_rows = []
+        for res in student_results:
+            attempt = res['attempt']
+            table_rows.append(
+                ft.DataRow(cells=[
+                    ft.DataCell(ft.Text(res['student']['username'])),
+                    ft.DataCell(ft.Text(attempt['score'])),
+                    ft.DataCell(ft.Text(f"{attempt['percentage']:.1f}%")),
+                    ft.DataCell(ft.Text(attempt['time_taken'])),
+                    ft.DataCell(ft.Text(datetime.datetime.strptime(attempt['completed_at'], '%Y-%m-%d %H:%M:%S').strftime('%d-%m-%Y %H:%M'))),
+                ])
+            )
+
+        results_table = ft.DataTable(
+            columns=[
+                ft.DataColumn(ft.Text("Student")), ft.DataColumn(ft.Text("Score")), ft.DataColumn(ft.Text("Percentage")),
+                ft.DataColumn(ft.Text("Time Taken")), ft.DataColumn(ft.Text("Completed At")),
+            ],
+            rows=table_rows, heading_row_color=Colors.GRAY_100, border=ft.border.all(1, Colors.GRAY_200), border_radius=BorderRadius.MD
+        )
+
+        # --- Assemble Content ---
+        results_container.controls.extend([
+            ft.Row([
+                create_card(ft.Column([ft.Row([ft.Icon(ft.Icons.STAR_HALF, color=Colors.PRIMARY), ft.Text("Điểm trung bình")]), ft.Text(f"{avg_score_10:.2f}", size=Typography.SIZE_3XL, weight=ft.FontWeight.W_700)])),
+                create_card(ft.Column([ft.Row([ft.Icon(ft.Icons.WORKSPACE_PREMIUM, color=Colors.WARNING), ft.Text("Điểm cao nhất")]), ft.Text(f"{highest_score_10:.2f}", size=Typography.SIZE_3XL, weight=ft.FontWeight.W_700)])),
+                create_card(ft.Column([ft.Row([ft.Icon(ft.Icons.PIE_CHART, color=Colors.SUCCESS), ft.Text("Tỷ lệ hoàn thành")]), ft.Text(f"{completion_rate:.1f}%", size=Typography.SIZE_3XL, weight=ft.FontWeight.W_700)])),
+            ], alignment=ft.MainAxisAlignment.SPACE_AROUND),
+            ft.Container(height=Spacing.XXL),
+            create_card(ft.Column([create_section_title("Biểu đồ điểm sinh viên (Thang 10)"), ft.Container(chart, height=300, padding=Spacing.LG)]), padding=Spacing.XL),
+            ft.Container(height=Spacing.XXL),
+            create_card(ft.Column([create_section_title("Kết quả chi tiết"), results_table]), padding=Spacing.XL),
+        ])
+        current_page.update()
+
+    # --- Filter Dropdowns ---
+    instructor_classes = [c for c in mock_classes if c['instructor_id'] == current_user['id']]
+    class_dd = ft.Dropdown(label="Chọn Lớp học", width=250, options=[ft.dropdown.Option(key=c['id'], text=c['name']) for c in instructor_classes])
+    quiz_dd = ft.Dropdown(label="Chọn Bài thi", width=300, disabled=True)
+
+    def on_class_change(e):
+        selected_class_id = int(e.control.value)
+        quizzes_in_class = [q for q in mock_quizzes if q.get('class_id') == selected_class_id]
+        quiz_dd.options = [ft.dropdown.Option(key=q['id'], text=q['title']) for q in quizzes_in_class]
+        quiz_dd.value = None
+        quiz_dd.disabled = False
+        update_results_display() # Clear results when class changes
+        current_page.update()
+
+    def on_quiz_change(e):
+        update_results_display(class_dd.value, quiz_dd.value)
+
+    class_dd.on_change = on_class_change
+    quiz_dd.on_change = on_quiz_change
+
+    # --- Main Page Layout ---
     main_content = ft.Container(
         content=ft.Column(spacing=0, controls=[
             create_app_header(),
             ft.Container(
                 content=ft.Column(scroll=ft.ScrollMode.AUTO, controls=[
-                    # Header
-                    ft.Container(
-                        content=ft.Column([
+                    ft.Row([
+                        ft.Column([
                             create_page_title("Quiz Results"),
                             create_subtitle("Review attempts and results for your quizzes.")
-                        ]),
-                        padding=ft.padding.only(bottom=Spacing.XXL)
-                    ),
-
-                    # Placeholder content
-                    create_card(
-                        content=ft.Column([
-                            ft.Icon(ft.Icons.CONSTRUCTION, size=48, color=Colors.GRAY_400),
-                            ft.Container(height=Spacing.SM),
-                            ft.Text("Results Overview", size=Typography.SIZE_LG, weight=ft.FontWeight.W_600, color=Colors.TEXT_SECONDARY),
-                            ft.Text("This feature is under construction.", size=Typography.SIZE_SM, color=Colors.TEXT_MUTED)
-                        ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-                        padding=Spacing.XXXXL
-                    )
+                        ], expand=True),
+                        class_dd,
+                        quiz_dd,
+                    ]),
+                    ft.Container(height=Spacing.XXL),
+                    results_container,
                 ]),
-                padding=Spacing.XXXXL,
-                expand=True, bgcolor=Colors.GRAY_50
+                padding=Spacing.XXXXL, expand=True, bgcolor=Colors.GRAY_50
             )
         ]),
         expand=True
     )
 
-    # Responsive layout (same as other pages)
+    # Initial state
+    update_results_display()
+
+    # Responsive layout
     sidebar_drawer = ft.NavigationDrawer(controls=[sidebar])
     current_page.drawer = sidebar_drawer
     current_page.appbar = create_app_bar()
@@ -3898,13 +4012,13 @@ def main_page(page: ft.Page):
     # 3. Để bật lại trang đăng nhập, hãy xóa/bình luận các dòng dưới và bỏ bình luận dòng `show_login()`.
     
     # --- Chế độ phát triển ---
-    # current_user = mock_users['admin']  # Đăng nhập với tư cách 'admin'
-    # show_instructor_dashboard()         # Đi thẳng vào dashboard của admin
-    current_user = mock_users['THEHY']  # Đăng nhập với tư cách 'examinee' 
-    show_examinee_dashboard()              # Đi thẳng vào dashboard của sinh viên
+    current_user = mock_users['instructor']  # Đăng nhập với tư cách 'instructor'
+    show_instructor_dashboard()         # Đi thẳng vào dashboard của instructor
+    # current_user = mock_users['THEHY']  # Đăng nhập với tư cách 'examinee' 
+    # show_examinee_dashboard()              # Đi thẳng vào dashboard của sinh viên
 
     # --- Chế độ hoạt động bình thường ---
     # show_login()                       # Bắt đầu từ trang đăng nhập
 
 if __name__ == "__main__":
-    ft.app(target=main_page)
+    ft.app(target=main_page)   
