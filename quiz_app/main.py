@@ -803,7 +803,7 @@ def create_sidebar(user_role, active_page="dashboard"):
             create_sidebar_item(ft.Icons.HOME, "Home", active_page == "home", on_click=lambda e: show_examinee_dashboard()),
             create_sidebar_item(ft.Icons.LIBRARY_BOOKS, "My Attempts", active_page == "attempts", on_click=lambda e: show_my_attempts()),
             create_sidebar_item(ft.Icons.EMOJI_EVENTS, "Results", active_page == "results", on_click=lambda e: show_student_results_overview()),
-            create_sidebar_item(ft.Icons.PERSON, "Profile", active_page == "profile"),
+            create_sidebar_item(ft.Icons.PERSON, "Profile", active_page == "profile", on_click=lambda e: show_profile_page()),
         ]
     
     # Add logout item
@@ -3102,6 +3102,132 @@ def show_my_attempts():
 
                     # Danh sách các lần làm bài
                     ft.Column(attempt_cards, spacing=Spacing.LG)
+                ]),
+                padding=Spacing.XXXXL,
+                expand=True, bgcolor=Colors.GRAY_50
+            )
+        ]),
+        expand=True
+    )
+
+    # Responsive layout
+    sidebar_drawer = ft.NavigationDrawer(controls=[sidebar])
+    current_page.drawer = sidebar_drawer
+    current_page.appbar = create_app_bar()
+
+    if current_page.width >= 1000:
+        current_page.add(create_app_background(ft.Row([sidebar, main_content], expand=True)))
+        current_page.appbar.visible = False
+    else:
+        current_page.add(create_app_background(main_content))
+        current_page.appbar.visible = True
+    current_page.update()
+
+def show_profile_page():
+    """Show the user's profile page to view info and change password."""
+    global current_page, sidebar_drawer, current_user
+    current_page.clean()
+
+    sidebar = create_sidebar(current_user['role'], "profile")
+
+    # --- Change Password Form ---
+    current_password_field = create_text_input("Mật khẩu hiện tại", password=True, can_reveal=True)
+    new_password_field = create_text_input("Mật khẩu mới", password=True, can_reveal=True)
+    confirm_password_field = create_text_input("Xác nhận mật khẩu mới", password=True, can_reveal=True)
+    password_message_text = ft.Text("", size=Typography.SIZE_SM)
+
+    def handle_save_password(e):
+        current_pass = current_password_field.value
+        new_pass = new_password_field.value
+        confirm_pass = confirm_password_field.value
+
+        # Validation
+        if not all([current_pass, new_pass, confirm_pass]):
+            password_message_text.value = "Vui lòng điền đầy đủ các trường."
+            password_message_text.color = Colors.ERROR
+            current_page.update()
+            return
+
+        if current_pass != current_user['password']:
+            password_message_text.value = "Mật khẩu hiện tại không đúng."
+            password_message_text.color = Colors.ERROR
+            current_password_field.value = ""
+            current_page.update()
+            return
+
+        if new_pass != confirm_pass:
+            password_message_text.value = "Mật khẩu mới không khớp."
+            password_message_text.color = Colors.ERROR
+            new_password_field.value = ""
+            confirm_password_field.value = ""
+            current_page.update()
+            return
+
+        # Update password
+        mock_users[current_user['username']]['password'] = new_pass
+        current_user['password'] = new_pass # Update current session user
+
+        password_message_text.value = "Đổi mật khẩu thành công!"
+        password_message_text.color = Colors.SUCCESS
+        current_password_field.value = ""
+        new_password_field.value = ""
+        confirm_password_field.value = ""
+        current_page.update()
+
+    # --- User Info ---
+    class_name = "N/A"
+    if current_user.get('class_id'):
+        class_info = next((c for c in mock_classes if c['id'] == current_user['class_id']), None)
+        if class_info:
+            class_name = class_info['name']
+
+    # --- Main page content ---
+    main_content = ft.Container(
+        content=ft.Column(spacing=0, controls=[
+            create_app_header(),
+            ft.Container(
+                content=ft.Column(scroll=ft.ScrollMode.AUTO, controls=[
+                    # Header
+                    ft.Container(
+                        content=ft.Column([
+                            create_page_title("My Profile"),
+                            create_subtitle("View your personal information and manage your account.")
+                        ]),
+                        padding=ft.padding.only(bottom=Spacing.XXL)
+                    ),
+
+                    # Profile Cards
+                    ft.Row([
+                        # User Info Card
+                        create_card(
+                            content=ft.Column([
+                                create_section_title("Thông tin tài khoản"),
+                                ft.Container(height=Spacing.LG),
+                                ft.Row([ft.Text("Username:", weight=ft.FontWeight.W_600), ft.Text(current_user['username'])]),
+                                ft.Divider(),
+                                ft.Row([ft.Text("Vai trò:", weight=ft.FontWeight.W_600), ft.Text(current_user['role'].title())]),
+                                ft.Divider(),
+                                ft.Row([ft.Text("Lớp học:", weight=ft.FontWeight.W_600), ft.Text(class_name)]),
+                            ]),
+                            padding=Spacing.XL
+                        ),
+
+                        # Change Password Card
+                        create_card(
+                            content=ft.Column([
+                                create_section_title("Đổi mật khẩu"),
+                                ft.Container(height=Spacing.LG),
+                                current_password_field,
+                                new_password_field,
+                                confirm_password_field,
+                                ft.Container(height=Spacing.SM),
+                                password_message_text,
+                                ft.Container(height=Spacing.LG),
+                                create_primary_button("Lưu thay đổi", on_click=handle_save_password)
+                            ]),
+                            padding=Spacing.XL
+                        ),
+                    ], alignment=ft.MainAxisAlignment.START, vertical_alignment=ft.CrossAxisAlignment.START)
                 ]),
                 padding=Spacing.XXXXL,
                 expand=True, bgcolor=Colors.GRAY_50
