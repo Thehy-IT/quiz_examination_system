@@ -794,7 +794,6 @@ def create_sidebar(user_role, active_page="dashboard"):
         if user_role == 'admin':
             sidebar_items.append(create_sidebar_item(ft.Icons.SCHOOL, "Classes Management", active_page == "classes", on_click=lambda e: show_class_management()))
             sidebar_items.append(create_sidebar_item(ft.Icons.PEOPLE, "User Management", active_page == "users", on_click=lambda e: show_user_management()))
-            sidebar_items.append(create_sidebar_item(ft.Icons.EMOJI_EVENTS, "View Results", active_page == "results", on_click=lambda e: show_results_overview()))
         sidebar_items.extend([
             create_sidebar_item(ft.Icons.SETTINGS, "Settings", active_page == "settings", on_click=lambda e: show_settings_page()),
         ])
@@ -4086,10 +4085,12 @@ def main_page(page: ft.Page):
     # 3. Để bật lại trang đăng nhập, hãy xóa/bình luận các dòng dưới và bỏ bình luận dòng `show_login()`.
     
     # --- Chế độ phát triển ---
-    current_user = mock_users['instructor']  # Đăng nhập với tư cách 'instructor'
-    show_instructor_dashboard()         # Đi thẳng vào dashboard của instructor
+    # current_user = mock_users['instructor']  # Đăng nhập với tư cách 'instructor'
+    # show_instructor_dashboard()         # Đi thẳng vào dashboard của instructor
     # current_user = mock_users['THEHY']  # Đăng nhập với tư cách 'examinee' 
     # show_examinee_dashboard()              # Đi thẳng vào dashboard của sinh viên
+    current_user = mock_users['admin'] 
+    show_instructor_dashboard()
 
     # --- Chế độ hoạt động bình thường ---
     # show_login()                       # Bắt đầu từ trang đăng nhập
