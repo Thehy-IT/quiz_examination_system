@@ -1519,6 +1519,8 @@ def show_quiz_management():
                         color=Colors.TEXT_MUTED
                     ),
                     ft.Container(expand=True),
+                    create_secondary_button("Preview", on_click=lambda e, q=quiz: show_quiz_preview(q), width=80),
+                    ft.Container(width=Spacing.SM),
                     create_secondary_button("Delete", on_click=handle_delete_quiz(quiz), width=80),
                     ft.Container(width=Spacing.SM),
                     create_primary_button("Manage Questions", on_click=edit_quiz(quiz), width=150)
@@ -2021,7 +2023,8 @@ def show_question_management(quiz):
                     ft.Row([
                         create_section_title("Questions"),
                         ft.Container(expand=True),
-                        create_primary_button("Add Question", on_click=show_question_form, width=120)
+                        create_secondary_button("Preview Quiz", on_click=lambda e: show_quiz_preview(quiz), width=120),
+                        create_primary_button("Add Question", on_click=show_question_form, width=120),
                     ]),
                     
                     ft.Container(height=Spacing.LG),
@@ -2433,6 +2436,84 @@ def show_quiz_taking(quiz_basic_info):
     update_progress()
     
     current_page.add(quiz_content)
+    current_page.update()
+
+def show_quiz_preview(quiz_basic_info):
+    """Show the quiz in a preview mode for instructors."""
+    global current_page, current_question_index, quiz_questions
+
+    current_page.clean()
+    current_question_index = 0
+
+    # Load quiz questions
+    quiz_questions = mock_questions.get(quiz_basic_info['id'], [])
+
+    # Xáo trộn câu hỏi nếu được yêu cầu
+    if quiz_basic_info.get('shuffle_questions', False):
+        random.shuffle(quiz_questions)
+
+    if not quiz_questions:
+        show_quiz_management() # Go back if no questions
+        return
+
+    # UI Components
+    question_counter_text = ft.Text("", size=Typography.SIZE_BASE, weight=ft.FontWeight.W_600, color=Colors.TEXT_SECONDARY)
+    question_component_container = ft.Container(content=ft.Column([]))
+
+    def update_preview_display():
+        if current_question_index >= len(quiz_questions):
+            return
+
+        question = quiz_questions[current_question_index]
+        question_counter_text.value = f"Question {current_question_index + 1} of {len(quiz_questions)}"
+
+        # Use a dummy answer handler as we don't save answers in preview
+        def dummy_answer_handler(q_id, answer):
+            pass
+
+        shuffle_answers = quiz_basic_info.get('shuffle_answers', False)
+        question_component = create_question_by_type(question, dummy_answer_handler, shuffle_answers)
+        question_component_container.content = question_component
+
+        prev_button.disabled = (current_question_index == 0)
+        next_button.disabled = (current_question_index == len(quiz_questions) - 1)
+        current_page.update()
+
+    def handle_previous(e):
+        global current_question_index
+        if current_question_index > 0:
+            current_question_index -= 1
+            update_preview_display()
+
+    def handle_next(e):
+        global current_question_index
+        if current_question_index < len(quiz_questions) - 1:
+            current_question_index += 1
+            update_preview_display()
+
+    def exit_preview(e):
+        show_question_management(quiz_basic_info)
+
+    prev_button = create_secondary_button("← Previous", on_click=handle_previous, width=120)
+    next_button = create_primary_button("Next →", on_click=handle_next, width=120)
+
+    # Main preview interface
+    preview_content = ft.Container(
+        content=ft.Column([
+            create_card(content=ft.Row([
+                ft.Icon(ft.Icons.VISIBILITY, color=Colors.PRIMARY),
+                ft.Text("Quiz Preview Mode", size=Typography.SIZE_LG, weight=ft.FontWeight.W_600),
+                ft.Container(expand=True),
+                create_secondary_button("Exit Preview", on_click=exit_preview, width=120)
+            ]), padding=Spacing.LG),
+            ft.Container(height=Spacing.LG),
+            create_card(content=question_component_container, padding=Spacing.XXXXL),
+            ft.Container(height=Spacing.XL),
+            ft.Row([prev_button, ft.Container(expand=True), next_button])
+        ]), padding=Spacing.XXXXL, expand=True, alignment=ft.alignment.top_center)
+
+    update_preview_display()
+    current_page.add(preview_content)
     current_page.update()
 
 def show_quiz_results(quiz_data, user_answers, start_time):
