@@ -2590,19 +2590,18 @@ def show_class_management():
         current_page.appbar.visible = True
     current_page.update()
 
-
 def show_user_management():
-    """User Management page for admin, with Edit and Delete buttons for each user."""
+    """Show the user management page for admins."""
     global current_page, sidebar_drawer
     current_page.clean()
 
     sidebar = create_sidebar(current_user['role'], "users")
 
-   # ==== Form tạo user mới (ẩn mặc định) ====
-    new_username_field = create_text_input("Username", width=400)
-    new_password_field = create_text_input("Password", password=True, width=400, can_reveal=True)
-    new_role_dropdown = ft.Dropdown(
-        label="Role",
+    # --- Form to create a new user (initially hidden) ---
+    username_field = create_text_input("Username", width=400)
+    password_field = create_text_input("Password", password=True, width=400)
+    role_dropdown = ft.Dropdown(
+        label="Select Role",
         width=400,
         border_radius=BorderRadius.MD,
         border_color=Colors.GRAY_300,
@@ -2617,9 +2616,9 @@ def show_user_management():
 
     def show_create_form(e):
         user_form_container.visible = True
-        new_username_field.value = ""
-        new_password_field.value = ""
-        new_role_dropdown.value = None
+        username_field.value = ""
+        password_field.value = ""
+        role_dropdown.value = None
         user_error_text.value = ""
         current_page.update()
 
@@ -2628,178 +2627,84 @@ def show_user_management():
         current_page.update()
 
     def handle_create_user(e):
-        username = (new_username_field.value or "").strip()
-        password = (new_password_field.value or "").strip()
-        role = new_role_dropdown.value
+        username = username_field.value or ""
+        password = password_field.value or ""
+        role = role_dropdown.value
 
-        if not username or not password:
-            user_error_text.value = "Username and Password are required."
+        if not username.strip() or not password.strip():
+            user_error_text.value = "Username and password are required."
             current_page.update()
             return
         if not role:
-            user_error_text.value = "Please select a Role."
+            user_error_text.value = "Please select a role."
             current_page.update()
             return
-        if username in mock_users:
-            user_error_text.value = f"Username '{username}' already exists."
+        if username.strip() in mock_users:
+            user_error_text.value = f"Username '{username.strip()}' already exists."
             current_page.update()
             return
 
-        new_id = max((u['id'] for u in mock_users.values()), default=0) + 1
-        mock_users[username] = {
+        # Add to mock data
+        new_id = max(user['id'] for user in mock_users.values()) + 1
+        new_user = {
             'id': new_id,
-            'username': username,
-            'password': password,
+            'username': username.strip(),
+            'password': password.strip(),
             'role': role
         }
+        mock_users[username.strip()] = new_user
+
+        user_error_text.value = ""
         hide_create_form(e)
-        show_user_management()
+        show_user_management()  # Refresh the page
+
+    def handle_delete_user(username_to_delete):
+        def on_delete(e):
+            if username_to_delete in mock_users:
+                del mock_users[username_to_delete]
+            show_user_management() # Refresh
+        return on_delete
 
     user_form_container = create_card(
         content=ft.Column([
             create_section_title("Create New User"),
             ft.Container(height=Spacing.LG),
-            new_username_field,
+            username_field,
             ft.Container(height=Spacing.LG),
-            new_password_field,
+            password_field,
             ft.Container(height=Spacing.LG),
-            new_role_dropdown,
+            role_dropdown,
             ft.Container(height=Spacing.MD),
             user_error_text,
             ft.Container(height=Spacing.XL),
             ft.Row([
-                create_primary_button("Create", on_click=handle_create_user, width=100),
+                create_primary_button("Create User", on_click=handle_create_user, width=120),
                 ft.Container(width=Spacing.MD),
-                create_secondary_button("Cancel", on_click=hide_create_form, width=100),
+                create_secondary_button("Cancel", on_click=hide_create_form, width=100)
             ])
         ]),
         padding=Spacing.XXL
     )
     user_form_container.visible = False
 
-  # ==== Form Edit User (ẩn mặc định) ====
-    edit_username_field = create_text_input("Username", width=400)
-    edit_password_field = create_text_input("Password", password=True, width=400, can_reveal=True)
-    edit_role_dropdown = ft.Dropdown(
-        label="Role",
-        width=400,
-        border_radius=BorderRadius.MD,
-        border_color=Colors.GRAY_300,
-        focused_border_color=Colors.PRIMARY,
-        options=[
-            ft.dropdown.Option(key='instructor', text='Instructor'),
-            ft.dropdown.Option(key='admin', text='Admin'),
-            ft.dropdown.Option(key='examinee', text='Examinee (Student)'),
-        ]
-    )
-    edit_user_error_text = ft.Text("", color=Colors.ERROR, size=Typography.SIZE_SM)
-
-    def handle_update_user(e):
-        # Xử lý cập nhật thông tin user
-        old_username = edit_user_form_container.data
-        new_username = (edit_username_field.value or "").strip()
-        new_password = (edit_password_field.value or "").strip()
-        new_role = edit_role_dropdown.value
-
-        if not new_username or not new_password:
-            edit_user_error_text.value = "Username and Password are required."
-            current_page.update()
-            return
-        if not new_role:
-            edit_user_error_text.value = "Please select a Role."
-            current_page.update()
-            return
-        if old_username not in mock_users:
-            edit_user_error_text.value = "Original user not found."
-            current_page.update()
-            return
-        if new_username != old_username and new_username in mock_users:
-            edit_user_error_text.value = f"Username '{new_username}' already exists."
-            current_page.update()
-            return
-
-         # Cập nhật thông tin người dùng, giữ nguyên id
-        user = mock_users.pop(old_username)
-        user['username'] = new_username
-        user['password'] = new_password
-        user['role'] = new_role
-        mock_users[new_username] = user
-
-        edit_user_form_container.visible = False
-        show_user_management()
-
-    def hide_edit_form(e):
-        edit_user_form_container.visible = False
-        current_page.update()
-
-    edit_user_form_container = create_card(
-        content=ft.Column([
-            create_section_title("Edit User"),
-            ft.Container(height=Spacing.LG),
-            edit_username_field,
-            ft.Container(height=Spacing.LG),
-            edit_password_field,
-            ft.Container(height=Spacing.LG),
-            edit_role_dropdown,
-            ft.Container(height=Spacing.MD),
-            edit_user_error_text,
-            ft.Container(height=Spacing.XL),
-            ft.Row([
-                create_primary_button("Update", on_click=handle_update_user, width=120),
-                ft.Container(width=Spacing.MD),
-                create_secondary_button("Cancel", on_click=hide_edit_form, width=100),
-            ])
-        ]),
-        padding=Spacing.XXL
-    )
-    edit_user_form_container.visible = False
-    edit_user_form_container.data = None  # Store original username when opening the form
-
-    # ==== Handler mở form Edit và đổ dữ liệu ====
-    def handle_edit_user(username_to_edit):
-        def on_edit(e):
-            user = mock_users.get(username_to_edit)
-            if not user:
-                return
-            edit_username_field.value = user['username']
-            edit_password_field.value = user['password']
-            edit_role_dropdown.value = user['role']
-            edit_user_error_text.value = ""
-            edit_user_form_container.data = username_to_edit
-            edit_user_form_container.visible = True
-            current_page.update()
-        return on_edit
-
-    # ==== Handler xóa user ====
-    def handle_delete_user(username_to_delete):
-        def on_delete(e):
-            if username_to_delete in mock_users:
-                mock_users.pop(username_to_delete)
-                show_user_management()
-        return on_delete
-
-    # ==== Danh sách user + nút Edit/Delete ====
+    # --- List of existing users ---
     user_cards = []
-    for username, user_data in sorted(mock_users.items(), key=lambda kv: kv[0].lower()):
-        user_cards.append(
-            create_card(
-                content=ft.Row([
-                    ft.Icon(ft.Icons.PERSON_OUTLINE, color=Colors.PRIMARY, size=32),
-                    ft.Container(width=Spacing.LG),
-                    ft.Column([
-                        ft.Text(user_data['username'], size=Typography.SIZE_LG, weight=ft.FontWeight.W_600),
-                        ft.Text(f"Role: {user_data['role'].title()}", color=Colors.TEXT_SECONDARY),
-                    ], expand=True),
-                    # --- Add Edit button next to Delete ---
-                    create_secondary_button("Edit", width=80, on_click=handle_edit_user(username)),
-                    ft.Container(width=Spacing.SM),
-                    create_secondary_button("Delete", width=80, on_click=handle_delete_user(username)),
-                ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-                padding=Spacing.LG
-            )
+    for username, user_data in mock_users.items():
+        user_card = create_card(
+            content=ft.Row([
+                ft.Icon(ft.Icons.PERSON_OUTLINE, color=Colors.PRIMARY, size=32),
+                ft.Container(width=Spacing.LG),
+                ft.Column([
+                    ft.Text(user_data['username'], size=Typography.SIZE_LG, weight=ft.FontWeight.W_600),
+                    ft.Text(f"Role: {user_data['role'].title()}", color=Colors.TEXT_SECONDARY),
+                ], expand=True),
+                create_secondary_button("Delete", width=80, on_click=handle_delete_user(username)),
+            ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+            padding=Spacing.LG
         )
+        user_cards.append(user_card)
 
-   # ==== Nội dung chính trang User Management ====
+    # --- Main page content ---
     main_content = ft.Container(
         content=ft.Column(spacing=0, controls=[
             create_app_header(),
@@ -2808,13 +2713,12 @@ def show_user_management():
                     ft.Row([
                         ft.Column([
                             create_page_title("User Management"),
-                            create_subtitle("Create and manage users in the system.")
+                            create_subtitle("Create and manage system users.")
                         ], expand=True),
                         create_primary_button("Add New User", on_click=show_create_form, width=150)
                     ]),
                     ft.Container(height=Spacing.XXL),
-                    user_form_container,           # Create User form
-                    edit_user_form_container,      # Edit User form (hidden by default)
+                    user_form_container,
                     ft.Container(height=Spacing.XL),
                     create_section_title("All Users"),
                     ft.Container(height=Spacing.LG),
@@ -2896,10 +2800,10 @@ def main_page(page: ft.Page):
     # 3. Để bật lại trang đăng nhập, hãy xóa/bình luận các dòng dưới và bỏ bình luận dòng `show_login()`.
     
     # --- Chế độ phát triển ---
-    current_user = mock_users['admin']  # Đăng nhập với tư cách 'admin'
-    show_instructor_dashboard()         # Đi thẳng vào dashboard của admin
-    # current_user = mock_users['instructor']  # Đăng nhập với tư cách 'instructor'
-    # show_instructor_dashboard()              # Đi thẳng vào dashboard của instructor
+    # current_user = mock_users['admin']  # Đăng nhập với tư cách 'admin'
+    # show_instructor_dashboard()         # Đi thẳng vào dashboard của admin
+    current_user = mock_users['instructor']  # Đăng nhập với tư cách 'instructor'
+    show_instructor_dashboard()              # Đi thẳng vào dashboard của instructor
 
     # --- Chế độ hoạt động bình thường ---
     #show_login()                       # Bắt đầu từ trang đăng nhập
