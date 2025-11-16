@@ -123,10 +123,14 @@ mock_users = {
 # - start_time: thời gian bắt đầu (YYYY-MM-DD HH:MM)
 # - duration_minutes: thời gian làm bài (phút)
 # Mục đích: Để hiển thị danh sách quiz và quản lý quiz
+
+# có các file...
+# show_answer_after_quiz:file lưu trạng thái bật/tắt xem đáp án, kiểu boolean (mặc định false)
+#  ...
 mock_quizzes = [
-    {'id': 1, 'title': 'Python Basics', 'description': 'Learn Python fundamentals', 'created_by': 1, 'created_at': '2024-01-15', 'creator': 'instructor', 'questions_count': 5, 'start_time': '2025-01-15 14:20', 'duration_minutes': 10, 'class_id': 1, 'password': '123', 'is_active': True, 'shuffle_questions': True, 'shuffle_answers': True},
-    {'id': 2, 'title': 'Web Development', 'description': 'HTML, CSS, JavaScript basics', 'created_by': 1, 'created_at': '2024-01-14', 'creator': 'instructor', 'questions_count': 8, 'start_time': '2024-01-20 10:00', 'duration_minutes': 20, 'class_id': 2, 'password': None, 'is_active': True, 'shuffle_questions': False, 'shuffle_answers': True},
-    {'id': 3, 'title': 'Data Structures', 'description': 'Arrays, Lists, Trees, Algorithms', 'created_by': 2, 'created_at': '2024-01-13', 'creator': 'admin', 'questions_count': 12, 'start_time': '2024-01-22 14:00', 'duration_minutes': 30, 'class_id': 1, 'password': 'dsa', 'is_active': False, 'shuffle_questions': True, 'shuffle_answers': False}
+    {'id': 1, 'title': 'Python Basics', 'description': 'Learn Python fundamentals', 'created_by': 1, 'created_at': '2024-01-15', 'creator': 'instructor', 'questions_count': 5, 'start_time': '2025-01-15 14:20', 'duration_minutes': 10, 'class_id': 1, 'password': '123', 'is_active': True, 'shuffle_questions': True, 'shuffle_answers': True, 'show_answers_after_quiz': False},
+    {'id': 2, 'title': 'Web Development', 'description': 'HTML, CSS, JavaScript basics', 'created_by': 1, 'created_at': '2024-01-14', 'creator': 'instructor', 'questions_count': 8, 'start_time': '2024-01-20 10:00', 'duration_minutes': 20, 'class_id': 2, 'password': None, 'is_active': True, 'shuffle_questions': False, 'shuffle_answers': True, 'show_answers_after_quiz': False},
+    {'id': 3, 'title': 'Data Structures', 'description': 'Arrays, Lists, Trees, Algorithms', 'created_by': 2, 'created_at': '2024-01-13', 'creator': 'admin', 'questions_count': 12, 'start_time': '2024-01-22 14:00', 'duration_minutes': 30, 'class_id': 1, 'password': 'dsa', 'is_active': False, 'shuffle_questions': True, 'shuffle_answers': False, 'show_answers_after_quiz': False}
 ]
 
 # mock_classes: List chứa thông tin các lớp học mẫu
@@ -468,7 +472,7 @@ def create_app_header():
 # QUESTION TYPE COMPONENTS
 # =============================================================================
 
-def create_multiple_choice_question(question, on_answer_change, shuffle_answers=False, is_review=False, user_answer=None):
+def create_multiple_choice_question(question, on_answer_change, shuffle_answers=False, is_review=False, user_answer=None, show_correct_answers=False):
     """Create a multiple choice question component"""
     options_group = ft.RadioGroup(content=ft.Column([]))
     
@@ -503,7 +507,7 @@ def create_multiple_choice_question(question, on_answer_change, shuffle_answers=
                 radio.label_style.color = Colors.SUCCESS
                 radio.label_style.weight = ft.FontWeight.W_600
                 review_indicator = ft.Icon(ft.Icons.CHECK_CIRCLE, color=Colors.SUCCESS, size=20)
-            elif option_text == user_answer:
+            elif option_text == user_answer: 
                 # Đây là đáp án sai mà người dùng đã chọn
                 radio.label_style.color = Colors.ERROR
                 radio.label_style.weight = ft.FontWeight.W_600
@@ -538,7 +542,7 @@ def create_multiple_choice_question(question, on_answer_change, shuffle_answers=
         *explanation_content
     ])
 
-def create_true_false_question(question, on_answer_change, is_review=False, user_answer=None):
+def create_true_false_question(question, on_answer_change, is_review=False, user_answer=None, show_correct_answers=False):
     """Create a true/false question component"""
     true_false_group = ft.RadioGroup(
         content=ft.Column([
@@ -549,7 +553,9 @@ def create_true_false_question(question, on_answer_change, is_review=False, user
 
     if is_review:
         true_false_group.disabled = True
-        true_false_group.value = str(user_answer).lower()
+        # Chuyển user_answer về kiểu bool để so sánh
+        user_answer_bool = user_answer if isinstance(user_answer, bool) else (str(user_answer).lower() == "true")
+        true_false_group.value = "true" if user_answer_bool else "false"
         correct_answer = question.get('correct_answer')
 
         for radio in true_false_group.content.controls:
@@ -589,7 +595,7 @@ def create_true_false_question(question, on_answer_change, is_review=False, user
         *explanation_content
     ])
 
-def create_fill_in_blank_question(question, on_answer_change, is_review=False, user_answer=None):
+def create_fill_in_blank_question(question, on_answer_change, is_review=False, user_answer=None, show_correct_answers=False):
     """Create a fill-in-the-blank question component"""
     answer_field = create_text_input("Your answer", width=400)
     
@@ -625,7 +631,7 @@ def create_fill_in_blank_question(question, on_answer_change, is_review=False, u
         *review_content
     ])
 
-def create_multiple_select_question(question, on_answer_change, shuffle_answers=False, is_review=False, user_answer=None):
+def create_multiple_select_question(question, on_answer_change, shuffle_answers=False, is_review=False, user_answer=None, show_correct_answers=False):
     """Create a multiple select question component"""
     checkboxes = []
     options_data = question.get('options', [])
@@ -697,7 +703,7 @@ def create_multiple_select_question(question, on_answer_change, shuffle_answers=
         *explanation_content
     ])
 
-def create_short_answer_question(question, on_answer_change, is_review=False, user_answer=None):
+def create_short_answer_question(question, on_answer_change, is_review=False, user_answer=None, show_correct_answers=False):
     """Create a short answer question component"""
     answer_field = create_text_input("Your answer", width=500, multiline=True, min_lines=4)
     
@@ -717,6 +723,7 @@ def create_short_answer_question(question, on_answer_change, is_review=False, us
                         ft.Text(question['sample_answer'], color=Colors.TEXT_SECONDARY)
                     ]), elevation=0, padding=Spacing.LG)
             )
+        
     else:
         answer_field.on_change = lambda e: on_answer_change(e, e.control.value)
 
@@ -732,7 +739,7 @@ def create_short_answer_question(question, on_answer_change, is_review=False, us
         *review_content
     ])
 
-def create_question_by_type(question, on_answer_change, shuffle_answers=False, is_review=False, user_answer=None):
+def create_question_by_type(question, on_answer_change, shuffle_answers=False, is_review=False, user_answer=None, show_correct_answers=False):
     """Create question component based on question type"""
     question_type = question.get('question_type', 'multiple_choice')
     
@@ -741,17 +748,17 @@ def create_question_by_type(question, on_answer_change, shuffle_answers=False, i
 
     # Chỉ truyền cờ shuffle_answers cho các loại câu hỏi có lựa chọn
     if question_type == 'multiple_choice':
-        return create_multiple_choice_question(question, answer_handler, shuffle_answers, is_review, user_answer)
+        return create_multiple_choice_question(question, answer_handler, shuffle_answers, is_review, user_answer, show_correct_answers)
     elif question_type == 'true_false':
-        return create_true_false_question(question, answer_handler, is_review, user_answer)
+        return create_true_false_question(question, answer_handler, is_review, user_answer,show_correct_answers)
     elif question_type == 'fill_in_blank':
-        return create_fill_in_blank_question(question, answer_handler, is_review, user_answer)
+        return create_fill_in_blank_question(question, answer_handler, is_review, user_answer, show_correct_answers)
     elif question_type == 'multiple_select':
-        return create_multiple_select_question(question, answer_handler, shuffle_answers, is_review, user_answer)
+        return create_multiple_select_question(question, answer_handler, shuffle_answers, is_review, user_answer, show_correct_answers)
     elif question_type == 'short_answer':
-        return create_short_answer_question(question, answer_handler, is_review, user_answer)
+        return create_short_answer_question(question, answer_handler, is_review, user_answer, show_correct_answers)
     else:
-        return create_multiple_choice_question(question, answer_handler, shuffle_answers, is_review, user_answer)
+        return create_multiple_choice_question(question, answer_handler, shuffle_answers, is_review, user_answer, show_correct_answers)
 
 # =============================================================================
 # NAVIGATION COMPONENTS
@@ -1460,6 +1467,10 @@ def show_quiz_management():
     shuffle_questions_switch = ft.Switch(label="Xáo trộn câu hỏi", value=False)
     shuffle_answers_switch = ft.Switch(label="Xáo trộn đáp án", value=True)
 
+    # --- Thêm switch mới cho tùy chọn xem đáp án ---
+    # cho phép instructor bật/tắt tùy chọn xem đáp án khi tạo quiz mới, giá trị măc định là tắt (false)
+    show_answers_switch = ft.Switch(label="Allow student to view the answers after the exam", value=False)
+
     # Lấy danh sách các lớp mà giảng viên hiện tại được phân công
     instructor_classes = [c for c in mock_classes if c['instructor_id'] == current_user['id']]
     class_dropdown = ft.Dropdown(
@@ -1486,6 +1497,9 @@ def show_quiz_management():
         class_dropdown.value = None
         shuffle_questions_switch.value = False
         shuffle_answers_switch.value = True
+        # --- Reset switch mới --
+        # Đảm bảo switch luôn được reset khi tạo quiz
+        show_answers_switch.value = False
         current_page.update()
     
     def hide_create_form(e):
@@ -1501,7 +1515,10 @@ def show_quiz_management():
         class_id = class_dropdown.value
         shuffle_questions = shuffle_questions_switch.value
         shuffle_answers = shuffle_answers_switch.value
-        
+        # --- Lấy giá trị từ switch mới ---
+        # Lưu giá trị của switch vào quiz mới khi tạo 
+        show_answers_after_quiz = show_answers_switch.value
+
         if not title.strip():
             quiz_error_text.value = "Quiz title is required"
             current_page.update()
@@ -1546,7 +1563,10 @@ def show_quiz_management():
             'password': password.strip() if password else None,
             'is_active': True, # Bài thi mới tạo mặc định được kích hoạt
             'shuffle_questions': shuffle_questions,
-            'shuffle_answers': shuffle_answers
+            'shuffle_answers': shuffle_answers,
+            # --- Đảm bảo khi taoh quiz mới UI sẽ kiểm tra có được quyền xem đáp án hay không 
+            'show_answers_after_quiz': show_answers_after_quiz
+            # --- Thêm file mớ
         }
         mock_quizzes.append(new_quiz)
         
@@ -1578,6 +1598,11 @@ def show_quiz_management():
                 shuffle_questions_switch,
                 shuffle_answers_switch
             ], spacing=Spacing.XL),
+
+            ft.Container(height=Spacing.LG),
+            # --- Thêm switch mới vào form ---
+            show_answers_switch,
+
             ft.Container(height=Spacing.MD),
             quiz_error_text,
             ft.Container(height=Spacing.XL),
@@ -2970,25 +2995,43 @@ def show_student_results_overview():
     current_page.update()
 
 def show_attempt_review(attempt):
-    """Show the detailed review of a specific quiz attempt."""
     global current_page, current_question_index, quiz_questions
     global current_view_handler
 
     current_page.clean()
     current_question_index = 0
 
-    # Lấy thông tin quiz và câu hỏi
     quiz_info = next((q for q in mock_quizzes if q['id'] == attempt['quiz_id']), None)
     if not quiz_info:
         show_my_attempts()
         return
 
-    # Lấy danh sách câu hỏi gốc (không xáo trộn) để đảm bảo thứ tự nhất quán khi xem lại
     quiz_questions = mock_questions.get(quiz_info['id'], [])
     user_answers = attempt.get('user_answers', {})
 
     if not quiz_questions:
         show_my_attempts()
+        return
+
+    show_correct_answers = quiz_info.get('show_answers_after_quiz', False)
+
+    if not show_correct_answers:
+        # Nếu không được phép xem đáp án, chỉ hiện thông báo
+        notice_content = ft.Container(
+            content=ft.Column([
+                create_card(content=ft.Row([
+                    ft.Icon(ft.Icons.LOCK, color=Colors.ERROR),
+                    ft.Text("Bạn không được phép xem đáp án của bài quiz này.", size=Typography.SIZE_LG, color=Colors.ERROR, weight=ft.FontWeight.W_600),
+                    ft.Container(expand=True),
+                    create_secondary_button("Back to Attempts", on_click=lambda e: show_my_attempts(), width=150)
+                ]), padding=Spacing.XXXXL)
+            ], alignment=ft.MainAxisAlignment.CENTER),
+            padding=Spacing.XXXXL,
+            expand=True
+        )
+        current_page.add(notice_content)
+        current_view_handler = None
+        current_page.update()
         return
 
     # UI Components
@@ -2998,14 +3041,18 @@ def show_attempt_review(attempt):
     def update_review_display():
         if current_question_index >= len(quiz_questions):
             return
-
         question = quiz_questions[current_question_index]
         user_answer = user_answers.get(question['id'])
-        
         question_counter_text.value = f"Question {current_question_index + 1} of {len(quiz_questions)}"
 
-        # Tạo component câu hỏi ở chế độ review
-        question_component = create_question_by_type(question, on_answer_change=None, is_review=True, user_answer=user_answer)
+        # Tạo component câu hỏi ở chế độ review, truyền show_correct_answers=True
+        question_component = create_question_by_type(
+            question,
+            on_answer_change=None,
+            is_review=True,
+            user_answer=user_answer,
+            show_correct_answers=True
+        )
         question_component_container.content = question_component
 
         prev_button.disabled = (current_question_index == 0)
@@ -3030,7 +3077,6 @@ def show_attempt_review(attempt):
     prev_button = create_secondary_button("← Previous", on_click=handle_previous, width=120)
     next_button = create_primary_button("Next →", on_click=handle_next, width=120)
 
-    # Main review interface
     review_content = ft.Container(
         content=ft.Column([
             create_card(content=ft.Row([
@@ -3047,7 +3093,7 @@ def show_attempt_review(attempt):
 
     update_review_display()
     current_page.add(review_content)
-    current_view_handler = None # Disable resizing for this page
+    current_view_handler = None
     current_page.update()
 
 def show_my_attempts():
@@ -4117,10 +4163,10 @@ def main_page(page: ft.Page):
     # 3. Để bật lại trang đăng nhập, hãy xóa/bình luận các dòng dưới và bỏ bình luận dòng `show_login()`.
 
     # --- Chế độ phát triển ---
-    # current_user = mock_users['THEHY']  # Đăng nhập với tư cách 'examinee' 
-    # show_examinee_dashboard()              # Đi thẳng vào dashboard của sinh viên
-    current_user = mock_users['admin']  # Đăng nhập với tư cách 'admin'
-    show_instructor_dashboard()         # Đi thẳng vào dashboard
+    current_user = mock_users['THEHY']  # Đăng nhập với tư cách 'examinee' 
+    show_examinee_dashboard()              # Đi thẳng vào dashboard của sinh viên
+    # current_user = mock_users['instructor']  # Đăng nhập với tư cách 'admin'
+    # show_instructor_dashboard()         # Đi thẳng vào dashboard
 
     # --- Chế độ hoạt động bình thường ---
     # show_login()                       # Bắt đầu từ trang đăng nhập
