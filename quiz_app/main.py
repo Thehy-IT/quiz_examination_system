@@ -548,7 +548,7 @@ def create_true_false_question(question, on_answer_change, is_review=False, user
 
     if is_review:
         true_false_group.disabled = True
-        true_false_group.value = "true" if user_answer else "false"
+        true_false_group.value = str(user_answer).lower()
         correct_answer = question.get('correct_answer')
 
         for radio in true_false_group.content.controls:
@@ -2675,10 +2675,9 @@ def show_quiz_results(quiz_data, user_answers, start_time):
             
             if question_type == 'multiple_choice':
                 # user_answer bây giờ là text của lựa chọn
-                correct_option = next((opt for opt in question['options'] if opt['is_correct']), None)
-                if correct_option and user_answer == correct_option['option_text']:
+                correct_option_text = next((opt['option_text'] for opt in question['options'] if opt['is_correct']), None)
+                if correct_option_text and user_answer == correct_option_text:
                     correct_count += 1
-
             elif question_type == 'true_false':
                 if user_answer == question.get('correct_answer'):
                     correct_count += 1
@@ -2796,7 +2795,7 @@ def show_quiz_results(quiz_data, user_answers, start_time):
             # Actions
             ft.Row([
                 ft.Container(expand=True),
-                create_secondary_button("Review Answers", width=140),
+                create_secondary_button("Review Answers", on_click=lambda e, a=new_attempt: show_attempt_review(a), width=140),
                 ft.Container(width=Spacing.LG),
                 create_primary_button("Back to Dashboard", on_click=lambda e: show_examinee_dashboard(), width=160),
                 ft.Container(expand=True)
