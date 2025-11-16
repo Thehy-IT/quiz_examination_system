@@ -3993,14 +3993,17 @@ def show_user_management():
             create_app_header(),
             ft.Container(
                 content=ft.Column(scroll=ft.ScrollMode.AUTO, controls=[
-                    ft.Row([
+                    ft.Column([
                         ft.Column([
                             create_page_title("User Management"),
                             create_subtitle("Create and manage system users.")
-                        ], expand=True, spacing=Spacing.XS),
-                        search_field,
-                        role_filter_dropdown,
-                        create_primary_button("Add New User", on_click=show_create_form, width=150)
+                        ], spacing=Spacing.XS),
+                        ft.Container(height=Spacing.LG),
+                        ft.Row([
+                            search_field,
+                            role_filter_dropdown,
+                            create_primary_button("Add New User", on_click=show_create_form, width=150)
+                        ], spacing=Spacing.MD)
                     ]),
                     ft.Container(height=Spacing.XXL),
                     user_form_container,
@@ -4085,8 +4088,13 @@ def main_page(page: ft.Page):
     # 3. Để bật lại trang đăng nhập, hãy xóa/bình luận các dòng dưới và bỏ bình luận dòng `show_login()`.
     
     # --- Chế độ phát triển ---
+<<<<<<< HEAD
     # current_user = mock_users['instructor']  # Đăng nhập với tư cách 'instructor'
     # show_instructor_dashboard()         # Đi thẳng vào dashboard của instructor
+=======
+    current_user = mock_users['admin']  # Đăng nhập với tư cách 'instructor'
+    show_instructor_dashboard()         # Đi thẳng vào dashboard của instructor
+>>>>>>> db651d61bc691759f8208ec6bb41bfc5587db4ce
     # current_user = mock_users['THEHY']  # Đăng nhập với tư cách 'examinee' 
     # show_examinee_dashboard()              # Đi thẳng vào dashboard của sinh viên
     current_user = mock_users['admin'] 
