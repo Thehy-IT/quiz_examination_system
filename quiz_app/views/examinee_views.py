@@ -2,6 +2,7 @@ import flet as ft
 import time
 import threading
 from datetime import datetime, timedelta
+from ..components.navigation import create_app_bar
 
 # Import các module cần thiết
 from .. import app_state
@@ -597,31 +598,114 @@ def show_my_attempts():
     app_state.current_page.update()
 
 def show_profile_page():
-    """Hiển thị trang thông tin cá nhân của người dùng"""
+    """Hiển thị trang thông tin cá nhân và đổi mật khẩu cho sinh viên."""
     app_state.current_page.clean()
-    app_state.current_page.title = "My Profile"
-    app_state.current_view_handler = show_profile_page
+    sidebar = create_sidebar(app_state.current_user['role'], "profile")
 
-    sidebar = create_sidebar(app_state.current_user['role'], active_page="profile")
-    header = create_app_header()
+    current_password_field = ft.TextField(label="Mật khẩu hiện tại", password=True, can_reveal_password=True)
+    new_password_field = ft.TextField(label="Mật khẩu mới", password=True, can_reveal_password=True)
+    confirm_password_field = ft.TextField(label="Xác nhận mật khẩu mới", password=True, can_reveal_password=True)
+    password_message_text = ft.Text("", size=Typography.SIZE_SM)
 
     def handle_save_password(e):
-        # Logic lưu mật khẩu mới
-        print("Password saved!")
+        current_pass = current_password_field.value
+        new_pass = new_password_field.value
+        confirm_pass = confirm_password_field.value
 
-    main_content = ft.Column([
-        header,
-        ft.Row([
-            sidebar,
-            ft.VerticalDivider(width=1, color=Colors.GRAY_200),
+        if not all([current_pass, new_pass, confirm_pass]):
+            password_message_text.value = "Vui lòng điền đầy đủ các trường."
+            password_message_text.color = Colors.ERROR
+            app_state.current_page.update()
+            return
+
+        if current_pass != app_state.current_user['password']:
+            password_message_text.value = "Mật khẩu hiện tại không đúng."
+            password_message_text.color = Colors.ERROR
+            current_password_field.value = ""
+            app_state.current_page.update()
+            return
+
+        if new_pass != confirm_pass:
+            password_message_text.value = "Mật khẩu mới không khớp."
+            password_message_text.color = Colors.ERROR
+            new_password_field.value = ""
+            confirm_password_field.value = ""
+            app_state.current_page.update()
+            return
+
+        mock_data.mock_users[app_state.current_user['username']]['password'] = new_pass
+        app_state.current_user['password'] = new_pass
+
+        password_message_text.value = "Đổi mật khẩu thành công!"
+        password_message_text.color = Colors.SUCCESS
+        current_password_field.value = ""
+        new_password_field.value = ""
+        confirm_password_field.value = ""
+        app_state.current_page.update()
+
+    class_name = "N/A"
+    if app_state.current_user.get('class_id'):
+        class_info = next((c for c in mock_data.mock_classes if c['id'] == app_state.current_user['class_id']), None)
+        if class_info:
+            class_name = class_info['name']
+
+    main_content = ft.Container(
+        content=ft.Column(spacing=0, controls=[
+            create_app_header(),
             ft.Container(
-                content=ft.Text("Profile Page - In Progress", size=24),
-                padding=Spacing.LG,
-                expand=True,
-                alignment=ft.alignment.center
+                content=ft.Column(scroll=ft.ScrollMode.AUTO, controls=[
+                    ft.Container(
+                        content=ft.Column([
+                            create_page_title("My Profile"),
+                            create_subtitle("View your personal information and manage your account.")
+                        ]),
+                        padding=ft.padding.only(bottom=Spacing.XXL)
+                    ),
+                    ft.Row([
+                        create_card(
+                            content=ft.Column([
+                                create_section_title("Thông tin tài khoản"),
+                                ft.Container(height=Spacing.LG),
+                                ft.Row([ft.Text("Username:", weight=ft.FontWeight.W_600), ft.Text(app_state.current_user['username'])]),
+                                ft.Divider(),
+                                ft.Row([ft.Text("Vai trò:", weight=ft.FontWeight.W_600), ft.Text(app_state.current_user['role'].title())]),
+                                ft.Divider(),
+                                ft.Row([ft.Text("Lớp học:", weight=ft.FontWeight.W_600), ft.Text(class_name)]),
+                            ]),
+                            padding=Spacing.XL
+                        ),
+                        create_card(
+                            content=ft.Column([
+                                create_section_title("Đổi mật khẩu"),
+                                ft.Container(height=Spacing.LG),
+                                current_password_field,
+                                new_password_field,
+                                confirm_password_field,
+                                ft.Container(height=Spacing.SM),
+                                password_message_text,
+                                ft.Container(height=Spacing.LG),
+                                create_primary_button("Lưu thay đổi", on_click=handle_save_password)
+                            ]),
+                            padding=Spacing.XL
+                        ),
+                    ], alignment=ft.MainAxisAlignment.START, vertical_alignment=ft.CrossAxisAlignment.START)
+                ]),
+                padding=Spacing.XXXXL,
+                expand=True, bgcolor=Colors.GRAY_50
             )
-        ], expand=True)
-    ], expand=True)
-    
-    app_state.current_page.add(main_content)
+        ]),
+        expand=True
+    )
+
+    app_state.sidebar_drawer = ft.NavigationDrawer(controls=[sidebar])
+    app_state.current_page.drawer = app_state.sidebar_drawer
+    app_state.current_page.appbar = create_app_bar()
+    app_state.current_view_handler = show_profile_page
+
+    if app_state.current_page.width >= 1000:
+        app_state.current_page.add(ft.Row([sidebar, main_content], expand=True))
+        app_state.current_page.appbar.visible = False
+    else:
+        app_state.current_page.add(main_content)
+        app_state.current_page.appbar.visible = True
     app_state.current_page.update()
