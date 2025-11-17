@@ -44,14 +44,16 @@ A beautiful, modern quiz application built with Python and Flet, featuring a cle
 - Python 3.7+
 - pip (Python package installer)
 
-### Installation
+### Installation & Running
 
-1. **Clone or download** the quiz app files
-2. **Install dependencies**:
+1. **Clone or download** the project to your local machine.
+2. **Navigate to the project's root directory** (`quiz_examination_system`) in your terminal.
+3. **Install dependencies**:
    ```bash
    pip install -r requirements.txt
    ```
-3. **Run the application**:
+4. **Run the application**:
+   > **Important**: Make sure you are in the project's root directory (`quiz_examination_system`).
    ```bash
    python -m quiz_app.main
    ```
