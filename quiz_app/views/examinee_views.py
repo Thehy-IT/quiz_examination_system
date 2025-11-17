@@ -279,7 +279,7 @@ def show_quiz_taking(quiz_basic_info):
         prev_button.disabled = (app_state.current_question_index == 0)
         has_answer = question['id'] in app_state.user_answers
         next_button.disabled = not has_answer
-        submit_button.visible = (app_state.current_question_index == len(app_state.quiz_questions) - 1 and has_answer)
+        # submit_button.visible = (app_state.current_question_index == len(app_state.quiz_questions) - 1 and has_answer)
         
         app_state.current_page.update()
     
@@ -295,7 +295,7 @@ def show_quiz_taking(quiz_basic_info):
         app_state.user_answers[question_id] = answer
         has_answer = answer is not None and answer != "" and answer != []
         next_button.disabled = not has_answer
-        submit_button.visible = (app_state.current_question_index == len(app_state.quiz_questions) - 1 and has_answer)
+        # submit_button.visible = (app_state.current_question_index == len(app_state.quiz_questions) - 1 and has_answer)
         app_state.current_page.update()
     
     def handle_previous(e):
@@ -314,13 +314,10 @@ def show_quiz_taking(quiz_basic_info):
             app_state.quiz_timer_thread = None
         show_quiz_results(quiz_basic_info, app_state.user_answers, app_state.quiz_start_time)
     
-    def exit_quiz(e):
-        show_examinee_dashboard()
-    
     prev_button = create_secondary_button("← Previous", on_click=handle_previous, width=120)
     next_button = create_primary_button("Next →", on_click=handle_next, width=120, disabled=True)
     submit_button = create_primary_button("Submit Quiz", on_click=handle_submit, width=130)
-    submit_button.visible = False
+    submit_button.visible = False # Giữ nút này ẩn đi vì đã có nút submit ở thanh bên phải
     
     def run_timer():
         duration_minutes = quiz_basic_info.get('duration_minutes', 10)
@@ -395,8 +392,8 @@ def show_quiz_taking(quiz_basic_info):
                         question_navigator_grid,
                         ft.Divider(height=Spacing.LG),
                         ft.Row(
-                            [create_secondary_button("Exit Quiz", on_click=exit_quiz, width=None)],
-                            alignment=ft.MainAxisAlignment.CENTER
+                            # Thay thế nút "Exit Quiz" bằng nút "Submit Quiz"
+                            [create_primary_button("Submit Quiz", on_click=handle_submit, width=None, icon=ft.Icons.DONE_ALL)], alignment=ft.MainAxisAlignment.CENTER
                         )
                     ]),
                     padding=Spacing.LG
@@ -569,7 +566,7 @@ def show_quiz_results(quiz_data, user_answers, start_time):
                     ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
                     padding=Spacing.XL
                 )
-            ], spacing=Spacing.XL),
+            ], spacing=Spacing.XL, alignment=ft.MainAxisAlignment.CENTER),
             ft.Container(height=Spacing.XXXXL),
             ft.Row([
                 ft.Container(expand=True),
