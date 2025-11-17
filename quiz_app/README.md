@@ -44,29 +44,31 @@ A beautiful, modern quiz application built with Python and Flet, featuring a cle
 - Python 3.7+
 - pip (Python package installer)
 
-### Installation
+### Installation & Running
 
-1. **Clone or download** the quiz app files
-2. **Install dependencies**:
+1. **Clone or download** the project to your local machine.
+2. **Navigate to the project's root directory** (`quiz_examination_system`) in your terminal.
+3. **Install dependencies**:
    ```bash
    pip install -r requirements.txt
    ```
-3. **Run the application**:
+4. **Run the application**:
+   > **Important**: Make sure you are in the project's root directory (`quiz_examination_system`).
    ```bash
-   python main.py
+   python -m quiz_app.main
    ```
 
 ### 📋 Login Credentials
 
 | Role | Username | Password |
 |------|----------|----------|
-| Master | `master` | `master123` |
-| Admin | `admin` | `admin123` |
-| Student | `student` | `student123` |
+| Instructor | `instructor` | `instructor123` |
+| Examinee | `THEHY` | `student123` |
+| Examinee | `student` | `student123` |
 
 ## 🎯 Complete User Workflow
 
-### For Master/Admin Users:
+### For Instructor/Admin Users:
 1. **Login** with master credentials
 2. **Navigate to Quiz Management** via sidebar
 3. **Create New Quiz** with title and description
@@ -156,6 +158,20 @@ python test_ui.py
 - **Sample Users** - Ready-to-use test accounts
 - **Sample Quizzes** - Pre-loaded content for testing
 - **Sample Questions** - Multiple-choice examples
+
+### Development Mode
+- **Skip Login**: The `main.py` file is configured to allow developers to bypass the login screen for faster UI development.
+  ```python
+  # In main.py, uncomment the desired user and view
+  
+  # As an examinee
+  app_state.current_user = mock_data.mock_users['THEHY']
+  show_examinee_dashboard()
+  
+  # As an instructor
+  # app_state.current_user = mock_data.mock_users['instructor']
+  # show_instructor_dashboard()
+  ```
 
 ## 📂 Project Structure
 
