@@ -1,311 +1,80 @@
-# Quiz Exam App - MVP Development Todo List
+# Modern Quiz App - Development Roadmap
 
-## Phase 1: Project Setup (20 micro-tasks)
-- [ ] 1. Create main project directory `quiz_app`
-- [ ] 2. Create `requirements.txt` file
-- [ ] 3. Add `flet` dependency to requirements.txt
-- [ ] 4. Add `sqlite3` to requirements.txt (built-in)
-- [ ] 5. Add `hashlib` to requirements.txt (built-in)
-- [ ] 6. Create empty `main.py` file
-- [ ] 7. Add Flet import to main.py
-- [ ] 8. Add basic Flet app structure with `flet.app()` call
-- [ ] 9. Create empty `database.py` file
-- [ ] 10. Add sqlite3 import to database.py
-- [ ] 11. Create `get_connection()` function in database.py
-- [ ] 12. Test database connection with simple print statement
-- [ ] 13. Create empty `auth.py` file
-- [ ] 14. Add hashlib import to auth.py
-- [ ] 15. Create `hash_password()` function
-- [ ] 16. Create `verify_password()` function
-- [ ] 17. Test password hashing functions
-- [ ] 18. Create basic folder structure comments in main.py
-- [ ] 19. Run `pip install -r requirements.txt`
-- [ ] 20. Test basic Flet app runs without errors
+Tài liệu này theo dõi lộ trình phát triển của ứng dụng, phản ánh cấu trúc hiện tại và các bước tiếp theo một cách chi tiết.
 
-## Phase 2: Database Tables (25 micro-tasks)
-- [ ] 21. Create `create_tables()` function in database.py
-- [ ] 22. Write SQL for users table creation
-- [ ] 23. Add users table fields: id (PRIMARY KEY)
-- [ ] 24. Add users table fields: username (TEXT UNIQUE)
-- [ ] 25. Add users table fields: password_hash (TEXT)
-- [ ] 26. Add users table fields: role (TEXT)
-- [ ] 27. Add users table fields: created_at (TIMESTAMP)
-- [ ] 28. Execute users table creation SQL
-- [ ] 29. Write SQL for quizzes table creation
-- [ ] 30. Add quizzes table fields: id (PRIMARY KEY)
-- [ ] 31. Add quizzes table fields: title (TEXT)
-- [ ] 32. Add quizzes table fields: description (TEXT)
-- [ ] 33. Add quizzes table fields: created_by (INTEGER FOREIGN KEY)
-- [ ] 34. Add quizzes table fields: is_active (BOOLEAN)
-- [ ] 35. Add quizzes table fields: created_at (TIMESTAMP)
-- [ ] 36. Execute quizzes table creation SQL
-- [ ] 37. Write SQL for questions table creation
-- [ ] 38. Add questions table fields: id, quiz_id, question_text
-- [ ] 39. Execute questions table creation SQL
-- [ ] 40. Write SQL for question_options table creation
-- [ ] 41. Add question_options fields: id, question_id, option_text, option_order, is_correct
-- [ ] 42. Execute question_options table creation SQL
-- [ ] 43. Write SQL for quiz_attempts table creation
-- [ ] 44. Add quiz_attempts fields: id, user_id, quiz_id, score, total_questions, completed_at
-- [ ] 45. Execute quiz_attempts table creation SQL
+## ✅ Phase 1: UI Foundation & Design System (Đã hoàn thành)
+- [x] 1. Thiết lập dự án Flet và cấu trúc thư mục (`components`, `views`, `utils`, `data`).
+- [x] 2. Định nghĩa hệ thống design (`constants.py`): Colors, Spacing, Typography.
+- [x] 3. Tạo các hàm trợ giúp UI cơ bản (`ui_helpers.py`): `create_card`, `create_badge`, etc.
+- [x] 4. Thiết lập quản lý trạng thái toàn cục (`app_state.py`).
+- [x] 5. Tạo dữ liệu mẫu (`mock_data.py`) cho users, quizzes, questions, classes.
 
-## Phase 3: Initial Data (10 micro-tasks)
-- [ ] 46. Create `insert_master_user()` function
-- [ ] 47. Hash password for master user
-- [ ] 48. Insert master user with username "master"
-- [ ] 49. Insert master user with role "master"
-- [ ] 50. Create `insert_sample_admin()` function
-- [ ] 51. Insert admin user with username "admin"
-- [ ] 52. Create `insert_sample_examinee()` function
-- [ ] 53. Insert examinee user with username "student"
-- [ ] 54. Test all users inserted correctly
-- [ ] 55. Call all insert functions from main.py
+## ✅ Phase 2: Core Components & Navigation (Đã hoàn thành)
+- [x] 6. Xây dựng thư viện component: `create_primary_button`, `create_text_input`, etc.
+- [x] 7. Xây dựng hệ thống navigation (`navigation.py`): `create_sidebar`, `create_app_bar`.
+- [x] 8. Xử lý responsive layout (chuyển đổi giữa sidebar và drawer).
+- [x] 9. Hoàn thiện trang đăng nhập (`login_view.py`).
 
-## Phase 4: Basic App Structure (15 micro-tasks)
-- [ ] 56. Create `current_user` global variable
-- [ ] 57. Create `current_page` global variable
-- [ ] 58. Create `main_page()` function structure
-- [ ] 59. Add Page parameter to main_page function
-- [ ] 60. Create `show_login()` function structure
-- [ ] 61. Create `show_master_dashboard()` function structure
-- [ ] 62. Create `show_examinee_dashboard()` function structure
-- [ ] 63. Add page routing logic in main_page
-- [ ] 64. Set initial page to login
-- [ ] 65. Add page.title = "Quiz App"
-- [ ] 66. Add page.vertical_alignment = "center"
-- [ ] 67. Add page.theme_mode = "light"
-- [ ] 68. Add page.window_width = 800
-- [ ] 69. Add page.window_height = 600
-- [ ] 70. Test app opens with correct window size
+## ✅ Phase 3: Instructor/Admin Views (Đã hoàn thành)
+- [x] 10. **Dashboard**: Xây dựng trang Dashboard cho Giảng viên/Admin với các số liệu thống kê (`show_instructor_dashboard`).
+- [x] 11. **Class Management (Admin)**: Xây dựng trang Quản lý Lớp học (`show_class_management`) cho Admin (tạo, xóa, xem danh sách).
+- [x] 12. **User Management (Admin)**: Xây dựng trang Quản lý Người dùng (`show_user_management`) cho Admin (tạo, sửa, xóa, lọc).
+- [x] 13. **Quiz Management**: Xây dựng trang Quản lý Bài thi (`show_quiz_management`) với các chức năng lọc, tìm kiếm và kích hoạt/vô hiệu hóa.
+- [x] 14. **Quiz Creation Form**: Hoàn thiện form tạo/sửa bài thi với các tùy chọn chi tiết (thời gian, mật khẩu, xáo trộn câu hỏi/đáp án, gán cho lớp học).
+- [x] 15. **Question Management**: Xây dựng trang Quản lý Câu hỏi chi tiết cho từng bài thi (`show_question_management`).
+- [x] 16. **Multiple Question Types**: Hỗ trợ nhiều loại câu hỏi (trắc nghiệm, đúng/sai, điền vào chỗ trống, chọn nhiều đáp án, tự luận ngắn).
+- [x] 17. **Quiz Preview**: Xây dựng trang Xem trước Bài thi (`show_quiz_preview`) cho phép giảng viên trải nghiệm bài thi như sinh viên.
+- [x] 18. **Results & Analytics**: Xây dựng trang Xem Kết quả (`show_instructor_results_page`) với biểu đồ điểm, thống kê và bảng kết quả chi tiết.
+- [x] 19. **Settings**: Xây dựng trang Cài đặt (`show_settings_page`) để xem thông tin và đổi mật khẩu.
 
-## Phase 5: Login UI (30 micro-tasks)
-- [ ] 71. Create login_container variable
-- [ ] 72. Add Column to login_container
-- [ ] 73. Add Text "Quiz App Login" as title
-- [ ] 74. Style title with size=30
-- [ ] 75. Style title with weight="bold"
-- [ ] 76. Style title with color="blue"
-- [ ] 77. Add SizedBox for spacing after title
-- [ ] 78. Create username_field variable
-- [ ] 79. Add TextField for username
-- [ ] 80. Set username placeholder text
-- [ ] 81. Set username field width
-- [ ] 82. Add username field to login column
-- [ ] 83. Add SizedBox for spacing after username
-- [ ] 84. Create password_field variable
-- [ ] 85. Add TextField for password
-- [ ] 86. Set password field as password=True
-- [ ] 87. Set password placeholder text
-- [ ] 88. Set password field width
-- [ ] 89. Add password field to login column
-- [ ] 90. Add SizedBox for spacing after password
-- [ ] 91. Create login_button variable
-- [ ] 92. Add ElevatedButton for login
-- [ ] 93. Set login button text "Login"
-- [ ] 94. Set login button width
-- [ ] 95. Add login button click handler structure
-- [ ] 96. Add login button to login column
-- [ ] 97. Create error_text variable for login errors
-- [ ] 98. Add error Text widget (initially empty)
-- [ ] 99. Add error text to login column
-- [ ] 100. Add login_container to page
+## ✅ Phase 4: Examinee (Student) Views (Đã hoàn thành)
+- [x] 20. Xây dựng trang Dashboard cho Sinh viên, liệt kê các bài thi có sẵn.
+- [x] 21. Xây dựng giao diện làm bài thi (`show_quiz_taking_view`) với điều hướng câu hỏi.
+- [x] 22. Xử lý logic chấm điểm và tính thời gian làm bài.
+- [x] 23. Xây dựng trang hiển thị Kết quả sau khi nộp bài.
+- [x] 24. Xây dựng trang Lịch sử làm bài (`show_attempt_history_view`).
 
-## Phase 6: Login Logic (20 micro-tasks)
-- [ ] 101. Create `handle_login()` function
-- [ ] 102. Get username from username_field.value
-- [ ] 103. Get password from password_field.value
-- [ ] 104. Add validation: check if username is empty
-- [ ] 105. Add validation: check if password is empty
-- [ ] 106. Show error message for empty fields
-- [ ] 107. Create `get_user_by_username()` function in database.py
-- [ ] 108. Write SQL query to find user by username
-- [ ] 109. Execute query and fetch user data
-- [ ] 110. Return user data or None
-- [ ] 111. Call get_user_by_username in handle_login
-- [ ] 112. Check if user exists
-- [ ] 113. Verify password using auth.verify_password()
-- [ ] 114. Set current_user global variable on success
-- [ ] 115. Show error message for invalid login
-- [ ] 116. Clear password field on login failure
-- [ ] 117. Call appropriate dashboard function on success
-- [ ] 118. Add page.update() after login success
-- [ ] 119. Add page.update() after login failure
-- [ ] 120. Connect login button to handle_login function
+## ✅ Phase 5: Testing & Documentation (Đã hoàn thành)
+- [x] 25. Tạo file kiểm thử `test_ui.py` để xác minh các component và cấu trúc.
+- [x] 26. Viết tài liệu `README.md` chi tiết, hướng dẫn cài đặt và sử dụng.
+- [x] 27. Cập nhật `todo.md` để phản ánh tiến độ dự án.
 
-## Phase 7: Master Dashboard UI (25 micro-tasks)
-- [ ] 121. Create master_dashboard_container
-- [ ] 122. Add Column to master dashboard
-- [ ] 123. Add AppBar to page
-- [ ] 124. Set AppBar title "Quiz App - Master"
-- [ ] 125. Add logout IconButton to AppBar
-- [ ] 126. Create welcome Text "Welcome, Master!"
-- [ ] 127. Style welcome text
-- [ ] 128. Add welcome text to dashboard column
-- [ ] 129. Add Divider after welcome text
-- [ ] 130. Create "My Quizzes" section title
-- [ ] 131. Style section title
-- [ ] 132. Add section title to column
-- [ ] 133. Create quizzes_list variable (ListView)
-- [ ] 134. Add empty ListView for quizzes
-- [ ] 135. Add quizzes_list to dashboard column
-- [ ] 136. Create "Create New Quiz" button
-- [ ] 137. Style create quiz button
-- [ ] 138. Add create quiz button click handler structure
-- [ ] 139. Add create quiz button to column
-- [ ] 140. Create quiz_form_container (initially hidden)
-- [ ] 141. Add TextField for quiz title
-- [ ] 142. Add TextField for quiz description
-- [ ] 143. Add "Save Quiz" button to form
-- [ ] 144. Add "Cancel" button to form
-- [ ] 145. Add quiz form to dashboard (visible=False)
+---
+ 
+## 🚀 Phase 6: Backend Integration - Database Foundation (Các bước tiếp theo)
+- [ ] 28. **Dependencies**: Thêm `SQLAlchemy` và `passlib` (để mã hóa mật khẩu) vào `requirements.txt`.
+- [ ] 29. **Database Models**: Tạo thư mục `database` và file `models.py` để định nghĩa các bảng: `User`, `Class`, `Quiz`, `Question`, `Option`, `Attempt` sử dụng SQLAlchemy ORM.
+- [ ] 30. **Database Engine**: Tạo file `database/engine.py` chứa hàm khởi tạo engine, session và Base cho models.
+- [ ] 31. **Initialization Script**: Viết hàm `init_db()` trong `database/engine.py` để tạo tất cả các bảng và chèn dữ liệu người dùng mặc định (admin, instructor, student) với mật khẩu đã được mã hóa.
+- [ ] 32. **App Integration**: Gọi `init_db()` một lần khi ứng dụng khởi động trong `main.py`.
 
-## Phase 8: Quiz Creation Logic (20 micro-tasks)
-- [ ] 146. Create `show_quiz_form()` function
-- [ ] 147. Make quiz form visible
-- [ ] 148. Clear quiz form fields
-- [ ] 149. Add page.update() to show form
-- [ ] 150. Create `hide_quiz_form()` function
-- [ ] 151. Make quiz form invisible
-- [ ] 152. Add page.update() to hide form
-- [ ] 153. Create `save_quiz()` function in database.py
-- [ ] 154. Write SQL INSERT for quiz creation
-- [ ] 155. Execute quiz insert with title, description, created_by
-- [ ] 156. Return quiz ID from insert
-- [ ] 157. Create `handle_save_quiz()` function
-- [ ] 158. Get title from quiz title field
-- [ ] 159. Get description from quiz description field
-- [ ] 160. Validate title is not empty
-- [ ] 161. Call save_quiz with form data
-- [ ] 162. Show success message after save
-- [ ] 163. Hide quiz form after successful save
-- [ ] 164. Refresh quiz list after save
-- [ ] 165. Connect save button to handle_save_quiz
+## 🚀 Phase 7: Backend Integration - Authentication (Các bước tiếp theo)
+- [ ] 33. **Auth Service**: Tạo file `services/auth_service.py` chứa các hàm mã hóa và xác thực mật khẩu (sử dụng `passlib`).
+- [ ] 34. **Login Logic**: Cập nhật `login_view.py` để gọi hàm xác thực từ `auth_service.py` và truy vấn `User` từ database thay vì `mock_data`.
+- [ ] 35. **Password Change**: Cập nhật trang Cài đặt (`show_settings_page`) để sử dụng `auth_service.py` và cập nhật mật khẩu đã mã hóa trong database.
 
-## Phase 9: Question Creation UI (25 micro-tasks)
-- [ ] 166. Create question_form_container
-- [ ] 167. Add Column to question form
-- [ ] 168. Add Text "Add Question" as form title
-- [ ] 169. Create question_text TextField
-- [ ] 170. Set question text placeholder
-- [ ] 171. Add question text to form
-- [ ] 172. Create option_a TextField
-- [ ] 173. Set option A placeholder "Option A"
-- [ ] 174. Add option A to form
-- [ ] 175. Create option_b TextField
-- [ ] 176. Set option B placeholder "Option B"
-- [ ] 177. Add option B to form
-- [ ] 178. Create option_c TextField
-- [ ] 179. Set option C placeholder "Option C"
-- [ ] 180. Add option C to form
-- [ ] 181. Create option_d TextField
-- [ ] 182. Set option D placeholder "Option D"  
-- [ ] 183. Add option D to form
-- [ ] 184. Create RadioGroup for correct answer
-- [ ] 185. Add Radio button for option A
-- [ ] 186. Add Radio button for option B
-- [ ] 187. Add Radio button for option C
-- [ ] 188. Add Radio button for option D
-- [ ] 189. Add RadioGroup to form
-- [ ] 190. Create "Save Question" button
+## 🚀 Phase 8: Backend Integration - CRUD Operations (Các bước tiếp theo)
+- [ ] 36. **Service Layer**: Tạo thư mục `services` và các file service cho từng module (ví dụ: `user_service.py`, `quiz_service.py`, `class_service.py`). Các service này sẽ chứa logic nghiệp vụ và tương tác với database.
+- [ ] 37. **User Management**: Chuyển đổi `show_user_management` từ `mock_data` sang sử dụng các hàm CRUD trong `user_service.py`.
+- [ ] 38. **Class Management**: Chuyển đổi `show_class_management` từ `mock_data` sang sử dụng các hàm CRUD trong `class_service.py`.
+- [ ] 39. **Quiz & Question Management**: Chuyển đổi các trang quản lý bài thi và câu hỏi sang sử dụng `quiz_service.py`.
+- [ ] 40. **Quiz Taking**: Khi sinh viên nộp bài, lưu lại kết quả (điểm, thời gian, câu trả lời) vào bảng `Attempt` và các bảng liên quan trong database.
+- [ ] 41. **Results & History Views**: Đọc dữ liệu kết quả và lịch sử làm bài từ database thay vì `mock_data` cho cả giảng viên và sinh viên.
+- [ ] 42. **Cleanup**: Xóa file `mock_data.py` sau khi tất cả các view đã được chuyển đổi hoàn toàn sang dùng database.
 
-## Phase 10: Question Creation Logic (15 micro-tasks)
-- [ ] 191. Create `save_question()` function in database.py
-- [ ] 192. Write SQL INSERT for question
-- [ ] 193. Execute question insert
-- [ ] 194. Create `save_question_options()` function
-- [ ] 195. Write SQL INSERT for question options
-- [ ] 196. Execute option inserts for all 4 options
-- [ ] 197. Create `handle_save_question()` function
-- [ ] 198. Get question text from form
-- [ ] 199. Get all option texts from form
-- [ ] 200. Get correct answer selection
-- [ ] 201. Validate question text not empty
-- [ ] 202. Validate all options filled
-- [ ] 203. Call save_question and save_question_options
-- [ ] 204. Show success message
-- [ ] 205. Clear question form after save
-
-## Phase 11: Examinee Dashboard (20 micro-tasks)
-- [ ] 206. Create examinee_dashboard_container
-- [ ] 207. Add Column to examinee dashboard
-- [ ] 208. Set AppBar title "Quiz App - Student"
-- [ ] 209. Create welcome text for examinee
-- [ ] 210. Add "Available Quizzes" section title
-- [ ] 211. Create `get_active_quizzes()` function in database.py
-- [ ] 212. Write SQL to fetch active quizzes
-- [ ] 213. Execute query and return quiz list
-- [ ] 214. Create quiz card for each available quiz
-- [ ] 215. Add quiz title to card
-- [ ] 216. Add quiz description to card
-- [ ] 217. Add "Start Quiz" button to card
-- [ ] 218. Style quiz cards with Material Design
-- [ ] 219. Add cards to ListView
-- [ ] 220. Create quiz_taking_container (hidden)
-- [ ] 221. Add quiz taking UI structure
-- [ ] 222. Connect "Start Quiz" button to quiz taking
-- [ ] 223. Add current quiz tracking variable
-- [ ] 224. Load quiz data when starting
-- [ ] 225. Show quiz taking container
-
-## Phase 12: Quiz Taking UI (25 micro-tasks)
-- [ ] 226. Create quiz_header with quiz title
-- [ ] 227. Add question counter "Question X of Y"
-- [ ] 228. Create current_question_container
-- [ ] 229. Add question text display
-- [ ] 230. Create options RadioGroup
-- [ ] 231. Add 4 radio options for answers
-- [ ] 232. Create navigation buttons container
-- [ ] 233. Add "Previous" button
-- [ ] 234. Add "Next" button
-- [ ] 235. Add "Submit Quiz" button (last question only)
-- [ ] 236. Style quiz taking interface
-- [ ] 237. Add quiz progress indicator
-- [ ] 238. Create answers tracking array
-- [ ] 239. Load first question on quiz start
-- [ ] 240. Handle option selection
-- [ ] 241. Handle next button click
-- [ ] 242. Handle previous button click
-- [ ] 243. Handle submit quiz click
-- [ ] 244. Add confirmation dialog for submit
-- [ ] 245. Update question counter on navigation
-- [ ] 246. Load question and options from database
-- [ ] 247. Show current question data
-- [ ] 248. Track selected answers
-- [ ] 249. Enable/disable navigation buttons
-- [ ] 250. Add timer display (future enhancement placeholder)
-
-## Phase 13: Quiz Results (15 micro-tasks)
-- [ ] 251. Create `calculate_score()` function
-- [ ] 252. Compare selected answers with correct answers
-- [ ] 253. Count correct answers
-- [ ] 254. Calculate percentage score
-- [ ] 255. Create `save_quiz_attempt()` function in database.py
-- [ ] 256. Write SQL INSERT for quiz attempt
-- [ ] 257. Execute attempt insert with score data
-- [ ] 258. Create results display container
-- [ ] 259. Show final score to student
-- [ ] 260. Show correct/incorrect breakdown
-- [ ] 261. Add "Back to Dashboard" button
-- [ ] 262. Style results display
-- [ ] 263. Clear quiz taking data after results
-- [ ] 264. Return to examinee dashboard
-- [ ] 265. Update completed quiz status
-
-## Phase 14: Final Integration & Testing (10 micro-tasks)
-- [ ] 266. Test complete login flow
-- [ ] 267. Test master quiz creation
-- [ ] 268. Test question addition to quiz
-- [ ] 269. Test examinee quiz taking
-- [ ] 270. Test score calculation accuracy
-- [ ] 271. Test database operations
-- [ ] 272. Add basic error handling
-- [ ] 273. Add loading states
-- [ ] 274. Test all user roles
-- [ ] 275. Final UI polish and cleanup
+## 🚀 Phase 9: Advanced Features & Refinements (Tương lai)
+- [ ] 43. **Real-time Updates**: Tích hợp `page.pubsub` để cập nhật giao diện real-time (ví dụ: giảng viên thấy kết quả ngay khi sinh viên nộp bài).
+- [ ] 44. **File I/O**: Thêm chức năng import/export câu hỏi từ file Excel/CSV cho một bài thi (sử dụng `pandas` hoặc `openpyxl`).
+- [ ] 45. **Advanced Quiz Settings**: Thêm các cài đặt nâng cao cho bài thi (giới hạn số lần làm bài, cho phép xem lại đáp án chi tiết sau khi thi).
+- [ ] 46. **In-App Notifications**: Xây dựng hệ thống thông báo trong ứng dụng (ví dụ: khi có bài thi mới).
+- [ ] 47. **Internationalization (i18n)**: Tách các chuỗi văn bản ra file riêng để hỗ trợ đa ngôn ngữ (Anh/Việt).
+- [ ] 48. **Unit & Integration Testing**: Viết test case chi tiết cho các `service` và logic nghiệp vụ bằng `pytest`.
+- [ ] 49. **Deployment**: Đóng gói ứng dụng thành file thực thi (.exe, .app) để có thể chạy trên các máy khác mà không cần cài đặt Python (sử dụng `flet pack`).
+- [ ] 50. **UI/UX Polish**: Tinh chỉnh lại giao diện, thêm hiệu ứng chuyển động, và cải thiện trải nghiệm người dùng dựa trên phản hồi.
 
 ## Progress Tracking
-- **Total Tasks**: 275
-- **Completed**: 0
+- **Total Tasks**: 50
+- **Completed**: 27
 - **In Progress**: 0
-- **Remaining**: 275
-- **Current Phase**: Phase 1 - Project Setup
+- **Remaining**: 23
+- **Current Phase**: Phase 6 - Backend Integration - Database Foundation
