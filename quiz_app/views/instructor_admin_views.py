@@ -1369,6 +1369,7 @@ def show_user_management():
     role_filter_dropdown.on_change = update_user_list
 
     def open_edit_dialog(user_to_edit):
+        """Mở dialog để chỉnh sửa thông tin người dùng."""
         username = user_to_edit['username']
         edit_password_field = create_text_input("New Password (leave blank to keep unchanged)", password=True, width=400)
         edit_role_dropdown = ft.Dropdown(
@@ -1386,7 +1387,7 @@ def show_user_management():
         )
 
         def on_edit_role_change(e):
-            edit_class_assignment_dropdown.visible = e.control.value == 'examinee'
+            edit_class_assignment_dropdown.visible = (e.control.value == 'examinee')
             edit_dialog.content.update()
         edit_role_dropdown.on_change = on_edit_role_change
 
@@ -1516,6 +1517,60 @@ def show_user_management():
             padding=Spacing.LG
         )
 
+    # --- Thống kê và tạo biểu đồ tròn với chú thích ---
+    all_users = list(mock_data.mock_users.values())
+    total_users = len(all_users)
+    role_counts = {
+        'admin': sum(1 for u in all_users if u['role'] == 'admin'),
+        'instructor': sum(1 for u in all_users if u['role'] == 'instructor'),
+        'examinee': sum(1 for u in all_users if u['role'] == 'examinee'),
+    }
+    role_colors = {
+        'admin': Colors.WARNING,
+        'instructor': Colors.PRIMARY,
+        'examinee': Colors.SUCCESS
+    }
+
+    def create_pie_section(count, color):
+        percentage = (count / total_users * 100) if total_users > 0 else 0
+        return ft.PieChartSection(
+            percentage,
+            title=f"{percentage:.1f}%",
+            title_style=ft.TextStyle(size=Typography.SIZE_XS, color=Colors.WHITE, weight=ft.FontWeight.W_600),
+            color=color,
+            radius=60,
+        )
+
+    def create_legend_item(role, count, color):
+        percentage = (count / total_users * 100) if total_users > 0 else 0
+        return ft.Row(
+            controls=[
+                ft.Container(width=16, height=16, bgcolor=color, border_radius=BorderRadius.SM),
+                ft.Text(role.title(), weight=ft.FontWeight.W_600, size=Typography.SIZE_SM, expand=True),
+                ft.Text(f"{count} ({percentage:.1f}%)", color=Colors.TEXT_SECONDARY, text_align=ft.TextAlign.RIGHT)
+            ],
+            spacing=Spacing.MD, vertical_alignment=ft.CrossAxisAlignment.CENTER
+        )
+
+    pie_chart = ft.PieChart(
+        sections=[
+            create_pie_section(role_counts['admin'], role_colors['admin']),
+            create_pie_section(role_counts['instructor'], role_colors['instructor']),
+            create_pie_section(role_counts['examinee'], role_colors['examinee']),
+        ],
+        sections_space=2,
+        center_space_radius=30,
+    )
+
+    legend = ft.Column([create_legend_item(role, count, role_colors[role]) for role, count in role_counts.items()])
+
+    stats_card = create_card(
+        content=ft.Column([
+            create_section_title("Thống kê vai trò"),
+            ft.Container(height=Spacing.LG),
+            ft.Row([ft.Container(pie_chart, expand=1), ft.Container(legend, expand=1)], vertical_alignment=ft.CrossAxisAlignment.CENTER)
+        ]), padding=Spacing.XL)
+
     update_user_list()
     main_content = ft.Container(
         content=ft.Column(spacing=0, controls=[
@@ -1534,8 +1589,14 @@ def show_user_management():
                         ], spacing=Spacing.MD)
                     ]),
                     ft.Container(height=Spacing.XXL), user_form_container, ft.Container(height=Spacing.XL),
-                    create_section_title("All Users"), ft.Container(height=Spacing.LG),
-                    user_list_view if user_list_view.controls else ft.Text("No users found.")
+                    ft.Row([
+                        ft.Column([
+                            create_section_title("All Users"),
+                            ft.Container(height=Spacing.LG),
+                            user_list_view if user_list_view.controls else ft.Text("No users found.")
+                        ], expand=3),
+                        ft.Column([stats_card], expand=2)
+                    ], vertical_alignment=ft.CrossAxisAlignment.START)
                 ]),
                 padding=Spacing.XXXXL, expand=True, bgcolor=Colors.GRAY_50
             )
