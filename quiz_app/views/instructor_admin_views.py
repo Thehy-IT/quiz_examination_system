@@ -241,12 +241,15 @@ def show_instructor_dashboard():
 
 def show_quiz_management():
     """Hiển thị trang quản lý bài thi"""
+    # Xóa tất cả các nội dung hiện có trên trang hiện tại để chuẩn bị tải nội dung mới.
     app_state.current_page.clean()
     
     sidebar = create_sidebar(app_state.current_user['role'], "quizzes")
     
+    # Tạo trường nhập văn bản để tìm kiếm bài thi theo tiêu đề.
     search_field = create_text_input("Search by quiz title...", width=300, icon=ft.Icons.SEARCH)
 
+    #Lọc, khởi tạo các tùy chọn lọc, tạo các dropdown lọc
     instructor_classes = [c for c in mock_data.mock_classes if c['instructor_id'] == app_state.current_user['id']]
     class_filter_options = [ft.dropdown.Option(key="all", text="Tất cả các lớp")]
     class_filter_options.extend([ft.dropdown.Option(key=str(cls['id']), text=cls['name']) for cls in instructor_classes])
@@ -265,8 +268,10 @@ def show_quiz_management():
         ft.dropdown.Option(key="none", text="Không xáo trộn"),
     ])
 
+    # Tạo một cột để chứa danh sách các bài thi đã được lọc và hiển thị.
     quiz_list_view = ft.Column(spacing=Spacing.LG)
 
+    # Hàm xóa bài thi
     def handle_delete_quiz(quiz_to_delete):
         def on_delete(e):
             mock_data.mock_quizzes = [q for q in mock_data.mock_quizzes if q['id'] != quiz_to_delete['id']]
@@ -275,6 +280,7 @@ def show_quiz_management():
             show_quiz_management()
         return on_delete
 
+    # Hàm cập nhật danh sách bài thi dựa trên các bộ lọc và tìm kiếm
     def update_quiz_list(e=None):
         search_term = search_field.value.lower() if search_field.value else ""
         selected_class_id = class_filter_dropdown.value
@@ -299,7 +305,9 @@ def show_quiz_management():
             elif selected_shuffle == "none":
                 filtered_quizzes = [q for q in filtered_quizzes if not q.get('shuffle_questions') and not q.get('shuffle_answers')]
 
+        # Cập nhật giao diện danh sách bài thi
         quiz_list_view.controls.clear()
+        # Hiển thị các bài thi đã lọc hoặc thông báo không tìm thấy
         if filtered_quizzes:
             for quiz in filtered_quizzes:
                 quiz_list_view.controls.append(create_quiz_card(quiz))
@@ -315,11 +323,13 @@ def show_quiz_management():
             ))
         app_state.current_page.update()
 
+    # Kết nối các sự kiện thay đổi để cập nhật danh sách bài thi khi người dùng tương tác.
     search_field.on_change = update_quiz_list
     class_filter_dropdown.on_change = update_quiz_list
     status_filter_dropdown.on_change = update_quiz_list
     shuffle_filter_dropdown.on_change = update_quiz_list
 
+    # Biểu mẫu tạo bài thi mới
     quiz_title_field = create_text_input("Quiz Title", width=400)
     quiz_description_field = create_text_input("Description", width=400, multiline=True, min_lines=3)
     quiz_start_time_field = create_text_input("Start Time (YYYY-MM-DD HH:MM)", width=250, icon=ft.Icons.CALENDAR_MONTH)
@@ -328,15 +338,18 @@ def show_quiz_management():
     shuffle_questions_switch = ft.Switch(label="Xáo trộn câu hỏi", value=False)
     shuffle_answers_switch = ft.Switch(label="Xáo trộn đáp án", value=True)
     show_answers_switch = ft.Switch(label="Allow student to view the answers after the exam", value=False)
-    
+
+    # Chọn lớp cho bài thi
     instructor_classes = [c for c in mock_data.mock_classes if c['instructor_id'] == app_state.current_user['id']]
     class_dropdown = ft.Dropdown(
         label="Select Class for this Quiz", width=400, border_radius=BorderRadius.MD,
         border_color=Colors.GRAY_300, focused_border_color=Colors.PRIMARY,
         options=[ft.dropdown.Option(key=cls['id'], text=cls['name']) for cls in instructor_classes]
     )
+    # Báo lỗi cho form tạo bài thi
     quiz_error_text = ft.Text("", color=Colors.ERROR, size=Typography.SIZE_SM)
-    
+
+    # Hàm hiển thị form tạo bài thi mới
     def show_create_form(e):
         quiz_form_container.visible = True
         quiz_title_field.value = ""
@@ -350,11 +363,13 @@ def show_quiz_management():
         shuffle_answers_switch.value = True
         show_answers_switch.value = False
         app_state.current_page.update()
-    
+
+    # Hàm ẩn form tạo bài thi mới
     def hide_create_form(e):
         quiz_form_container.visible = False
         app_state.current_page.update()
-    
+
+    # Hàm xử lý tạo bài thi mới
     def handle_create_quiz(e):
         title = quiz_title_field.value or ""
         description = quiz_description_field.value or ""
@@ -400,7 +415,8 @@ def show_quiz_management():
         quiz_error_text.value = ""
         hide_create_form(e)
         show_quiz_management()
-    
+
+    # Container cho form tạo bài thi mới
     quiz_form_container = create_card(
         content=ft.Column([
             create_section_title("Create New Quiz"), ft.Container(height=Spacing.LG),
@@ -420,8 +436,10 @@ def show_quiz_management():
         ]),
         padding=Spacing.XXL
     )
+    # Mặc định ẩn form tạo bài thi
     quiz_form_container.visible = False
     
+    # Hàm tạo giao diện Card cho một bài thi cụ thể
     def create_quiz_card(quiz):
         class_name = next((c['name'] for c in mock_data.mock_classes if c['id'] == quiz.get('class_id')), "Unassigned")
         shuffle_info = []
@@ -469,6 +487,7 @@ def show_quiz_management():
             padding=Spacing.LG
         )
 
+    # Khởi tạo danh sách bài thi ban đầu
     update_quiz_list()
     main_content = ft.Container(
         content=ft.Column(spacing=0, controls=[
@@ -499,12 +518,14 @@ def show_quiz_management():
         ]),
         expand=True
     )
-    
+
+    # Thiết lập cấu hình trang
     app_state.sidebar_drawer = ft.NavigationDrawer(controls=[sidebar])
     app_state.current_page.drawer = app_state.sidebar_drawer
     app_state.current_page.appbar = create_app_bar()
     app_state.current_view_handler = show_quiz_management
 
+    # Hiển thị
     if app_state.current_page.width >= 1000:
         app_state.current_page.add(ft.Row([sidebar, main_content], expand=True))
         app_state.current_page.appbar.visible = False
