@@ -45,7 +45,7 @@ def main_page(page: ft.Page):
     # --- Chế độ phát triển ---
     app_state.current_user = mock_data.mock_users['THEHY']  # Đăng nhập với tư cách 'examinee' 
     show_examinee_dashboard()              # Đi thẳng vào dashboard của sinh viên
-    # app_state.current_user = mock_data.mock_users['instructor']  # Đăng nhập với tư cách 'instructor'
+    # app_state.current_user = mock_data.mock_users['instructor']
     # show_instructor_dashboard()         # Đi thẳng vào dashboard
 
     # --- Chế độ hoạt động bình thường ---
