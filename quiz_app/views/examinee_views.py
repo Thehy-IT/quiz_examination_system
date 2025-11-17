@@ -354,29 +354,116 @@ def show_quiz_results(quiz_data, user_answers, start_time):
     app_state.current_page.update()
 
 def show_student_results_overview():
-    """Giao diện xem tổng quan kết quả các bài thi của sinh viên"""
+    """Hiển thị tổng quan kết quả của sinh viên với biểu đồ"""
     app_state.current_page.clean()
-    app_state.current_page.title = "My Results"
+    sidebar = create_sidebar(app_state.current_user['role'], "results")
+
+    user_attempts = [attempt for attempt in mock_data.mock_attempts if attempt['user_id'] == app_state.current_user['id']]
+    user_attempts.sort(key=lambda x: x['completed_at'])
+
+    bar_groups = []
+    total_score_10 = 0
+    highest_score_10 = 0
+
+    if user_attempts:
+        for i, attempt in enumerate(user_attempts):
+            quiz_info = next((q for q in mock_data.mock_quizzes if q['id'] == attempt['quiz_id']), None)
+            quiz_title = quiz_info['title'] if quiz_info else f"Quiz {attempt['quiz_id']}"
+            
+            score_10 = attempt['percentage'] / 10.0
+            total_score_10 += score_10
+            if score_10 > highest_score_10:
+                highest_score_10 = score_10
+
+            bar_groups.append(
+                ft.BarChartGroup(
+                    x=i,
+                    bar_rods=[
+                        ft.BarChartRod(
+                            from_y=0,
+                            to_y=score_10,
+                            width=20,
+                            color=Colors.PRIMARY,
+                            tooltip=f"{quiz_title}\nĐiểm: {score_10:.1f}",
+                            border_radius=BorderRadius.SM,
+                        ),
+                    ],
+                )
+            )
+
+    avg_score_10 = (total_score_10 / len(user_attempts)) if user_attempts else 0
+
+    chart = ft.BarChart(
+        bar_groups=bar_groups,
+        border=ft.border.all(1, Colors.GRAY_300),
+        left_axis=ft.ChartAxis(
+            labels=[ft.ChartAxisLabel(value=v, label=ft.Text(str(v))) for v in range(0, 11, 2)],
+            labels_size=40,
+        ),
+        bottom_axis=ft.ChartAxis(
+            labels=[ft.ChartAxisLabel(value=i, label=ft.Text(f"Lần {i+1}", size=Typography.SIZE_XS)) for i in range(len(user_attempts))],
+            labels_size=30,
+        ),
+        horizontal_grid_lines=ft.ChartGridLines(interval=2, color=Colors.GRAY_200, width=1),
+        tooltip_bgcolor=ft.Colors.with_opacity(0.8, Colors.GRAY_800),
+        max_y=10,
+        interactive=True,
+        expand=True,
+    )
+
+    main_content = ft.Container(
+        content=ft.Column(spacing=0, controls=[
+            create_app_header(),
+            ft.Container(
+                content=ft.Column(scroll=ft.ScrollMode.AUTO, controls=[
+                    ft.Container(
+                        content=ft.Column([
+                            create_page_title("My Results Overview"),
+                            create_subtitle("A visual summary of your performance across all quizzes.")
+                        ]),
+                        padding=ft.padding.only(bottom=Spacing.XXL)
+                    ),
+                    ft.Row([
+                        create_card(ft.Column([ft.Row([ft.Icon(ft.Icons.STAR_HALF, color=Colors.PRIMARY), ft.Text("Điểm trung bình")]), ft.Text(f"{avg_score_10:.2f}", size=Typography.SIZE_3XL, weight=ft.FontWeight.W_700)])),
+                        create_card(ft.Column([ft.Row([ft.Icon(ft.Icons.WORKSPACE_PREMIUM, color=Colors.WARNING), ft.Text("Điểm cao nhất")]), ft.Text(f"{highest_score_10:.2f}", size=Typography.SIZE_3XL, weight=ft.FontWeight.W_700)])),
+                        create_card(ft.Column([ft.Row([ft.Icon(ft.Icons.QUIZ, color=Colors.SUCCESS), ft.Text("Tổng số bài đã làm")]), ft.Text(str(len(user_attempts)), size=Typography.SIZE_3XL, weight=ft.FontWeight.W_700)])),
+                    ], alignment=ft.MainAxisAlignment.SPACE_AROUND),
+                    ft.Container(height=Spacing.XXXXL),
+                    create_card(
+                        content=ft.Column([
+                            create_section_title("Biểu đồ tiến độ (Thang điểm 10)"),
+                            ft.Container(height=Spacing.LG),
+                            ft.Container(
+                                content=chart if user_attempts else ft.Column([
+                                    ft.Icon(ft.Icons.CHART, size=48, color=Colors.GRAY_400),
+                                    ft.Text("No data to display", size=Typography.SIZE_LG, color=Colors.TEXT_MUTED),
+                                    ft.Text("Complete a quiz to see your progress here.", color=Colors.TEXT_MUTED)
+                                ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, alignment=ft.MainAxisAlignment.CENTER, expand=True),
+                                height=400,
+                                padding=Spacing.LG
+                            )
+                        ]),
+                        padding=Spacing.XL
+                    )
+                ]),
+                padding=Spacing.XXXXL,
+                expand=True, bgcolor=Colors.GRAY_50
+            )
+        ]),
+        expand=True
+    )
+
+    app_state.sidebar_drawer = ft.NavigationDrawer(controls=[sidebar])
+    app_state.current_page.drawer = app_state.sidebar_drawer
+    app_state.current_page.appbar = create_app_bar()
     app_state.current_view_handler = show_student_results_overview
 
-    sidebar = create_sidebar(app_state.current_user['role'], active_page="results")
-    header = create_app_header()
-    
-    main_content = ft.Column([
-        header,
-        ft.Row([
-            sidebar,
-            ft.VerticalDivider(width=1, color=Colors.GRAY_200),
-            ft.Container(
-                content=ft.Text("Student Results Overview - In Progress", size=24),
-                padding=Spacing.LG,
-                expand=True,
-                alignment=ft.alignment.center
-            )
-        ], expand=True)
-    ], expand=True)
-    
-    app_state.current_page.add(main_content)
+    if app_state.current_page.width >= 1000:
+        app_state.current_page.add(ft.Row([sidebar, main_content], expand=True))
+        app_state.current_page.appbar.visible = False
+    else:
+        app_state.current_page.add(main_content)
+        app_state.current_page.appbar.visible = True
     app_state.current_page.update()
 
 def show_attempt_review(attempt):
