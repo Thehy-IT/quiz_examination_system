@@ -96,7 +96,9 @@ def show_examinee_dashboard():
             # Hàm đóng dialog
             def close_dialog(e_dialog):
                 dialog.open = False
-                app_state.current_page.overlay.remove(dialog)
+                if dialog in app_state.current_page.overlay:
+                    app_state.current_page.overlay.remove(dialog)
+                app_state.current_page.dialog = None  # Reset trạng thái dialog
                 app_state.current_page.update()
 
             # Tạo dialog
@@ -370,9 +372,25 @@ def show_student_results_overview():
 
 def show_attempt_review(attempt):
     """Hiển thị giao diện xem lại chi tiết một lần làm bài"""
-    app_state.current_page.clean()
     quiz_id = attempt['quiz_id']
     quiz_info = next((q for q in mock_data.mock_quizzes if q['id'] == quiz_id), {})
+
+    if not quiz_info.get('show_answers_after_quiz', False):
+        # Hiển thị thông báo và quay về trang My Attempts
+        app_state.current_page.clean()
+        app_state.current_page.title = "Review Not Allowed"
+        app_state.current_page.add(
+            create_card(
+                ft.Column([
+                    ft.Text("Bạn không được phép xem lại đáp án bài thi này.", color=Colors.ERROR, size=Typography.SIZE_XL),
+                    ft.Container(height=Spacing.LG),
+                    create_primary_button("Return", on_click=lambda e: show_my_attempts())
+                ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=Spacing.XL)
+            )
+        )
+        app_state.current_page.update()
+        return
+    app_state.current_page.clean()
     app_state.current_page.title = f"Reviewing: {quiz_info.get('title', 'Quiz')}"
     app_state.current_view_handler = None
 
@@ -411,7 +429,7 @@ def show_attempt_review(attempt):
 
     review_layout = ft.Column([
         ft.Row([
-            create_secondary_button("Back to Attempts", on_click=exit_review, icon=ft.Icons.ARROW_BACK),
+            create_secondary_button("Back to Attempts", on_click=exit_review),
             ft.Container(expand=True),
             create_page_title(f"Question {current_question_index + 1}/{len(questions)}")
         ]),
