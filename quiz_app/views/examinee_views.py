@@ -245,11 +245,13 @@ def show_quiz_taking(quiz_basic_info):
     def handle_previous(e):
         if app_state.current_question_index > 0:
             app_state.current_question_index -= 1
+            update_progress()
             update_question_display()
     
     def handle_next(e):
         if app_state.current_question_index < len(app_state.quiz_questions) - 1:
             app_state.current_question_index += 1
+            update_progress()
             update_question_display()
     
     def handle_submit(e):
