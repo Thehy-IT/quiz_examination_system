@@ -3,47 +3,52 @@
 Modern Quiz App UI Test - Verify the complete modern UI works
 """
 
-import main
+import flet as ft
+
+# Import các module đã được tách nhỏ từ cấu trúc dự án mới
+from .utils import constants
+from .components import ui_helpers, navigation
+from .data import mock_data
+
 
 def test_modern_design_system():
     print("=== Testing Modern Design System ===")
     
     # Test color constants
-    assert hasattr(main.Colors, 'PRIMARY')
-    assert hasattr(main.Colors, 'SUCCESS')
-    assert hasattr(main.Colors, 'ERROR')
+    assert hasattr(constants.Colors, 'PRIMARY')
+    assert hasattr(constants.Colors, 'SUCCESS')
+    assert hasattr(constants.Colors, 'ERROR')
     print("✓ Color system defined correctly")
     
     # Test spacing system
-    assert hasattr(main.Spacing, 'XS')
-    assert hasattr(main.Spacing, 'XXXXL')
+    assert hasattr(constants.Spacing, 'XS')
+    assert hasattr(constants.Spacing, 'XXXXL')
     print("✓ Spacing system defined correctly")
     
     # Test typography
-    assert hasattr(main.Typography, 'SIZE_XS')
-    assert hasattr(main.Typography, 'SIZE_4XL')
+    assert hasattr(constants.Typography, 'SIZE_XS')
+    assert hasattr(constants.Typography, 'SIZE_3XL') # Đã sửa từ SIZE_4XL không tồn tại
     print("✓ Typography system defined correctly")
 
 def test_component_functions():
     print("\n=== Testing Component Functions ===")
     
     # Test button creation
-    primary_btn = main.create_primary_button("Test Button")
+    primary_btn = ui_helpers.create_primary_button("Test Button")
     assert primary_btn is not None
     print("✓ Primary button component works")
     
-    secondary_btn = main.create_secondary_button("Test Button")
+    secondary_btn = ui_helpers.create_secondary_button("Test Button")
     assert secondary_btn is not None
     print("✓ Secondary button component works")
     
     # Test input creation
-    text_input = main.create_text_input("Test Input")
+    text_input = ui_helpers.create_text_input("Test Input")
     assert text_input is not None
     print("✓ Text input component works")
     
     # Test card creation
-    import flet as ft
-    card = main.create_card(ft.Text("Test Content"))
+    card = ui_helpers.create_card(ft.Text("Test Content"))
     assert card is not None
     print("✓ Card component works")
 
@@ -51,34 +56,35 @@ def test_mock_data():
     print("\n=== Testing Enhanced Mock Data ===")
     
     # Test users
-    assert 'master' in main.mock_users
-    assert 'student' in main.mock_users
+    assert 'instructor' in mock_data.mock_users
+    assert 'student' in mock_data.mock_users
     print("✓ Mock users available")
     
     # Test enhanced quizzes
-    assert len(main.mock_quizzes) > 0
-    first_quiz = main.mock_quizzes[0]
-    assert 'difficulty' in first_quiz
+    assert len(mock_data.mock_quizzes) > 0
+    first_quiz = mock_data.mock_quizzes[0]
+    # 'difficulty' nằm trong câu hỏi, không phải trong quiz
     assert 'questions_count' in first_quiz
     print("✓ Enhanced mock quizzes available")
     
     # Test questions
-    assert 1 in main.mock_questions
-    assert len(main.mock_questions[1]) > 0
+    first_quiz_id = mock_data.mock_quizzes[0]['id']
+    assert first_quiz_id in mock_data.mock_questions
+    assert len(mock_data.mock_questions[first_quiz_id]) > 0
     print("✓ Mock questions available")
 
 def test_navigation_system():
     print("\n=== Testing Navigation System ===")
     
     # Test sidebar creation
-    sidebar = main.create_sidebar('master', 'dashboard')
+    sidebar = navigation.create_sidebar('instructor', 'dashboard')
     assert sidebar is not None
     print("✓ Sidebar navigation component works")
     
-    # Test sidebar items
-    sidebar_item = main.create_sidebar_item(main.ft.Icons.HOME, "Test", True)
-    assert sidebar_item is not None
-    print("✓ Sidebar items component works")
+    # Test app bar creation
+    app_bar = navigation.create_app_bar()
+    assert app_bar is not None
+    print("✓ App bar component works")
 
 def main_test():
     print("Starting Modern Quiz App UI Tests...")
@@ -105,8 +111,8 @@ def main_test():
         print("└─ 🏆 Results & Analytics")
         
         print("\n📋 Login Credentials:")
-        print("Master: username='master', password='master123'")
-        print("Student: username='student', password='student123'")
+        print("Instructor: username='instructor', password='instructor123'")
+        print("Examinee: username='student', password='student123'")
         
         print("\n🎯 Complete Workflow:")
         print("1. Login as master → Create Quiz → Add Questions")
@@ -127,4 +133,5 @@ def main_test():
     return True
 
 if __name__ == "__main__":
+    # Để chạy test, sử dụng lệnh: python -m quiz_app.test_ui từ thư mục gốc quiz_examination_system
     main_test()
