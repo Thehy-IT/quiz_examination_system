@@ -23,3 +23,4 @@ user_answers = {}
 quiz_questions = []
 quiz_start_time = None
 quiz_timer_thread = None
+flagged_questions = set() # NEW: Stores flagged question IDs

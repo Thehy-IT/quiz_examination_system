@@ -200,6 +200,7 @@ def show_quiz_taking(quiz_basic_info):
     app_state.current_question_index = 0
     app_state.user_answers = {}
     app_state.quiz_start_time = datetime.datetime.now()
+    app_state.flagged_questions = set()
     app_state.quiz_timer_thread = None
     
     app_state.quiz_questions = mock_data.mock_questions.get(quiz_basic_info['id'], [])
@@ -213,16 +214,47 @@ def show_quiz_taking(quiz_basic_info):
         return
     
     question_counter_text = ft.Text("", size=Typography.SIZE_BASE, weight=ft.FontWeight.W_600, color=Colors.TEXT_SECONDARY)
-    question_text_display = ft.Text("", size=Typography.SIZE_XL, weight=ft.FontWeight.W_600, color=Colors.TEXT_PRIMARY)
     timer_text = ft.Text("", size=Typography.SIZE_LG, weight=ft.FontWeight.W_600, color=Colors.ERROR)
-    
+    flag_button = ft.IconButton()
+    question_navigator_grid = ft.GridView(
+        expand=1,
+        runs_count=5,
+        max_extent=70,
+        child_aspect_ratio=1.0,
+        spacing=5,
+        run_spacing=5,
+    )
+
+    def go_to_question(e):
+        app_state.current_question_index = e.control.data
+        update_question_display()
+
     def update_question_display():
         if app_state.current_question_index >= len(app_state.quiz_questions):
             return
         
         question = app_state.quiz_questions[app_state.current_question_index]
         question_counter_text.value = f"Question {app_state.current_question_index + 1} of {len(app_state.quiz_questions)}"
-        question_text_display.value = question['question_text']
+
+        # Update flag button
+        is_flagged = question['id'] in app_state.flagged_questions
+        flag_button.icon = ft.Icons.FLAG if is_flagged else ft.Icons.FLAG_OUTLINED
+        flag_button.icon_color = Colors.WARNING if is_flagged else Colors.TEXT_SECONDARY
+        flag_button.tooltip = "Unflag Question" if is_flagged else "Flag for Review"
+        flag_button.data = question['id']
+        flag_button.on_click = handle_flag_question
+
+        # Update question navigator
+        question_navigator_grid.controls.clear()
+        for i, q in enumerate(app_state.quiz_questions):
+            is_current = (i == app_state.current_question_index)
+            has_answer = q['id'] in app_state.user_answers
+            is_flagged = q['id'] in app_state.flagged_questions
+            
+            nav_button = create_navigator_button(i, is_current, has_answer, is_flagged, go_to_question)
+            question_navigator_grid.controls.append(nav_button)
+
+
         
         shuffle_answers = quiz_basic_info.get('shuffle_answers', False)
         
@@ -235,7 +267,14 @@ def show_quiz_taking(quiz_basic_info):
             shuffle_answers,
             user_answer=user_answer # Truyền câu trả lời đã lưu vào
         )
-        question_component_container.content = question_component # Gán trực tiếp vào container bên dưới
+        
+        # NEW: Wrap the question component and the flag button in a Row
+        question_component_container.content = ft.Row(
+            controls=[
+                ft.Column([question_component], expand=True), # The component itself
+                flag_button # The flag button on the right
+            ], vertical_alignment=ft.CrossAxisAlignment.START
+        )
         
         prev_button.disabled = (app_state.current_question_index == 0)
         has_answer = question['id'] in app_state.user_answers
@@ -244,6 +283,14 @@ def show_quiz_taking(quiz_basic_info):
         
         app_state.current_page.update()
     
+    def handle_flag_question(e):
+        question_id = e.control.data
+        if question_id in app_state.flagged_questions:
+            app_state.flagged_questions.remove(question_id)
+        else:
+            app_state.flagged_questions.add(question_id)
+        update_question_display() # Redraw everything to update navigator and button
+
     def handle_answer_change(question_id, answer):
         app_state.user_answers[question_id] = answer
         has_answer = answer is not None and answer != "" and answer != []
@@ -254,13 +301,11 @@ def show_quiz_taking(quiz_basic_info):
     def handle_previous(e):
         if app_state.current_question_index > 0:
             app_state.current_question_index -= 1
-            update_progress()
             update_question_display()
     
     def handle_next(e):
         if app_state.current_question_index < len(app_state.quiz_questions) - 1:
             app_state.current_question_index += 1
-            update_progress()
             update_question_display()
     
     def handle_submit(e):
@@ -276,18 +321,6 @@ def show_quiz_taking(quiz_basic_info):
     next_button = create_primary_button("Next →", on_click=handle_next, width=120, disabled=True)
     submit_button = create_primary_button("Submit Quiz", on_click=handle_submit, width=130)
     submit_button.visible = False
-    
-    progress_bar = ft.ProgressBar(
-        width=400,
-        color=Colors.PRIMARY,
-        bgcolor=Colors.GRAY_200,
-        value=0
-    )
-    
-    def update_progress():
-        progress = (app_state.current_question_index + 1) / len(app_state.quiz_questions)
-        progress_bar.value = progress
-        app_state.current_page.update()
     
     def run_timer():
         duration_minutes = quiz_basic_info.get('duration_minutes', 10)
@@ -311,58 +344,109 @@ def show_quiz_taking(quiz_basic_info):
     app_state.quiz_timer_thread.start()
 
     question_component_container = ft.Container(content=ft.Column([]))
-
-    quiz_content = ft.Container(
-        content=ft.Column(scroll=ft.ScrollMode.AUTO, controls=[
-            create_card(
-                content=ft.Column([
+    
+    quiz_layout = ft.Row(
+        [
+            # Main content (Left side)
+            ft.Container(
+                content=ft.Column(scroll=ft.ScrollMode.AUTO, controls=[
+                    create_card(
+                        content=ft.Column([
+                            ft.Row([
+                                ft.Column([
+                                    ft.Text(
+                                        quiz_basic_info['title'],
+                                        size=Typography.SIZE_2XL,
+                                        weight=ft.FontWeight.W_700,
+                                        color=Colors.TEXT_PRIMARY
+                                    ),
+                                    question_counter_text
+                                ], expand=True, spacing=Spacing.XS),
+                                ft.Icon(ft.Icons.TIMER, color=Colors.ERROR),
+                                timer_text,
+                            ]),
+                        ]),
+                        padding=Spacing.XL
+                    ),
+                    ft.Container(height=Spacing.XXL),
+                    create_card(
+                        content=ft.Column([
+                            # The question text is now inside the component
+                            question_component_container
+                        ]),
+                        padding=Spacing.XXXXL
+                    ),
+                    ft.Container(height=Spacing.XXL),
                     ft.Row([
-                        ft.Column([
-                            ft.Text(
-                                quiz_basic_info['title'],
-                                size=Typography.SIZE_2XL,
-                                weight=ft.FontWeight.W_700,
-                                color=Colors.TEXT_PRIMARY
-                            ),
-                            question_counter_text
-                        ], expand=True, spacing=Spacing.XS),
-                        ft.Icon(ft.Icons.TIMER, color=Colors.ERROR),
-                        timer_text,
-                        ft.Container(width=Spacing.XL),
-                        create_secondary_button("Exit Quiz", on_click=exit_quiz, width=100)
+                        prev_button,
+                        ft.Container(expand=True),
+                        next_button,
+                        submit_button
+                    ])
+                ]),
+                expand=3,
+            ),
+            # Navigator (Right side)
+            ft.Container( # NEW: Create the button and set its property separately
+                content=create_card(
+                    content=ft.Column([
+                        create_section_title("Question Navigator"),
+                        ft.Divider(height=Spacing.LG),
+                        question_navigator_grid,
+                        ft.Divider(height=Spacing.LG),
+                        ft.Row(
+                            [create_secondary_button("Exit Quiz", on_click=exit_quiz, width=None)],
+                            alignment=ft.MainAxisAlignment.CENTER
+                        )
                     ]),
-                    ft.Container(height=Spacing.LG),
-                    progress_bar
-                ]),
-                padding=Spacing.XL
-            ),
-            ft.Container(height=Spacing.XXL),
-            create_card(
-                content=ft.Column([
-                    question_component_container
-                ]),
-                padding=Spacing.XXXXL
-            ),
-            ft.Container(height=Spacing.XXL),
-            ft.Row([
-                prev_button,
-                ft.Container(expand=True),
-                next_button,
-                submit_button
-            ])
-        ]),
-        padding=Spacing.XXXXL,
-        expand=True,
-        alignment=ft.alignment.top_center
+                    padding=Spacing.LG
+                ),
+                expand=1,
+                padding=ft.padding.only(left=Spacing.XXL)
+            )
+        ],
+        vertical_alignment=ft.CrossAxisAlignment.START
     )
-    
+
+    page_content = ft.Container(
+        content=quiz_layout,
+        padding=Spacing.XXXXL,
+        expand=True
+    )
+
     update_question_display()
-    update_progress()
     
-    app_state.current_page.add(quiz_content)
+    app_state.current_page.add(page_content)
     app_state.current_view_handler = None
     app_state.current_page.update()
 
+def create_navigator_button(index, is_current, has_answer, is_flagged, on_click):
+    """Helper to create a single button for the question navigator."""
+    return ft.Container(
+        content=ft.Stack([
+            ft.IconButton(
+                content=ft.Text(str(index + 1), color=Colors.TEXT_PRIMARY if not has_answer else Colors.WHITE),
+                on_click=on_click,
+                data=index,
+                style=ft.ButtonStyle(
+                    shape=ft.CircleBorder(),
+                    bgcolor=Colors.SUCCESS if has_answer else Colors.GRAY_200,
+                    side=ft.BorderSide(2, Colors.PRIMARY) if is_current else None,
+                ),
+                width=50,
+                height=50
+            ),
+            ft.Container(
+                content=ft.Icon(ft.Icons.FLAG, color=Colors.WARNING, size=16),
+                right=0,
+                top=0,
+                visible=is_flagged
+            )
+        ]),
+        width=55,
+        height=55,
+        alignment=ft.alignment.center
+    )
 
 def show_quiz_results(quiz_data, user_answers, start_time):
     """Hiển thị kết quả sau khi làm bài thi"""
