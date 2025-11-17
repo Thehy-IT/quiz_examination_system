@@ -68,7 +68,7 @@ def show_examinee_dashboard():
 
     def handle_start_quiz(quiz):
         def start_action(e):
-            if quiz.get('password'):
+            if quiz.get('password') is not None:
                 password_field = create_text_input("Quiz Password", password=True, can_reveal=True)
                 error_text = ft.Text("", color=Colors.ERROR, size=Typography.SIZE_SM)
 
@@ -215,7 +215,6 @@ def show_quiz_taking(quiz_basic_info):
     question_counter_text = ft.Text("", size=Typography.SIZE_BASE, weight=ft.FontWeight.W_600, color=Colors.TEXT_SECONDARY)
     question_text_display = ft.Text("", size=Typography.SIZE_XL, weight=ft.FontWeight.W_600, color=Colors.TEXT_PRIMARY)
     timer_text = ft.Text("", size=Typography.SIZE_LG, weight=ft.FontWeight.W_600, color=Colors.ERROR)
-    question_component_container = ft.Container(content=ft.Column([]))
     
     def update_question_display():
         if app_state.current_question_index >= len(app_state.quiz_questions):
@@ -227,7 +226,7 @@ def show_quiz_taking(quiz_basic_info):
         
         shuffle_answers = quiz_basic_info.get('shuffle_answers', False)
         question_component = create_question_by_type(question, handle_answer_change, shuffle_answers)
-        question_component_container.content = question_component
+        question_component_container.content = question_component # Gán trực tiếp vào container bên dưới
         
         prev_button.disabled = (app_state.current_question_index == 0)
         has_answer = question['id'] in app_state.user_answers
@@ -300,6 +299,8 @@ def show_quiz_taking(quiz_basic_info):
     app_state.quiz_timer_thread = threading.Thread(target=run_timer, daemon=True)
     app_state.quiz_timer_thread.start()
 
+    question_component_container = ft.Container(content=ft.Column([]))
+
     quiz_content = ft.Container(
         content=ft.Column(scroll=ft.ScrollMode.AUTO, controls=[
             create_card(
@@ -327,8 +328,6 @@ def show_quiz_taking(quiz_basic_info):
             ft.Container(height=Spacing.XXL),
             create_card(
                 content=ft.Column([
-                    question_text_display,
-                    ft.Container(height=Spacing.XXL),
                     question_component_container
                 ]),
                 padding=Spacing.XXXXL
