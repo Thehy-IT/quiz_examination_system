@@ -225,7 +225,16 @@ def show_quiz_taking(quiz_basic_info):
         question_text_display.value = question['question_text']
         
         shuffle_answers = quiz_basic_info.get('shuffle_answers', False)
-        question_component = create_question_by_type(question, handle_answer_change, shuffle_answers)
+        
+        # Lấy câu trả lời đã lưu của người dùng cho câu hỏi hiện tại
+        user_answer = app_state.user_answers.get(question['id'])
+
+        question_component = create_question_by_type(
+            question, 
+            handle_answer_change, 
+            shuffle_answers,
+            user_answer=user_answer # Truyền câu trả lời đã lưu vào
+        )
         question_component_container.content = question_component # Gán trực tiếp vào container bên dưới
         
         prev_button.disabled = (app_state.current_question_index == 0)

@@ -59,6 +59,7 @@ def create_multiple_choice_question(question, on_answer_change, shuffle_answers=
     options_group.content = ft.Column(options, spacing=Spacing.MD)
 
     if not is_review:
+        options_group.value = user_answer  # Đặt lại giá trị đã chọn
         options_group.on_change = lambda e: on_answer_change(e, e.control.value)
     else:
         options_group.value = user_answer
@@ -115,6 +116,10 @@ def create_true_false_question(question, on_answer_change, is_review=False, user
             radio.label = ft.Row([review_indicator, ft.Text(radio.label)], spacing=Spacing.SM)
 
     else:
+        # Khôi phục trạng thái đã chọn
+        if user_answer is not None:
+            user_answer_bool = user_answer if isinstance(user_answer, bool) else (str(user_answer).lower() == "true")
+            true_false_group.value = "true" if user_answer_bool else "false"
         true_false_group.on_change = lambda e: on_answer_change(e, e.control.value == "true")
     
     explanation_content = []
@@ -155,6 +160,7 @@ def create_fill_in_blank_question(question, on_answer_change, is_review=False, u
         )
 
     else:
+        answer_field.value = user_answer if user_answer is not None else "" # Đặt lại giá trị đã nhập
         answer_field.on_change = lambda e: on_answer_change(e, e.control.value)
     
 
@@ -178,6 +184,8 @@ def create_multiple_select_question(question, on_answer_change, shuffle_answers=
     # Xáo trộn đáp án nếu được yêu cầu
     if shuffle_answers:
         random.shuffle(options_data)
+
+    user_answer_set = set(user_answer or [])
     
     for i, option in enumerate(options_data):
         option_text = option['option_text']
@@ -192,7 +200,7 @@ def create_multiple_select_question(question, on_answer_change, shuffle_answers=
 
         if is_review:
             checkbox.disabled = True
-            user_answer_set = set(user_answer or [])
+            # user_answer_set = set(user_answer or [])
             checkbox.value = option_text in user_answer_set
 
             review_indicator = ft.Container(width=24)
@@ -206,6 +214,7 @@ def create_multiple_select_question(question, on_answer_change, shuffle_answers=
 
             checkboxes.append(ft.Row([review_indicator, checkbox], spacing=Spacing.SM))
         else:
+            checkbox.value = option_text in user_answer_set # Đặt lại trạng thái đã chọn
             checkboxes.append(checkbox)
 
     if not is_review:
@@ -264,6 +273,7 @@ def create_short_answer_question(question, on_answer_change, is_review=False, us
             )
         
     else:
+        answer_field.value = user_answer if user_answer is not None else "" # Đặt lại giá trị đã nhập
         answer_field.on_change = lambda e: on_answer_change(e, e.control.value)
 
     return ft.Column([
