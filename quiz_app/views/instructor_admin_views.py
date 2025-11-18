@@ -372,8 +372,8 @@ def show_quiz_management():
     # Biểu mẫu tạo bài thi mới
     quiz_title_field = create_text_input("Quiz Title", width=400)
     quiz_description_field = create_text_input("Description", width=400, multiline=True, min_lines=3)
-    quiz_start_time_field = create_text_input("Start Time (YYYY-MM-DD HH:MM)", width=250, icon=ft.Icons.CALENDAR_MONTH)
-    quiz_end_time_field = create_text_input("End Time (YYYY-MM-DD HH:MM)", width=250, icon=ft.Icons.CALENDAR_MONTH) # thêm trường end_time: hạn của quiz
+    quiz_start_time_field = create_text_input("YYYY-MM-DD HH:MM", width=250, icon=ft.Icons.CALENDAR_MONTH)
+    quiz_end_time_field = create_text_input("YYYY-MM-DD HH:MM", width=250, icon=ft.Icons.CALENDAR_MONTH) # thêm trường end_time: hạn của quiz
     quiz_duration_field = create_text_input("Duration (minutes)", width=140, icon=ft.Icons.TIMER)
     quiz_password_field = create_text_input("Quiz Password (optional)", password=True, width=400, icon=ft.Icons.LOCK, can_reveal=True)
     shuffle_questions_switch = ft.Switch(label="Questions shuffle", value=False)
@@ -482,36 +482,25 @@ def show_quiz_management():
             quiz_description_field, ft.Container(height=Spacing.LG),
             class_dropdown, ft.Container(height=Spacing.LG),
 
-            # 2. Cập nhật layout để thêm các nút mở picker
+            # 2. Bố cục cài đặt thời gian theo chiều dọc
+            ft.Text("Start Time", color=Colors.TEXT_SECONDARY),
             ft.Row([
-                ft.Column([
-                    ft.Text("Start Time", color=Colors.TEXT_SECONDARY),
-                    ft.Row([
+                quiz_start_time_field,
+                ft.IconButton(icon=ft.Icons.CALENDAR_MONTH_OUTLINED, on_click=lambda _: app_state.current_page.open(start_date_picker), tooltip="Pick Start Date"),
+                ft.IconButton(icon=ft.Icons.ACCESS_TIME_OUTLINED, on_click=lambda _: app_state.current_page.open(start_time_picker), tooltip="Pick Start Time"),
+            ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
+            ft.Container(height=Spacing.SM),
 
-                        quiz_start_time_field,
-                        ft.Column([
-                            ft.IconButton(icon=ft.Icons.CALENDAR_MONTH_OUTLINED, on_click=lambda _: app_state.current_page.open(start_date_picker), tooltip="Pick Start Date", icon_size=20, padding=4),
-                            ft.IconButton(icon=ft.Icons.ACCESS_TIME_OUTLINED, on_click=lambda _: app_state.current_page.open(start_time_picker), tooltip="Pick Start Time", icon_size=20, padding=4),
-                        ], spacing=0)
-                    ], vertical_alignment=ft.CrossAxisAlignment.START)
-                ]),
-                ft.Column([
-                    ft.Text("End Time", color=Colors.TEXT_SECONDARY),
-                    ft.Row([
+            ft.Text("End Time", color=Colors.TEXT_SECONDARY),
+            ft.Row([
+                quiz_end_time_field,
+                ft.IconButton(icon=ft.Icons.CALENDAR_MONTH_OUTLINED, on_click=lambda _: app_state.current_page.open(end_date_picker), tooltip="Pick End Date"),
+                ft.IconButton(icon=ft.Icons.ACCESS_TIME_OUTLINED, on_click=lambda _: app_state.current_page.open(end_time_picker), tooltip="Pick End Time"),
+            ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
+            ft.Container(height=Spacing.SM),
 
-                        quiz_end_time_field,
-                       ft.Column([
-                            ft.IconButton(icon=ft.Icons.CALENDAR_MONTH_OUTLINED, on_click=lambda _: app_state.current_page.open(end_date_picker), tooltip="Pick End Date", icon_size=20, padding=4),
-                            ft.IconButton(icon=ft.Icons.ACCESS_TIME_OUTLINED, on_click=lambda _: app_state.current_page.open(end_time_picker), tooltip="Pick End Time", icon_size=20, padding=4),
-                        ], spacing=0)
-                    ], vertical_alignment=ft.CrossAxisAlignment.START)
-                    
-                ]),
-                ft.Column([
-                    ft.Text("Duration", color=Colors.TEXT_SECONDARY),
-                    quiz_duration_field
-                ]),
-            ], spacing=Spacing.MD, alignment=ft.MainAxisAlignment.START),
+            ft.Text("Duration", color=Colors.TEXT_SECONDARY),
+            quiz_duration_field,
 
             ft.Container(height=Spacing.LG), quiz_password_field, ft.Container(height=Spacing.LG),
             ft.Row([shuffle_questions_switch, shuffle_answers_switch], spacing=Spacing.XL),
@@ -786,8 +775,10 @@ def show_create_quiz_from_bank():
 
     if app_state.current_page.width >= 1000:
         app_state.current_page.add(ft.Row([sidebar, main_content], expand=True))
+        app_state.current_page.appbar.visible = False
     else:
         app_state.current_page.add(main_content)
+        app_state.current_page.appbar.visible = True
     app_state.current_page.update()
 
 
