@@ -753,19 +753,24 @@ def show_create_quiz_from_bank():
                         ], expand=3),
                         ft.VerticalDivider(width=Spacing.XXL),
                         # Cột bên phải: Quiz đang tạo
-                        ft.Column([
-                            selected_counter_text,
-                            ft.Divider(),
-                            selected_questions_list_view,
-                            ft.Divider(),
-                            create_section_title("Quiz Details"),
-                            quiz_title_field,
-                            quiz_description_field,
-                            class_dropdown,
-                            error_text,
-                            ft.Container(height=Spacing.LG),
-                            create_primary_button("Create Quiz", on_click=handle_final_create_quiz, icon=ft.Icons.ADD_CIRCLE)
-                        ], expand=2),
+                        ft.Column(
+                            scroll=ft.ScrollMode.AUTO,
+                            controls=[
+                                selected_counter_text,
+                                ft.Divider(),
+                                selected_questions_list_view,
+                                ft.Divider(),
+                                create_section_title("Quiz Details"),
+                                quiz_title_field,
+                                quiz_description_field,
+                                class_dropdown,
+                                # (Bạn có thể thêm lại các trường start_time, end_time, duration... tương tự như form cũ ở đây)
+                                error_text,
+                                ft.Container(height=Spacing.LG),
+                                create_primary_button("Create Quiz", on_click=handle_final_create_quiz, icon=ft.Icons.ADD_CIRCLE)
+                            ],
+                            expand=2
+                        ),
                     ], expand=True)
                 ]),
                 padding=Spacing.XXXXL, expand=True, bgcolor=Colors.GRAY_50
