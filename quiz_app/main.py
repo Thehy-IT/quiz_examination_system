@@ -5,17 +5,12 @@ import flet as ft
 # Import các module đã tách
 from . import app_state
 from .data import mock_data
-from .data.database import init_db 
 from .views.login_view import show_login
 from .views.instructor_admin_views import show_instructor_dashboard
 from .views.examinee_views import show_examinee_dashboard
 
 def main_page(page: ft.Page):
     """Điểm vào chính của ứng dụng Flet"""
-    
-    # khởi tạo CSDL khi ứng dụng bắt đầu
-    init_db()
-
     
     # Cấu hình trang
     page.title = "Modern Quiz App"

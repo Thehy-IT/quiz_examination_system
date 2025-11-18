@@ -7,7 +7,6 @@ import random
 # Import các module cần thiết
 from .. import app_state
 from ..data import mock_data
-from ..data import database # them data base
 from ..utils.constants import Colors, Spacing, Typography, BorderRadius
 
 # Import các hàm trợ giúp và component
