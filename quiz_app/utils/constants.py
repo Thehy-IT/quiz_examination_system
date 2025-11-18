@@ -57,12 +57,13 @@ class Typography:
     SIZE_XL = 20
     SIZE_2XL = 24
     SIZE_3XL = 32
-    SIZE_4XL = 48
 
-# Border radius scale: bo góc các thành phần
 class BorderRadius:
+    """Các giá trị bo góc (border radius).
+    Sử dụng các hằng số này đảm bảo tất cả các thành phần như nút bấm, thẻ card, ô nhập liệu
+    đều có độ bo góc nhất quán, tạo cảm giác đồng bộ cho thiết kế."""
     SM = 4
     MD = 8
     LG = 12
     XL = 16
-    XXL = 24 # New larger radius for prominent elements
+    XXL = 24 # Bo góc lớn hơn cho các thành phần nổi bật.

@@ -21,6 +21,8 @@ from ..components.question_widgets import create_question_by_type
 
 def show_examinee_dashboard():
     """Hiển thị trang tổng quan cho sinh viên"""
+    # Mỗi khi chuyển trang, mình sẽ "dọn dẹp" page cũ và vẽ lại từ đầu.
+    # Đây là cách tiếp cận đơn giản và hiệu quả trong Flet.
     app_state.current_page.clean()
     
     sidebar = create_sidebar(app_state.current_user['role'], "home")
@@ -30,15 +32,18 @@ def show_examinee_dashboard():
     quiz_list_view = ft.Column(spacing=Spacing.LG)
 
     def update_quiz_list(e=None):
+        """Hàm này chịu trách nhiệm lọc và hiển thị danh sách các bài thi phù hợp."""
         search_term = search_field.value.lower() if search_field.value else ""
         student_class_id = app_state.current_user.get('class_id')
         
         available_quizzes = []
+        # Chỉ lấy các bài thi được gán cho lớp của sinh viên hiện tại và đang ở trạng thái "active".
         if student_class_id is not None:
             available_quizzes = [
                 q for q in mock_data.mock_quizzes 
                 if q.get('is_active', False) and q.get('class_id') == student_class_id
             ]
+        # Sau đó mới lọc theo từ khóa tìm kiếm.
         # Không lọc quiz hết hạn ở đây, chỉ lọc theo từ khóa tìm kiếm
         filtered_quizzes = [
             q for q in available_quizzes if search_term in q['title'].lower()
@@ -48,6 +53,8 @@ def show_examinee_dashboard():
         if filtered_quizzes:
             for quiz in filtered_quizzes:
                 quiz_list_view.controls.append(create_quiz_card(quiz))
+        # Nếu không có bài thi nào, hiển thị một thông báo thân thiện.
+        # Việc cung cấp "empty state" như này giúp cải thiện trải nghiệm người dùng (UX).
         else:
             quiz_list_view.controls.append(create_card(
                 content=ft.Column([
@@ -69,11 +76,14 @@ def show_examinee_dashboard():
 
     def handle_start_quiz(quiz):
         def start_action(e):
+            """Hàm closure này "bắt" lấy biến `quiz` từ bên ngoài.
+            Mỗi nút "Start Quiz" sẽ có một hàm `start_action` riêng với đúng `quiz` của nó."""
 
              # 1. Định nghĩa hàm đóng dialog ở phạm vi chung
             def close_dialog(e_dialog, dialog_to_close):
                     # password_dialog.open = False ***bỏ
                     dialog_to_close.open = False
+                    # Luôn phải gọi update() sau khi thay đổi thuộc tính của control.
                     app_state.current_page.update()
 
             now = datetime.datetime.now()
@@ -102,6 +112,7 @@ def show_examinee_dashboard():
                 except ValueError:
                     pass # Bỏ qua nếu định dạng thời gian sai
             
+            # Nếu bài thi có mật khẩu, hiển thị dialog yêu cầu nhập mật khẩu.
             if quiz.get('password') is not None:
                 password_field = create_text_input("Quiz Password", password=True, can_reveal=True)
                 error_text = ft.Text("", color=Colors.ERROR, size=Typography.SIZE_SM)
@@ -115,8 +126,6 @@ def show_examinee_dashboard():
                         error_text.value = "Incorrect password. Please try again."
                         password_field.value = ""
                         app_state.current_page.update()
-
-                
 
                 password_dialog = ft.AlertDialog(
                     modal=True,
@@ -137,14 +146,16 @@ def show_examinee_dashboard():
                 password_dialog.open = True
                 app_state.current_page.update()
             else:
+                # Nếu không có mật khẩu, chuyển thẳng đến trang làm bài.
                 show_quiz_taking(quiz)
         return start_action
 
     def create_quiz_card(quiz):
-        # --- BẮT ĐẦU THAY ĐỔI ---
+        """Hàm "nhà máy" để tạo một thẻ (card) hiển thị thông tin của một bài thi."""
         now = datetime.datetime.now()
         
-        # Kiểm tra trạng thái của quiz
+        # Logic quan trọng: xác định trạng thái của bài thi (chưa bắt đầu, đã hết hạn)
+        # để quyết định có cho phép người dùng nhấn nút "Start Quiz" hay không.
         start_time = datetime.datetime.strptime(quiz.get('start_time', '1970-01-01 00:00'), '%Y-%m-%d %H:%M')
         is_not_started = now < start_time
         
@@ -160,7 +171,6 @@ def show_examinee_dashboard():
 
         # Nút sẽ bị vô hiệu hóa nếu chưa bắt đầu HOẶC đã hết hạn
         button_disabled = is_not_started or is_expired
-        # --- KẾT THÚC THAY ĐỔI ---
 
         quiz_card = create_card(
             content=ft.Column([
@@ -178,6 +188,7 @@ def show_examinee_dashboard():
                             color=Colors.TEXT_SECONDARY
                         )
                     ], expand=True),
+                    # Hiển thị icon ổ khóa nếu bài thi có mật khẩu.
                     ft.Row([
                         ft.Icon(ft.Icons.LOCK, color=Colors.WARNING, size=16) if quiz.get('password') else ft.Container(),
                         ft.Container(width=Spacing.SM) if quiz.get('password') else ft.Container(),
@@ -202,6 +213,7 @@ def show_examinee_dashboard():
                     ft.Container(expand=True),
                     create_primary_button(
                         "Start Quiz", on_click=handle_start_quiz(quiz), width=120,
+                        # Vô hiệu hóa nút dựa trên trạng thái đã tính toán ở trên.
                         disabled=button_disabled # Sử dụng biến đã tính toán ở trên
                     )
                 ])
@@ -210,6 +222,7 @@ def show_examinee_dashboard():
         )
         return quiz_card
 
+    # Lần đầu tải trang, gọi hàm này để hiển thị danh sách ban đầu.
     update_quiz_list()
     main_content = ft.Container(
         content=ft.Column(spacing=0, controls=[
@@ -237,7 +250,9 @@ def show_examinee_dashboard():
     app_state.current_page.drawer = app_state.sidebar_drawer
     app_state.current_page.appbar = create_app_bar()
     app_state.current_view_handler = show_examinee_dashboard
-
+    
+    # Logic responsive: hiển thị sidebar cố định trên màn hình lớn và ẩn đi
+    # trong NavigationDrawer (có thể mở bằng nút menu) trên màn hình nhỏ.
     if app_state.current_page.width >= 1000:
         app_state.current_page.add(ft.Row([sidebar, main_content], expand=True))
         app_state.current_page.appbar.visible = False
@@ -250,6 +265,8 @@ def show_examinee_dashboard():
 
 def show_quiz_taking(quiz_basic_info):
     """Hiển thị giao diện làm bài thi"""
+    # Reset các biến trạng thái liên quan đến việc làm bài thi mỗi khi bắt đầu một bài mới.
+    # Việc này đảm bảo không có dữ liệu rác từ lần làm bài trước.
     app_state.current_page.clean()
     app_state.current_question_index = 0
     app_state.user_answers = {}
@@ -259,6 +276,7 @@ def show_quiz_taking(quiz_basic_info):
     
     app_state.quiz_questions = mock_data.mock_questions.get(quiz_basic_info['id'], [])
 
+    # Xáo trộn câu hỏi nếu bài thi có cấu hình.
     if quiz_basic_info.get('shuffle_questions', False):
         import random
         random.shuffle(app_state.quiz_questions)
@@ -267,6 +285,7 @@ def show_quiz_taking(quiz_basic_info):
         show_examinee_dashboard()
         return
     
+    # Khởi tạo các UI component chính.
     question_counter_text = ft.Text("", size=Typography.SIZE_BASE, weight=ft.FontWeight.W_600, color=Colors.TEXT_SECONDARY)
     timer_text = ft.Text("", size=Typography.SIZE_LG, weight=ft.FontWeight.W_600, color=Colors.ERROR)
     flag_button = ft.IconButton()
@@ -280,17 +299,19 @@ def show_quiz_taking(quiz_basic_info):
     )
 
     def go_to_question(e):
+        """Hàm xử lý sự kiện khi người dùng nhấn vào một nút trong bảng điều hướng câu hỏi."""
         app_state.current_question_index = e.control.data
         update_question_display()
 
     def update_question_display():
+        """Hàm "trung tâm", chịu trách nhiệm cập nhật toàn bộ giao diện khi chuyển câu hỏi."""
         if app_state.current_question_index >= len(app_state.quiz_questions):
             return
         
         question = app_state.quiz_questions[app_state.current_question_index]
         question_counter_text.value = f"Question {app_state.current_question_index + 1} of {len(app_state.quiz_questions)}"
 
-        # Update flag button
+        # Cập nhật trạng thái của nút "Flag" (đánh dấu câu hỏi).
         is_flagged = question['id'] in app_state.flagged_questions
         flag_button.icon = ft.Icons.FLAG if is_flagged else ft.Icons.FLAG_OUTLINED
         flag_button.icon_color = Colors.WARNING if is_flagged else Colors.TEXT_SECONDARY
@@ -298,7 +319,7 @@ def show_quiz_taking(quiz_basic_info):
         flag_button.data = question['id']
         flag_button.on_click = handle_flag_question
 
-        # Update question navigator
+        # Vẽ lại bảng điều hướng câu hỏi để highlight câu hiện tại, câu đã trả lời, câu đã đánh dấu.
         question_navigator_grid.controls.clear()
         for i, q in enumerate(app_state.quiz_questions):
             is_current = (i == app_state.current_question_index)
@@ -308,8 +329,6 @@ def show_quiz_taking(quiz_basic_info):
             nav_button = create_navigator_button(i, is_current, has_answer, is_flagged, go_to_question)
             question_navigator_grid.controls.append(nav_button)
 
-
-        
         shuffle_answers = quiz_basic_info.get('shuffle_answers', False)
         
         # Lấy câu trả lời đã lưu của người dùng cho câu hỏi hiện tại
@@ -317,11 +336,12 @@ def show_quiz_taking(quiz_basic_info):
 
         question_component = create_question_by_type(
             question, 
-            handle_answer_change, 
+            handle_answer_change, # Callback function để nhận câu trả lời từ component con.
             shuffle_answers,
             user_answer=user_answer # Truyền câu trả lời đã lưu vào
         )
         
+        # Bọc component câu hỏi và nút flag vào một Row.
         # NEW: Wrap the question component and the flag button in a Row
         question_component_container.content = ft.Row(
             controls=[
@@ -330,6 +350,7 @@ def show_quiz_taking(quiz_basic_info):
             ], vertical_alignment=ft.CrossAxisAlignment.START
         )
         
+        # Cập nhật trạng thái của các nút điều hướng.
         prev_button.disabled = (app_state.current_question_index == 0)
         has_answer = question['id'] in app_state.user_answers
         next_button.disabled = not has_answer
@@ -338,6 +359,7 @@ def show_quiz_taking(quiz_basic_info):
         app_state.current_page.update()
     
     def handle_flag_question(e):
+        """Xử lý việc thêm/bỏ đánh dấu một câu hỏi."""
         question_id = e.control.data
         if question_id in app_state.flagged_questions:
             app_state.flagged_questions.remove(question_id)
@@ -346,6 +368,7 @@ def show_quiz_taking(quiz_basic_info):
         update_question_display() # Redraw everything to update navigator and button
 
     def handle_answer_change(question_id, answer):
+        """Callback được gọi bởi component câu hỏi mỗi khi người dùng thay đổi câu trả lời."""
         app_state.user_answers[question_id] = answer
         has_answer = answer is not None and answer != "" and answer != []
         next_button.disabled = not has_answer
@@ -363,6 +386,7 @@ def show_quiz_taking(quiz_basic_info):
             update_question_display()
     
     def handle_submit(e):
+        """Xử lý khi người dùng nộp bài."""
         if app_state.quiz_timer_thread:
             app_state.quiz_timer_thread.do_run = False
             app_state.quiz_timer_thread = None
@@ -374,12 +398,17 @@ def show_quiz_taking(quiz_basic_info):
     submit_button.visible = False # Giữ nút này ẩn đi vì đã có nút submit ở thanh bên phải
     
     def run_timer():
+        """Hàm chạy đồng hồ đếm ngược trong một luồng (thread) riêng biệt.
+        Việc này giúp UI không bị "đơ" trong khi đồng hồ đang chạy."""
         duration_minutes = quiz_basic_info.get('duration_minutes', 10)
         end_time = app_state.quiz_start_time + datetime.timedelta(minutes=duration_minutes)
         
         t = threading.current_thread()
+        # Vòng lặp này sẽ chạy cho đến khi cờ `do_run` được set thành False (khi nộp bài).
         while getattr(t, "do_run", True):
             remaining = end_time - datetime.datetime.now()
+            # Nếu hết giờ, tự động nộp bài.
+            # `page.run()` được dùng để thực thi một hàm trong luồng chính của Flet từ một luồng khác.
             if remaining.total_seconds() <= 0:
                 timer_text.value = "00:00"
                 app_state.current_page.update()
@@ -391,12 +420,14 @@ def show_quiz_taking(quiz_basic_info):
             app_state.current_page.update()
             time.sleep(1)
 
+    # Khởi tạo và bắt đầu luồng đếm giờ.
     app_state.quiz_timer_thread = threading.Thread(target=run_timer, daemon=True)
     app_state.quiz_timer_thread.start()
 
     question_component_container = ft.Container(content=ft.Column([]))
     
     quiz_layout = ft.Row(
+        # Bố cục 2 cột: bên trái là nội dung câu hỏi, bên phải là thanh điều hướng.
         [
             # Main content (Left side)
             ft.Container(
@@ -507,31 +538,38 @@ def show_quiz_results(quiz_data, user_answers, start_time):
     correct_count = 0
     total_questions = len(quiz_questions)
     
+    # Logic chấm điểm: lặp qua từng câu hỏi và so sánh câu trả lời của người dùng với đáp án.
     for question in quiz_questions:
         question_id = question['id']
         if question_id in user_answers:
             user_answer = user_answers[question_id]
             question_type = question.get('question_type', 'multiple_choice')
             
+            # Chấm điểm cho câu trắc nghiệm chọn một.
             if question_type == 'multiple_choice':
                 correct_option_text = next((opt['option_text'] for opt in question['options'] if opt['is_correct']), None)
                 if correct_option_text and user_answer == correct_option_text:
                     correct_count += 1
+            # Chấm điểm cho câu Đúng/Sai.
             elif question_type == 'true_false':
                 if user_answer == question.get('correct_answer'):
                     correct_count += 1
+            # Chấm điểm cho câu điền vào chỗ trống (có xét các biến thể).
             elif question_type == 'fill_in_blank':
                 correct_answer = question.get('correct_answer', '').lower().strip()
                 answer_variations = question.get('answer_variations', [])
                 user_answer_clean = str(user_answer).lower().strip()
                 if user_answer_clean == correct_answer or user_answer_clean in answer_variations:
                     correct_count += 1
+            # Chấm điểm cho câu chọn nhiều đáp án.
             elif question_type == 'multiple_select':
                 if isinstance(user_answer, list):
                     correct_options_texts = {opt['option_text'] for opt in question['options'] if opt['is_correct']}
                     user_answers_texts = set(user_answer)
                     if user_answers_texts == correct_options_texts:
                         correct_count += 1
+            # Câu trả lời ngắn được chấm nửa điểm nếu có trả lời (để giảng viên chấm lại sau).
+            # Đây là một quy tắc nghiệp vụ (business rule) của hệ thống.
             elif question_type == 'short_answer':
                 if user_answer and str(user_answer).strip():
                     correct_count += 0.5
@@ -543,6 +581,7 @@ def show_quiz_results(quiz_data, user_answers, start_time):
     time_minutes = int(time_taken.total_seconds() / 60)
     time_seconds = int(time_taken.total_seconds() % 60)
     
+    # Tạo một bản ghi "lần làm bài" (attempt) mới và lưu vào mock_data.
     if mock_data.mock_attempts:
         new_attempt_id = max(a['attempt_id'] for a in mock_data.mock_attempts) + 1
     else:
@@ -560,6 +599,7 @@ def show_quiz_results(quiz_data, user_answers, start_time):
     }
     mock_data.mock_attempts.append(new_attempt)
 
+    # Giao diện hiển thị kết quả.
     results_content = ft.Container(
         content=ft.Column([
             create_card(
@@ -640,6 +680,7 @@ def show_quiz_results(quiz_data, user_answers, start_time):
     app_state.current_page.update()
 
 def show_student_results_overview():
+    """Hiển thị trang tổng quan kết quả của sinh viên với biểu đồ tiến độ."""
     """Hiển thị tổng quan kết quả của sinh viên với biểu đồ"""
     app_state.current_page.clean()
     sidebar = create_sidebar(app_state.current_user['role'], "results")
@@ -647,6 +688,7 @@ def show_student_results_overview():
     user_attempts = [attempt for attempt in mock_data.mock_attempts if attempt['user_id'] == app_state.current_user['id']]
     user_attempts.sort(key=lambda x: x['completed_at'])
 
+    # Chuẩn bị dữ liệu cho biểu đồ cột.
     bar_groups = []
     total_score_10 = 0
     highest_score_10 = 0
@@ -679,6 +721,7 @@ def show_student_results_overview():
 
     avg_score_10 = (total_score_10 / len(user_attempts)) if user_attempts else 0
 
+    # Tạo biểu đồ cột (BarChart) từ dữ liệu đã xử lý.
     chart = ft.BarChart(
         bar_groups=bar_groups,
         border=ft.border.all(1, Colors.GRAY_300),
@@ -761,7 +804,8 @@ def show_attempt_review(attempt):
     if not quiz_info:
         show_my_attempts()
         return
-
+    
+    # Lấy danh sách câu hỏi và câu trả lời của người dùng cho lần thi đó.
     app_state.quiz_questions = mock_data.mock_questions.get(quiz_info['id'], [])
     user_answers = attempt.get('user_answers', {})
 
@@ -769,8 +813,10 @@ def show_attempt_review(attempt):
         show_my_attempts()
         return
 
+    # Logic quan trọng: Kiểm tra xem bài thi có cho phép xem lại đáp án hay không.
     show_correct_answers = quiz_info.get('show_answers_after_quiz', False)
 
+    # Nếu không được phép, hiển thị thông báo và không cho xem tiếp.
     if not show_correct_answers:
         notice_content = ft.Container(
             content=ft.Column([
@@ -794,12 +840,14 @@ def show_attempt_review(attempt):
     question_component_container = ft.Container(content=ft.Column([]))
 
     def update_review_display():
+        """Hàm cập nhật giao diện xem lại, tương tự như khi làm bài nhưng ở chế độ review."""
         if app_state.current_question_index >= len(app_state.quiz_questions):
             return
         question = app_state.quiz_questions[app_state.current_question_index]
         user_answer = user_answers.get(question['id'])
         question_counter_text.value = f"Question {app_state.current_question_index + 1} of {len(app_state.quiz_questions)}"
 
+        # Gọi hàm tạo component câu hỏi với cờ `is_review=True`.
         question_component = create_question_by_type(
             question, on_answer_change=None, is_review=True,
             user_answer=user_answer, show_correct_answers=True
@@ -853,6 +901,7 @@ def show_my_attempts():
     user_attempts = [attempt for attempt in mock_data.mock_attempts if attempt['user_id'] == app_state.current_user['id']]
     user_attempts.sort(key=lambda x: x['completed_at'], reverse=True)
 
+    # Tạo danh sách các card cho mỗi lần làm bài.
     attempt_cards = []
     if user_attempts:
         for attempt in user_attempts:
@@ -862,6 +911,7 @@ def show_my_attempts():
             percentage = attempt['percentage']
             score_color = Colors.SUCCESS if percentage >= 70 else (Colors.WARNING if percentage >= 40 else Colors.ERROR)
 
+            # Mỗi lần làm bài là một `create_card`.
             attempt_card = create_card(
                 content=ft.Row([
                     ft.Column([
@@ -892,6 +942,7 @@ def show_my_attempts():
             )
             attempt_cards.append(attempt_card)
     else:
+        # Hiển thị "empty state" nếu chưa làm bài nào.
         attempt_cards.append(create_card(
             content=ft.Column([
                 ft.Icon(ft.Icons.HISTORY_EDU, size=48, color=Colors.GRAY_400),
@@ -945,7 +996,8 @@ def show_profile_page():
     new_password_field = create_text_input("New Password", password=True, can_reveal=True)
     confirm_password_field = create_text_input("Confirm New Password", password=True, can_reveal=True)
     password_message_text = ft.Text("", size=Typography.SIZE_SM)
-
+    
+    # Logic xử lý đổi mật khẩu với các bước validation cơ bản.
     def handle_save_password(e):
         current_pass = current_password_field.value
         new_pass = new_password_field.value
@@ -982,6 +1034,7 @@ def show_profile_page():
         confirm_password_field.value = ""
         app_state.current_page.update()
 
+    # Lấy thông tin lớp học của sinh viên để hiển thị.
     class_name = "N/A"
     if app_state.current_user.get('class_id'):
         class_info = next((c for c in mock_data.mock_classes if c['id'] == app_state.current_user['class_id']), None)

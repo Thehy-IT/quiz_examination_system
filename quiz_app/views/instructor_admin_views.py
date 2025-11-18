@@ -21,12 +21,16 @@ from ..components.question_widgets import create_question_by_type
 
 def show_instructor_dashboard():
     """Hiển thị trang tổng quan cho giảng viên/admin"""
+    # "Dọn dẹp" trang cũ trước khi vẽ trang mới, một pattern phổ biến trong Flet
+    # để đảm bảo không có control rác nào còn sót lại.
     app_state.current_page.clean()
     
     sidebar = create_sidebar(app_state.current_user['role'], "dashboard")
     
     # Hàm tạo mục lịch sử hoạt động
     def create_activity_item(log):
+        # Dùng dictionary (map) để ánh xạ một chuỗi hành động sang một cặp (icon, màu sắc).
+        # Cách này giúp code dễ đọc và dễ mở rộng hơn là dùng một chuỗi if-elif dài.
         icon_map = {
             'created a new quiz': (ft.Icons.QUIZ, Colors.PRIMARY),
             'completed the quiz': (ft.Icons.CHECK_CIRCLE, Colors.SUCCESS),
@@ -62,6 +66,8 @@ def show_instructor_dashboard():
         )
 
     stats_cards_list = []
+    # Logic phân quyền ngay trên giao diện: Dựa vào vai trò của người dùng đang đăng nhập
+    # để quyết định hiển thị các thẻ thống kê nào cho phù hợp.
     # Tạo các thẻ thống kê dựa trên vai trò người dùng
     if app_state.current_user['role'] == 'admin':
         stats_cards_list.extend([
@@ -232,6 +238,8 @@ def show_instructor_dashboard():
     
     # Cấu hình trang
     app_state.sidebar_drawer = ft.NavigationDrawer(controls=[sidebar])
+    # Gán drawer và appbar vào page. Các control này sẽ được Flet tự động quản lý
+    # khi kích thước cửa sổ thay đổi.
     app_state.current_page.drawer = app_state.sidebar_drawer
     app_state.current_page.appbar = create_app_bar()
     app_state.current_view_handler = show_instructor_dashboard
@@ -255,6 +263,8 @@ def show_quiz_management():
     # Tạo trường nhập văn bản để tìm kiếm bài thi theo tiêu đề.
     search_field = create_text_input("Search by quiz title...", width=300, icon=ft.Icons.SEARCH)
 
+    # DatePicker và TimePicker là các control "overlay", chúng không nằm trực tiếp trên trang
+    # mà sẽ hiển thị đè lên trên khi được gọi. Cần thêm chúng vào `page.overlay`.
     # 1. Định nghĩa các DatePicker và TimePicker (bang thoi gian)
     def on_start_date_change(e):
         current_val = quiz_start_time_field.value or " "
@@ -314,6 +324,8 @@ def show_quiz_management():
 
     # Hàm xóa bài thi
     def handle_delete_quiz(quiz_to_delete):
+        # Dùng closure để "bắt" lấy `quiz_to_delete`. Mỗi nút xóa sẽ có một hàm
+        # on_delete riêng biệt với đúng đối tượng quiz cần xóa.
         def on_delete(e):
             mock_data.mock_quizzes = [q for q in mock_data.mock_quizzes if q['id'] != quiz_to_delete['id']]
             if quiz_to_delete['id'] in mock_data.mock_questions:
@@ -323,6 +335,7 @@ def show_quiz_management():
 
     # Hàm cập nhật danh sách bài thi dựa trên các bộ lọc và tìm kiếm
     def update_quiz_list(e=None):
+        # Logic lọc đa điều kiện: kết hợp cả tìm kiếm, lọc theo lớp, trạng thái, và kiểu xáo trộn.
         search_term = search_field.value.lower() if search_field.value else ""
         selected_class_id = class_filter_dropdown.value
         selected_status = status_filter_dropdown.value
@@ -348,6 +361,7 @@ def show_quiz_management():
 
         # Cập nhật giao diện danh sách bài thi
         quiz_list_view.controls.clear()
+        # Hiển thị "empty state" nếu không có kết quả, giúp cải thiện UX.
         # Hiển thị các bài thi đã lọc hoặc thông báo không tìm thấy
         if filtered_quizzes:
             for quiz in filtered_quizzes:
@@ -364,6 +378,7 @@ def show_quiz_management():
             ))
         app_state.current_page.update()
 
+    # Gán các hàm xử lý sự kiện cho các control lọc.
     # Kết nối các sự kiện thay đổi để cập nhật danh sách bài thi khi người dùng tương tác.
     search_field.on_change = update_quiz_list
     class_filter_dropdown.on_change = update_quiz_list
@@ -393,6 +408,8 @@ def show_quiz_management():
 
     # Hàm hiển thị form tạo bài thi mới
     def show_create_form(e):
+        # Reset các trường về giá trị mặc định mỗi khi mở form để tránh
+        # hiển thị lại dữ liệu của lần nhập trước.
         quiz_form_container.visible = True
         quiz_title_field.value = ""
         quiz_description_field.value = ""
@@ -414,6 +431,7 @@ def show_quiz_management():
 
     # Hàm xử lý tạo bài thi mới
     def handle_create_quiz(e):
+        # Thu thập dữ liệu từ các trường nhập liệu.
         title = quiz_title_field.value or ""
         description = quiz_description_field.value or ""
         start_time_str = quiz_start_time_field.value or ""
@@ -425,6 +443,7 @@ def show_quiz_management():
         shuffle_answers = shuffle_answers_switch.value
         show_answers_after_quiz = show_answers_switch.value
 
+        # Validation: Kiểm tra các trường bắt buộc và định dạng dữ liệu.
         if not title.strip() or not class_id:
             quiz_error_text.value = "Quiz title and class are required"
             app_state.current_page.update()
@@ -458,6 +477,7 @@ def show_quiz_management():
         
         duration_minutes = int(duration_str)
 
+        # Tạo một object quiz mới và thêm vào mock_data.
         new_id = max(q['id'] for q in mock_data.mock_quizzes) + 1 if mock_data.mock_quizzes else 1
         new_quiz = {
             'id': new_id, 'title': title.strip(), 'description': description.strip(),
@@ -472,6 +492,7 @@ def show_quiz_management():
         mock_data.mock_quizzes.append(new_quiz)
         
         quiz_error_text.value = ""
+        # Sau khi tạo thành công, ẩn form và tải lại toàn bộ view.
         hide_create_form(e)
         show_quiz_management()
 
@@ -526,6 +547,7 @@ def show_quiz_management():
         if quiz.get('shuffle_answers'): shuffle_info_en.append("Answers")
 
         def toggle_active_state(e):
+            # Cập nhật trạng thái `is_active` trực tiếp trong mock_data và tải lại view.
             for q in mock_data.mock_quizzes:
                 if q['id'] == quiz['id']:
                     q['is_active'] = e.control.value
@@ -627,6 +649,8 @@ def show_quiz_management():
 
 def show_create_quiz_from_bank():
     """Hiển thị giao diện tạo quiz bằng cách chọn câu hỏi từ ngân hàng (dùng mock_data)."""
+    # Đây là một màn hình phức tạp hơn, có state riêng (`selected_questions`).
+    # Nó cho phép người dùng chọn câu hỏi từ một "ngân hàng" chung.
     app_state.current_page.clean()
     sidebar = create_sidebar(app_state.current_user['role'], "quizzes")
 
@@ -657,6 +681,8 @@ def show_create_quiz_from_bank():
 
     def get_all_questions_from_mock_bank(search_term="", difficulty_filter="all"):
         """Lấy và lọc tất cả câu hỏi từ mock_data để làm ngân hàng câu hỏi."""
+        # Logic này khá hay: nó duyệt qua tất cả các bài thi trong mock_data để
+        # tổng hợp thành một ngân hàng câu hỏi duy nhất cho giảng viên lựa chọn.
         all_questions = []
         # Dùng set để đảm bảo ID câu hỏi là duy nhất, tránh trùng lặp
         unique_question_ids = set()
@@ -682,6 +708,8 @@ def show_create_quiz_from_bank():
 
     def update_question_views():
         """Cập nhật cả hai danh sách câu hỏi (ngân hàng và đã chọn)."""
+        # Hàm này chịu trách nhiệm đồng bộ hóa giao diện của 2 cột:
+        # cột ngân hàng câu hỏi và cột câu hỏi đã chọn.
         # Cập nhật danh sách câu hỏi từ ngân hàng
         all_db_questions = get_all_questions_from_mock_bank(
             search_term=bank_search_field.value or "",
@@ -726,6 +754,7 @@ def show_create_quiz_from_bank():
         update_question_views()
     
     def handle_final_create_quiz(e):
+        # Validation cuối cùng trước khi tạo quiz.
         if not quiz_title_field.value or not class_dropdown.value or not selected_questions:
             error_text.value = "Quiz Title, Class, and at least one question are required."
             app_state.current_page.update()
@@ -742,6 +771,8 @@ def show_create_quiz_from_bank():
         }
         mock_data.mock_quizzes.append(new_quiz)
 
+        # Tạo một danh sách câu hỏi mới cho quiz này.
+        # Dùng `copy.deepcopy` để đảm bảo không ảnh hưởng đến dữ liệu gốc trong mock_data.
         new_questions_list = []
         for i, original_question in enumerate(selected_questions.values(), 1):
             new_q = copy.deepcopy(original_question)
@@ -800,6 +831,8 @@ def show_create_quiz_from_bank():
 
 def show_question_management(quiz):
     """Hiển thị trang quản lý câu hỏi chi tiết với nhiều loại câu hỏi"""
+    # Đây là màn hình "trái tim" của việc tạo quiz, nơi giảng viên thêm/sửa/xóa
+    # từng câu hỏi cho một bài thi cụ thể.
     app_state.current_page.clean()
     
     sidebar = create_sidebar(app_state.current_user['role'], "questions") # "questions" không phải trang chính, nhưng để active item
@@ -849,6 +882,8 @@ def show_question_management(quiz):
     
     def update_dynamic_form(question_type):
         """Cập nhật form dựa trên loại câu hỏi được chọn"""
+        # Đây là một kỹ thuật rất mạnh: tạo giao diện động (dynamic UI).
+        # Tùy thuộc vào loại câu hỏi được chọn, nội dung của `dynamic_form_container` sẽ được thay thế hoàn toàn.
         if question_type == "multiple_choice":
             dynamic_form_container.content = ft.Column([
                 create_subtitle("Answer Options:"), ft.Container(height=Spacing.SM),
@@ -922,6 +957,8 @@ def show_question_management(quiz):
     
     # Hàm xử lý tạo câu hỏi mới
     def handle_create_question(e):
+        # Logic này khá phức tạp vì nó phải "đọc" dữ liệu từ các control
+        # trong `dynamic_form_container`, mà cấu trúc của container này lại thay đổi liên tục.
         question_text = question_text_field.value or ""
         question_type = question_type_group.value
         difficulty = difficulty_group.value
@@ -939,6 +976,7 @@ def show_question_management(quiz):
         }
         
         if question_type == "multiple_choice":
+            # Truy cập vào các control con của form động để lấy giá trị.
             form_controls = dynamic_form_container.content.controls
             option_texts = [form_controls[2].value or "", form_controls[4].value or "", form_controls[6].value or "", form_controls[8].value or ""]
             
@@ -1008,6 +1046,7 @@ def show_question_management(quiz):
                 q['questions_count'] = len(mock_data.mock_questions[quiz['id']])
                 break
         
+        # Tải lại toàn bộ trang để hiển thị câu hỏi mới.
         question_error_text.value = ""
         hide_question_form(e)
         show_question_management(quiz)
@@ -1041,6 +1080,8 @@ def show_question_management(quiz):
     
     # Tạo card cho từng câu hỏi
     for i, question in enumerate(quiz_questions, 1):
+        # Tạo một "bản xem trước" (preview) nhỏ cho mỗi câu hỏi ngay trên card,
+        # giúp giảng viên có cái nhìn tổng quan nhanh chóng.
         question_type = question.get('question_type', 'multiple_choice')
         difficulty = question.get('difficulty', 'Medium')
         difficulty_color_map = {'Easy': Colors.SUCCESS, 'Medium': Colors.WARNING, 'Hard': Colors.ERROR}
@@ -1147,6 +1188,8 @@ def show_question_management(quiz):
 
 def show_quiz_preview(quiz_basic_info):
     """Hiển thị bài thi ở chế độ xem trước cho giảng viên."""
+    # Chức năng này cho phép giảng viên "nhìn" bài thi dưới góc độ của sinh viên.
+    # Nó tái sử dụng rất nhiều code từ `examinee_views.py`.
     app_state.current_page.clean()
     app_state.current_question_index = 0
 
@@ -1171,10 +1214,12 @@ def show_quiz_preview(quiz_basic_info):
         question_counter_text.value = f"Question {app_state.current_question_index + 1} of {len(app_state.quiz_questions)}"
 
         def dummy_answer_handler(q_id, answer):
+            # Vì đây là chế độ xem trước, không cần xử lý câu trả lời.
+            # Ta truyền vào một hàm rỗng (dummy function).
             pass
 
         shuffle_answers = quiz_basic_info.get('shuffle_answers', False)
-        question_component = create_question_by_type(question, dummy_answer_handler, shuffle_answers)
+        question_component = create_question_by_type(question, dummy_answer_handler, shuffle_answers, is_review=False)
         question_component_container.content = question_component
 
         prev_button.disabled = (app_state.current_question_index == 0)
@@ -1229,6 +1274,8 @@ def show_results_overview():
 
 def show_instructor_results_page():
     """Hiển thị trang kết quả chi tiết cho giảng viên, có thể lọc theo lớp và bài thi."""
+    # Màn hình này tổng hợp và trực quan hóa dữ liệu kết quả thi,
+    # là một công cụ rất mạnh cho giảng viên.
     app_state.current_page.clean()
 
     sidebar = create_sidebar(app_state.current_user['role'], "results")
@@ -1236,7 +1283,7 @@ def show_instructor_results_page():
 
     def update_results_display(selected_class_id=None, selected_quiz_id=None):
         results_container.controls.clear()
-
+        # Nếu chưa chọn lớp hoặc bài thi, hiển thị hướng dẫn.
         if not selected_class_id or not selected_quiz_id:
             results_container.controls.append(
                 create_card(ft.Column([
@@ -1248,6 +1295,8 @@ def show_instructor_results_page():
             app_state.current_page.update()
             return
 
+        # Logic tổng hợp dữ liệu:
+        # 1. Lấy danh sách sinh viên trong lớp đã chọn.
         students_in_class = [u for u in mock_data.mock_users.values() if u.get('class_id') == int(selected_class_id)]
         attempts_for_quiz = [a for a in mock_data.mock_attempts if a['quiz_id'] == int(selected_quiz_id)]
 
@@ -1258,6 +1307,7 @@ def show_instructor_results_page():
                 latest_attempt = max(student_attempts, key=lambda x: x['completed_at'])
                 student_results.append({'student': student, 'attempt': latest_attempt})
 
+        # Tính toán các chỉ số thống kê.
         total_students = len(students_in_class)
         completed_count = len(student_results)
         completion_rate = (completed_count / total_students * 100) if total_students > 0 else 0
@@ -1267,6 +1317,7 @@ def show_instructor_results_page():
         highest_score_10 = max(scores_10) if scores_10 else 0
 
         bar_groups = [
+            # Chuẩn bị dữ liệu cho biểu đồ cột.
             ft.BarChartGroup(x=i, bar_rods=[
                 ft.BarChartRod(from_y=0, to_y=res['attempt']['percentage'] / 10.0, width=15, color=Colors.PRIMARY, tooltip=f"{res['student']['username']}: {res['attempt']['percentage'] / 10.0:.1f}", border_radius=BorderRadius.SM)
             ]) for i, res in enumerate(student_results)
@@ -1280,6 +1331,7 @@ def show_instructor_results_page():
             tooltip_bgcolor=ft.colors.with_opacity(0.8, Colors.GRAY_800), max_y=10, interactive=True, expand=True
         )
 
+        # Chuẩn bị dữ liệu cho bảng chi tiết.
         table_rows = [
             ft.DataRow(cells=[
                 ft.DataCell(ft.Text(res['student']['username'])),
@@ -1298,6 +1350,7 @@ def show_instructor_results_page():
             rows=table_rows, heading_row_color=Colors.GRAY_100, border=ft.border.all(1, Colors.GRAY_200), border_radius=BorderRadius.MD
         )
 
+        # Thêm các component đã xử lý vào view.
         results_container.controls.extend([
             ft.Row([
                 create_card(ft.Column([ft.Row([ft.Icon(ft.Icons.STAR_HALF, color=Colors.PRIMARY), ft.Text("Average Score")]), ft.Text(f"{avg_score_10:.2f}", size=Typography.SIZE_3XL, weight=ft.FontWeight.W_700)])),
@@ -1316,9 +1369,12 @@ def show_instructor_results_page():
     quiz_dd = ft.Dropdown(label="Select Quiz", width=300, disabled=True)
 
     def on_class_change(e):
+        # Đây là logic cho "dependent dropdowns" (dropdown phụ thuộc).
+        # Khi chọn một lớp, danh sách các bài thi trong dropdown thứ hai sẽ được cập nhật tương ứng.
         selected_class_id = int(e.control.value)
         quizzes_in_class = [q for q in mock_data.mock_quizzes if q.get('class_id') == selected_class_id]
         quiz_dd.options = [ft.dropdown.Option(key=q['id'], text=q['title']) for q in quizzes_in_class]
+        # Reset lựa chọn của dropdown quiz.
         quiz_dd.value = None
         quiz_dd.disabled = False
         update_results_display()
@@ -1371,6 +1427,7 @@ def show_instructor_results_page():
 
 def show_settings_page():
     """Hiển thị trang cài đặt cho giảng viên và admin."""
+    # Một trang CRUD (Create, Read, Update, Delete) đơn giản cho thông tin cá nhân.
     app_state.current_page.clean()
     sidebar = create_sidebar(app_state.current_user['role'], "settings")
 
@@ -1380,6 +1437,7 @@ def show_settings_page():
     password_message_text = ft.Text("", size=Typography.SIZE_SM)
 
     # Hàm xử lý lưu mật khẩu mới
+    # Bao gồm các bước validation cơ bản.
     def handle_save_password(e):
         current_pass = current_password_field.value
         new_pass = new_password_field.value
@@ -1463,6 +1521,7 @@ def show_settings_page():
 
 def show_class_management():
     """Hiển thị trang quản lý lớp học cho admin."""
+    # Một trang CRUD điển hình cho việc quản lý lớp học.
     app_state.current_page.clean()
     sidebar = create_sidebar(app_state.current_user['role'], "classes")
     search_field = create_text_input("Search by class name...", width=300, icon=ft.Icons.SEARCH)
@@ -1598,6 +1657,7 @@ def show_class_management():
 
 def show_user_management():
     """Hiển thị trang quản lý người dùng cho admin."""
+    # Một trang CRUD khác, nhưng phức tạp hơn một chút với việc sử dụng Dialog để chỉnh sửa.
     app_state.current_page.clean()
     sidebar = create_sidebar(app_state.current_user['role'], "users")
     search_field = create_text_input("Search by username...", width=300, icon=ft.Icons.SEARCH)
@@ -1640,6 +1700,8 @@ def show_user_management():
 
     def open_edit_dialog(user_to_edit):
         """Mở dialog để chỉnh sửa thông tin người dùng."""
+        # Sử dụng `AlertDialog` là một cách hay để thực hiện các hành động chỉnh sửa
+        # mà không cần chuyển sang một trang hoàn toàn mới.
         username = user_to_edit['username']
         edit_password_field = create_text_input("New Password (leave blank to keep unchanged)", password=True, width=400)
         edit_role_dropdown = ft.Dropdown(
@@ -1657,6 +1719,7 @@ def show_user_management():
         )
 
         def on_edit_role_change(e):
+            # Dropdown chọn lớp chỉ hiển thị khi vai trò là 'examinee'.
             edit_class_assignment_dropdown.visible = (e.control.value == 'examinee')
             edit_dialog.content.update()
         edit_role_dropdown.on_change = on_edit_role_change
