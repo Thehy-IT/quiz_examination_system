@@ -573,18 +573,26 @@ def show_quiz_management():
             create_app_header(),
             ft.Container(
                 content=ft.Column(scroll=ft.ScrollMode.AUTO, controls=[
-                     ft.Row([
+                    ft.Row([
                         ft.Column([
                             create_page_title("Quiz Management"),
                             create_subtitle("Create and manage your quizzes")
                         ], expand=True, spacing=Spacing.XS),
-                        search_field, status_filter_dropdown, shuffle_filter_dropdown, class_filter_dropdown,
-
+                    ]),
+                    ft.Container(height=Spacing.LG),
+                    ft.Row([
+                        search_field,
+                        ft.Container(expand=True),
                         # THAY ĐỔI CÁC NÚT TẠO QUIZ
                         create_secondary_button("Create from Bank", on_click=lambda e: show_create_quiz_from_bank(), width=160),
                         create_primary_button("Create New Quiz", on_click=show_create_form, width=150)
-                        
-                    ]),
+                    ], spacing=Spacing.MD),
+                    ft.Container(height=Spacing.MD),
+                    ft.Row([
+                        ft.Container(expand=True),
+                        status_filter_dropdown, shuffle_filter_dropdown, class_filter_dropdown
+                    ], spacing=Spacing.MD),
+
                     ft.Container(height=Spacing.XXL), quiz_form_container, ft.Container(height=Spacing.XL),
                     create_section_title("Your Quizzes"), ft.Container(height=Spacing.LG),
                     quiz_list_view if quiz_list_view.controls else create_card(
