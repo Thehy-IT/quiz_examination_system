@@ -39,6 +39,7 @@ def show_examinee_dashboard():
                 q for q in mock_data.mock_quizzes 
                 if q.get('is_active', False) and q.get('class_id') == student_class_id
             ]
+        # Không lọc quiz hết hạn ở đây, chỉ lọc theo từ khóa tìm kiếm
         filtered_quizzes = [
             q for q in available_quizzes if search_term in q['title'].lower()
         ]
@@ -68,6 +69,39 @@ def show_examinee_dashboard():
 
     def handle_start_quiz(quiz):
         def start_action(e):
+
+             # 1. Định nghĩa hàm đóng dialog ở phạm vi chung
+            def close_dialog(e_dialog, dialog_to_close):
+                    # password_dialog.open = False ***bỏ
+                    dialog_to_close.open = False
+                    app_state.current_page.update()
+
+            now = datetime.datetime.now()
+
+                # kiểm tra xem quiz đã hết hạn hay chưa
+            end_time_str = quiz.get('end_time')
+            if end_time_str:
+                try:
+                    end_time = datetime.datetime.strptime(end_time_str, '%Y-%m-%d %H:%M')
+                    if now > end_time:
+                        # Hiển thị thông báo hết hạn
+                        expired_dialog = ft.AlertDialog(
+                            modal=True,
+                            title=ft.Text("Quiz Expired"),
+                            content=ft.Text(f"The quiz '{quiz['title']}' has expired and can no longer be taken."),
+                            actions=[
+                                # Sử dụng hàm close_dialog đã được định nghĩa ở trên
+                                create_primary_button("Back", on_click=lambda e_dialog: close_dialog(e_dialog, expired_dialog))
+                            ],
+                            actions_alignment=ft.MainAxisAlignment.END,
+                        )
+                        app_state.current_page.dialog = expired_dialog
+                        expired_dialog.open = True
+                        app_state.current_page.update()
+                        return # Dừng thực thi
+                except ValueError:
+                    pass # Bỏ qua nếu định dạng thời gian sai
+            
             if quiz.get('password') is not None:
                 password_field = create_text_input("Quiz Password", password=True, can_reveal=True)
                 error_text = ft.Text("", color=Colors.ERROR, size=Typography.SIZE_SM)
@@ -82,9 +116,7 @@ def show_examinee_dashboard():
                         password_field.value = ""
                         app_state.current_page.update()
 
-                def close_dialog(e_dialog):
-                    password_dialog.open = False
-                    app_state.current_page.update()
+                
 
                 password_dialog = ft.AlertDialog(
                     modal=True,
@@ -95,7 +127,7 @@ def show_examinee_dashboard():
                         error_text
                     ]),
                     actions=[
-                        create_secondary_button("Cancel", on_click=close_dialog),
+                        create_secondary_button("Cancel", on_click=lambda e_dialog: close_dialog(e_dialog, password_dialog)),
                         create_primary_button("Enter", on_click=check_password),
                     ],
                     actions_alignment=ft.MainAxisAlignment.END,
@@ -109,6 +141,27 @@ def show_examinee_dashboard():
         return start_action
 
     def create_quiz_card(quiz):
+        # --- BẮT ĐẦU THAY ĐỔI ---
+        now = datetime.datetime.now()
+        
+        # Kiểm tra trạng thái của quiz
+        start_time = datetime.datetime.strptime(quiz.get('start_time', '1970-01-01 00:00'), '%Y-%m-%d %H:%M')
+        is_not_started = now < start_time
+        
+        is_expired = False
+        end_time_str = quiz.get('end_time')
+        if end_time_str:
+            try:
+                end_time = datetime.datetime.strptime(end_time_str, '%Y-%m-%d %H:%M')
+                if now > end_time:
+                    is_expired = True
+            except ValueError:
+                pass # Bỏ qua nếu định dạng sai
+
+        # Nút sẽ bị vô hiệu hóa nếu chưa bắt đầu HOẶC đã hết hạn
+        button_disabled = is_not_started or is_expired
+        # --- KẾT THÚC THAY ĐỔI ---
+
         quiz_card = create_card(
             content=ft.Column([
                 ft.Row([
@@ -144,11 +197,12 @@ def show_examinee_dashboard():
                         color=Colors.TEXT_MUTED
                     ),
                     ft.Text(f"| Starts: {quiz.get('start_time', 'N/A')}", size=Typography.SIZE_SM, color=Colors.TEXT_MUTED),
+                    ft.Text(f"| End: {quiz.get('end_time', 'N/A')}", size=Typography.SIZE_SM, color=Colors.TEXT_MUTED),
                     ft.Text(f"| {quiz.get('duration_minutes', 'N/A')} min", size=Typography.SIZE_SM, color=Colors.TEXT_MUTED),
                     ft.Container(expand=True),
                     create_primary_button(
                         "Start Quiz", on_click=handle_start_quiz(quiz), width=120,
-                        disabled=datetime.datetime.now() < datetime.datetime.strptime(quiz.get('start_time', '1970-01-01 00:00'), '%Y-%m-%d %H:%M')
+                        disabled=button_disabled # Sử dụng biến đã tính toán ở trên
                     )
                 ])
             ]),

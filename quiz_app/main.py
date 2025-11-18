@@ -43,10 +43,10 @@ def main_page(page: ft.Page):
     # 3. Để bật lại trang đăng nhập, hãy xóa/bình luận các dòng dưới và bỏ bình luận dòng `show_login()`.
 
     # --- Chế độ phát triển ---
-    # app_state.current_user = mock_data.mock_users['THEHY']  # Đăng nhập với tư cách 'examinee' 
-    # show_examinee_dashboard()              # Đi thẳng vào dashboard của sinh viên
-    app_state.current_user = mock_data.mock_users['instructor']
-    show_instructor_dashboard()         # Đi thẳng vào dashboard
+    app_state.current_user = mock_data.mock_users['THEHY']  # Đăng nhập với tư cách 'examinee' 
+    show_examinee_dashboard()              # Đi thẳng vào dashboard của sinh viên
+    # app_state.current_user = mock_data.mock_users['instructor']
+    # show_instructor_dashboard()         # Đi thẳng vào dashboard
 
     # --- Chế độ hoạt động bình thường ---
     # show_login()                       # Bắt đầu từ trang đăng nhập

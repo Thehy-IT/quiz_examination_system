@@ -333,6 +333,7 @@ def show_quiz_management():
     quiz_title_field = create_text_input("Quiz Title", width=400)
     quiz_description_field = create_text_input("Description", width=400, multiline=True, min_lines=3)
     quiz_start_time_field = create_text_input("Start Time (YYYY-MM-DD HH:MM)", width=250, icon=ft.Icons.CALENDAR_MONTH)
+    quiz_end_time_field = create_text_input("End Time (YYYY-MM-DD HH:MM)", width=250, icon=ft.Icons.CALENDAR_MONTH) # thêm trường end_time: hạn của quiz
     quiz_duration_field = create_text_input("Duration (minutes)", width=140, icon=ft.Icons.TIMER)
     quiz_password_field = create_text_input("Quiz Password (optional)", password=True, width=400, icon=ft.Icons.LOCK, can_reveal=True)
     shuffle_questions_switch = ft.Switch(label="Xáo trộn câu hỏi", value=False)
@@ -356,6 +357,7 @@ def show_quiz_management():
         quiz_description_field.value = ""
         quiz_error_text.value = ""
         quiz_start_time_field.value = ""
+        quiz_end_time_field.value = "" # xóa giá trị cũ của End time
         quiz_duration_field.value = ""
         quiz_password_field.value = ""
         class_dropdown.value = None
@@ -374,6 +376,7 @@ def show_quiz_management():
         title = quiz_title_field.value or ""
         description = quiz_description_field.value or ""
         start_time_str = quiz_start_time_field.value or ""
+        end_time_str = quiz_end_time_field.value or "" # Lay gia tri cua End Time
         duration_str = quiz_duration_field.value or ""
         password = quiz_password_field.value or None
         class_id = class_dropdown.value
@@ -387,11 +390,25 @@ def show_quiz_management():
             return
 
         try:
-            datetime.datetime.strptime(start_time_str, '%Y-%m-%d %H:%M')
+            start_dt = datetime.datetime.strptime(start_time_str, '%Y-%m-%d %H:%M')
         except ValueError:
             quiz_error_text.value = "Invalid start time format. Use YYYY-MM-DD HH:MM"
             app_state.current_page.update()
             return
+
+         # Kiểm tra và xác thực End Time nếu được cung cấp
+        if end_time_str:
+            try:
+                end_dt = datetime.datetime.strptime(end_time_str, '%Y-%m-%d %H:%M')
+                if end_dt <= start_dt:
+                    quiz_error_text.value = "End time must be after start time."
+                    app_state.current_page.update()
+                    return
+            except ValueError:
+                quiz_error_text.value = "Invalid end time format. Use YYYY-MM-DD HH:MM"
+                app_state.current_page.update()
+                return
+
 
         if not duration_str.isdigit() or int(duration_str) <= 0:
             quiz_error_text.value = "Duration must be a positive number of minutes"
@@ -406,6 +423,7 @@ def show_quiz_management():
             'created_by': app_state.current_user['id'], 'created_at': '2025-01-15',
             'creator': app_state.current_user['username'], 'questions_count': 0,
             'start_time': start_time_str.strip(), 'duration_minutes': duration_minutes,
+            'end_time': end_time_str.strip() if end_time_str else None, # luu End Time
             'class_id': int(class_id), 'password': password.strip() if password else None,
             'is_active': True, 'shuffle_questions': shuffle_questions,
             'shuffle_answers': shuffle_answers, 'show_answers_after_quiz': show_answers_after_quiz
@@ -423,7 +441,7 @@ def show_quiz_management():
             quiz_title_field, ft.Container(height=Spacing.LG),
             quiz_description_field, ft.Container(height=Spacing.LG),
             class_dropdown, ft.Container(height=Spacing.LG),
-            ft.Row([quiz_start_time_field, quiz_duration_field], spacing=Spacing.MD),
+            ft.Row([quiz_start_time_field, quiz_end_time_field, quiz_duration_field], spacing=Spacing.MD), # them truong end_time
             ft.Container(height=Spacing.LG), quiz_password_field, ft.Container(height=Spacing.LG),
             ft.Row([shuffle_questions_switch, shuffle_answers_switch], spacing=Spacing.XL),
             ft.Container(height=Spacing.LG), show_answers_switch, ft.Container(height=Spacing.MD),
@@ -475,6 +493,7 @@ def show_quiz_management():
                     ft.Text(f"{quiz['questions_count']} questions", size=Typography.SIZE_SM, color=Colors.TEXT_MUTED),
                     ft.Text(f"Created: {quiz['created_at']}", size=Typography.SIZE_SM, color=Colors.TEXT_MUTED),
                     ft.Text(f"| Starts: {quiz.get('start_time', 'N/A')}", size=Typography.SIZE_SM, color=Colors.TEXT_MUTED),
+                    ft.Text(f"| Ends: {quiz.get('end_time', 'N/A')}", size=Typography.SIZE_SM, color=Colors.TEXT_MUTED), # Hiển thị End Time
                     ft.Text(f"| Duration: {quiz.get('duration_minutes', 'N/A')} min", size=Typography.SIZE_SM, color=Colors.TEXT_MUTED),
                     ft.Container(expand=True),
                     create_secondary_button("Preview", on_click=lambda e, q=quiz: show_quiz_preview(q), width=80),
