@@ -5,6 +5,7 @@ import flet as ft
 # Import các module đã tách
 from . import app_state
 from .data import mock_data
+from .data.database import init_db 
 from .views.login_view import show_login
 from .views.instructor_admin_views import show_instructor_dashboard
 from .views.examinee_views import show_examinee_dashboard
@@ -12,8 +13,9 @@ from .views.examinee_views import show_examinee_dashboard
 def main_page(page: ft.Page):
     """Điểm vào chính của ứng dụng Flet"""
     
-    # Gán đối tượng page cho biến trạng thái toàn cục để các module khác có thể truy cập
-    app_state.current_page = page
+    # khởi tạo CSDL khi ứng dụng bắt đầu
+    init_db()
+
     
     # Cấu hình trang
     page.title = "Modern Quiz App"
@@ -35,7 +37,10 @@ def main_page(page: ft.Page):
             return
 
     page.on_resize = handle_resize
-
+    
+    # Gán đối tượng page cho biến trạng thái toàn cục để các module khác có thể truy cập
+    app_state.current_page = page
+    
     # --- BỎ QUA ĐĂNG NHẬP ĐỂ PHÁT TRIỂN GIAO DIỆN ---
     # Để bỏ qua màn hình đăng nhập, hãy làm theo các bước sau:
     # 1. Đặt người dùng hiện tại (current_user) thành một người dùng mẫu.
