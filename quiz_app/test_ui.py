@@ -6,7 +6,7 @@ Modern Quiz App UI Test - Verify the complete modern UI works
 import flet as ft
 
 # Import các module đã được tách nhỏ từ cấu trúc dự án mới
-from .utils import constants
+from .utils import constants 
 from .components import ui_helpers, navigation
 from .data import mock_data
 
@@ -33,6 +33,10 @@ def test_modern_design_system():
 def test_component_functions():
     print("\n=== Testing Component Functions ===")
     
+    # Mô phỏng trạng thái đăng nhập để test các component cần user
+    from . import app_state
+    app_state.current_user = mock_data.mock_users['instructor']
+
     # Test button creation
     primary_btn = ui_helpers.create_primary_button("Test Button")
     assert primary_btn is not None
@@ -51,6 +55,11 @@ def test_component_functions():
     card = ui_helpers.create_card(ft.Text("Test Content"))
     assert card is not None
     print("✓ Card component works")
+
+    # Test header creation (cần app_state.current_user)
+    header = navigation.create_app_header()
+    assert header is not None
+    print("✓ App header component works")
 
 def test_mock_data():
     print("\n=== Testing Enhanced Mock Data ===")
@@ -76,6 +85,10 @@ def test_mock_data():
 def test_navigation_system():
     print("\n=== Testing Navigation System ===")
     
+    # Mô phỏng trạng thái đăng nhập để test các component cần user
+    from . import app_state
+    app_state.current_user = mock_data.mock_users['instructor']
+
     # Test sidebar creation
     sidebar = navigation.create_sidebar('instructor', 'dashboard')
     assert sidebar is not None
@@ -111,12 +124,13 @@ def main_test():
         print("└─ 🏆 Results & Analytics")
         
         print("\n📋 Login Credentials:")
-        print("Instructor: username='instructor', password='instructor123'")
-        print("Examinee: username='student', password='student123'")
+        print("Instructor: username='instructor', password='instructor'")
+        print("Examinee: username='THEHY', password='THEHY'")
+        print("Admin: username='admin', password='admin'")
         
         print("\n🎯 Complete Workflow:")
-        print("1. Login as master → Create Quiz → Add Questions")
-        print("2. Login as student → Take Quiz → View Results")
+        print("1. Login as instructor/admin → Create Quiz → Add Questions")
+        print("2. Login as examinee → Take Quiz → View Results")
         print("3. Navigate using sidebar → Clean UI transitions")
         
         print("\n🛠️  Technical Excellence:")
