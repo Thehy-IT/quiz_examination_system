@@ -249,7 +249,42 @@ def show_quiz_management():
     # Tạo trường nhập văn bản để tìm kiếm bài thi theo tiêu đề.
     search_field = create_text_input("Search by quiz title...", width=300, icon=ft.Icons.SEARCH)
 
-    #Lọc, khởi tạo các tùy chọn lọc, tạo các dropdown lọc
+    # 1. Định nghĩa các DatePicker và TimePicker (bang thoi gian)
+    def on_start_date_change(e):
+        current_val = quiz_start_time_field.value or " "
+        time_part = current_val.split(" ")[1] if " " in current_val and len(current_val.split(" ")) > 1 else "00:00"
+        quiz_start_time_field.value = f"{start_date_picker.value.strftime('%Y-%m-%d')} {time_part}"
+        quiz_start_time_field.update()
+
+    def on_start_time_change(e):
+        current_val = quiz_start_time_field.value or " "
+        date_part = current_val.split(" ")[0] if " " in current_val else datetime.date.today().strftime('%Y-%m-%d')
+        quiz_start_time_field.value = f"{date_part} {start_time_picker.value.strftime('%H:%M')}"
+        quiz_start_time_field.update()
+
+    def on_end_date_change(e):
+        current_val = quiz_end_time_field.value or " "
+        time_part = current_val.split(" ")[1] if " " in current_val and len(current_val.split(" ")) > 1 else "23:59"
+        quiz_end_time_field.value = f"{end_date_picker.value.strftime('%Y-%m-%d')} {time_part}"
+        quiz_end_time_field.update()
+
+    def on_end_time_change(e):
+        current_val = quiz_end_time_field.value or " "
+        date_part = current_val.split(" ")[0] if " " in current_val else datetime.date.today().strftime('%Y-%m-%d')
+        quiz_end_time_field.value = f"{date_part} {end_time_picker.value.strftime('%H:%M')}"
+        quiz_end_time_field.update()
+
+    start_date_picker = ft.DatePicker(on_change=on_start_date_change)
+    start_time_picker = ft.TimePicker(on_change=on_start_time_change)
+    end_date_picker = ft.DatePicker(on_change=on_end_date_change)
+    end_time_picker = ft.TimePicker(on_change=on_end_time_change)
+
+    # Thêm các picker vào overlay của trang để chúng có thể hiển thị
+    # Và xóa overlay cũ và thêm các picker vào overlay của trang để chúng có thể hiển thị
+    app_state.current_page.overlay.clear()
+    app_state.current_page.overlay.extend([start_date_picker, start_time_picker, end_date_picker, end_time_picker])
+
+    #Lọc, khởi tạo các tuỳ chọn lọc, tạo các dropdown lọc
     instructor_classes = [c for c in mock_data.mock_classes if c['instructor_id'] == app_state.current_user['id']]
     class_filter_options = [ft.dropdown.Option(key="all", text="Tất cả các lớp")]
     class_filter_options.extend([ft.dropdown.Option(key=str(cls['id']), text=cls['name']) for cls in instructor_classes])
@@ -336,8 +371,8 @@ def show_quiz_management():
     quiz_end_time_field = create_text_input("End Time (YYYY-MM-DD HH:MM)", width=250, icon=ft.Icons.CALENDAR_MONTH) # thêm trường end_time: hạn của quiz
     quiz_duration_field = create_text_input("Duration (minutes)", width=140, icon=ft.Icons.TIMER)
     quiz_password_field = create_text_input("Quiz Password (optional)", password=True, width=400, icon=ft.Icons.LOCK, can_reveal=True)
-    shuffle_questions_switch = ft.Switch(label="Xáo trộn câu hỏi", value=False)
-    shuffle_answers_switch = ft.Switch(label="Xáo trộn đáp án", value=True)
+    shuffle_questions_switch = ft.Switch(label="Questions shuffle", value=False)
+    shuffle_answers_switch = ft.Switch(label="Answers shuffle", value=True)
     show_answers_switch = ft.Switch(label="Allow student to view the answers after the exam", value=False)
 
     # Chọn lớp cho bài thi
@@ -420,7 +455,7 @@ def show_quiz_management():
         new_id = max(q['id'] for q in mock_data.mock_quizzes) + 1 if mock_data.mock_quizzes else 1
         new_quiz = {
             'id': new_id, 'title': title.strip(), 'description': description.strip(),
-            'created_by': app_state.current_user['id'], 'created_at': '2025-01-15',
+            'created_by': app_state.current_user['id'], 'created_at': datetime.datetime.now().strftime('%Y-%m-%d'),
             'creator': app_state.current_user['username'], 'questions_count': 0,
             'start_time': start_time_str.strip(), 'duration_minutes': duration_minutes,
             'end_time': end_time_str.strip() if end_time_str else None, # luu End Time
@@ -441,7 +476,38 @@ def show_quiz_management():
             quiz_title_field, ft.Container(height=Spacing.LG),
             quiz_description_field, ft.Container(height=Spacing.LG),
             class_dropdown, ft.Container(height=Spacing.LG),
-            ft.Row([quiz_start_time_field, quiz_end_time_field, quiz_duration_field], spacing=Spacing.MD), # them truong end_time
+
+            # 2. Cập nhật layout để thêm các nút mở picker
+            ft.Row([
+                ft.Column([
+                    ft.Text("Start Time", color=Colors.TEXT_SECONDARY),
+                    ft.Row([
+
+                        quiz_start_time_field,
+                        ft.Column([
+                            ft.IconButton(icon=ft.Icons.CALENDAR_MONTH_OUTLINED, on_click=lambda _: app_state.current_page.open(start_date_picker), tooltip="Pick Start Date", icon_size=20, padding=4),
+                            ft.IconButton(icon=ft.Icons.ACCESS_TIME_OUTLINED, on_click=lambda _: app_state.current_page.open(start_time_picker), tooltip="Pick Start Time", icon_size=20, padding=4),
+                        ], spacing=0)
+                    ], vertical_alignment=ft.CrossAxisAlignment.START)
+                ]),
+                ft.Column([
+                    ft.Text("End Time", color=Colors.TEXT_SECONDARY),
+                    ft.Row([
+
+                        quiz_end_time_field,
+                       ft.Column([
+                            ft.IconButton(icon=ft.Icons.CALENDAR_MONTH_OUTLINED, on_click=lambda _: app_state.current_page.open(end_date_picker), tooltip="Pick End Date", icon_size=20, padding=4),
+                            ft.IconButton(icon=ft.Icons.ACCESS_TIME_OUTLINED, on_click=lambda _: app_state.current_page.open(end_time_picker), tooltip="Pick End Time", icon_size=20, padding=4),
+                        ], spacing=0)
+                    ], vertical_alignment=ft.CrossAxisAlignment.START)
+                    
+                ]),
+                ft.Column([
+                    ft.Text("Duration", color=Colors.TEXT_SECONDARY),
+                    quiz_duration_field
+                ]),
+            ], spacing=Spacing.MD, alignment=ft.MainAxisAlignment.START),
+
             ft.Container(height=Spacing.LG), quiz_password_field, ft.Container(height=Spacing.LG),
             ft.Row([shuffle_questions_switch, shuffle_answers_switch], spacing=Spacing.XL),
             ft.Container(height=Spacing.LG), show_answers_switch, ft.Container(height=Spacing.MD),
