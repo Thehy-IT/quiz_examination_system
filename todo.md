@@ -1,80 +1,85 @@
-# Modern Quiz App - Development Roadmap
+# 🗺️ Lộ trình Phát triển - Quiz Examination System
 
-Tài liệu này theo dõi lộ trình phát triển của ứng dụng, phản ánh cấu trúc hiện tại và các bước tiếp theo một cách chi tiết.
-
+Tài liệu này ghi lại các giai đoạn phát triển của ứng dụng, từ nền tảng ban đầu đến các tính năng hoàn chỉnh và các bước cải tiến trong tương lai.
+ 
 ## ✅ Phase 1: UI Foundation & Design System (Đã hoàn thành)
-- [x] 1. Thiết lập dự án Flet và cấu trúc thư mục (`components`, `views`, `utils`, `data`).
-- [x] 2. Định nghĩa hệ thống design (`constants.py`): Colors, Spacing, Typography.
-- [x] 3. Tạo các hàm trợ giúp UI cơ bản (`ui_helpers.py`): `create_card`, `create_badge`, etc.
-- [x] 4. Thiết lập quản lý trạng thái toàn cục (`app_state.py`).
-- [x] 5. Tạo dữ liệu mẫu (`mock_data.py`) cho users, quizzes, questions, classes.
+*Mục tiêu: Xây dựng bộ khung vững chắc cho toàn bộ ứng dụng.*
+- [x] **Nền tảng dự án**: Thiết lập cấu trúc thư mục module hóa (`components`, `views`, `utils`, `data`).
+- [x] **Hệ thống Design**: Định nghĩa các hằng số về giao diện (màu sắc, khoảng cách, typography) trong `constants.py`.
+- [x] **Quản lý Trạng thái**: Thiết lập `app_state.py` để quản lý trạng thái toàn cục.
+- [x] **Dữ liệu Mẫu**: Tạo `mock_data.py` để mô phỏng hoạt động của ứng dụng trước khi có database.
 
 ## ✅ Phase 2: Core Components & Navigation (Đã hoàn thành)
-- [x] 6. Xây dựng thư viện component: `create_primary_button`, `create_text_input`, etc.
-- [x] 7. Xây dựng hệ thống navigation (`navigation.py`): `create_sidebar`, `create_app_bar`.
-- [x] 8. Xử lý responsive layout (chuyển đổi giữa sidebar và drawer).
-- [x] 9. Hoàn thiện trang đăng nhập (`login_view.py`).
-
+*Mục tiêu: Xây dựng các khối giao diện cơ bản và luồng điều hướng chính.*
+- [x] **Thư viện Component**: Xây dựng các thành phần giao diện tái sử dụng (`create_primary_button`, `create_card`, etc.).
+- [x] **Hệ thống Điều hướng**: Hoàn thiện `create_sidebar` và `create_app_bar` với logic phân quyền.
+- [x] **Giao diện Responsive**: Xử lý việc tự động chuyển đổi giữa sidebar và drawer khi thay đổi kích thước cửa sổ.
+- [x] **Trang Đăng nhập**: Hoàn thiện giao diện và logic cơ bản cho trang đăng nhập.
+ 
 ## ✅ Phase 3: Instructor/Admin Views (Đã hoàn thành)
-- [x] 10. **Dashboard**: Xây dựng trang Dashboard cho Giảng viên/Admin với các số liệu thống kê (`show_instructor_dashboard`).
-- [x] 11. **Class Management (Admin)**: Xây dựng trang Quản lý Lớp học (`show_class_management`) cho Admin (tạo, xóa, xem danh sách).
-- [x] 12. **User Management (Admin)**: Xây dựng trang Quản lý Người dùng (`show_user_management`) cho Admin (tạo, sửa, xóa, lọc).
-- [x] 13. **Quiz Management**: Xây dựng trang Quản lý Bài thi (`show_quiz_management`) với các chức năng lọc, tìm kiếm và kích hoạt/vô hiệu hóa.
-- [x] 14. **Quiz Creation Form**: Hoàn thiện form tạo/sửa bài thi với các tùy chọn chi tiết (thời gian, mật khẩu, xáo trộn câu hỏi/đáp án, gán cho lớp học).
-- [x] 15. **Question Management**: Xây dựng trang Quản lý Câu hỏi chi tiết cho từng bài thi (`show_question_management`).
-- [x] 16. **Multiple Question Types**: Hỗ trợ nhiều loại câu hỏi (trắc nghiệm, đúng/sai, điền vào chỗ trống, chọn nhiều đáp án, tự luận ngắn).
-- [x] 17. **Quiz Preview**: Xây dựng trang Xem trước Bài thi (`show_quiz_preview`) cho phép giảng viên trải nghiệm bài thi như sinh viên.
-- [x] 18. **Results & Analytics**: Xây dựng trang Xem Kết quả (`show_instructor_results_page`) với biểu đồ điểm, thống kê và bảng kết quả chi tiết.
-- [x] 19. **Settings**: Xây dựng trang Cài đặt (`show_settings_page`) để xem thông tin và đổi mật khẩu.
+*Mục tiêu: Hoàn thiện tất cả các tính năng dành cho vai trò Giảng viên và Quản trị viên.*
+- [x] **Dashboard**: Hiển thị các số liệu thống kê tổng quan.
+- [x] **Quản lý Bài thi (Quiz Management)**: Giao diện CRUD hoàn chỉnh cho bài thi, bao gồm các bộ lọc, tìm kiếm, form tạo/sửa chi tiết (thời gian, mật khẩu, xáo trộn, v.v.).
+- [x] **Quản lý Câu hỏi (Question Management)**: Giao diện CRUD cho câu hỏi, hỗ trợ nhiều loại câu hỏi khác nhau.
+- [x] **Tạo từ Ngân hàng câu hỏi**: Cho phép tạo bài thi nhanh bằng cách chọn các câu hỏi có sẵn.
+- [x] **Xem trước Bài thi**: Giảng viên có thể trải nghiệm bài thi dưới góc nhìn của sinh viên.
+- [x] **Xem Kết quả & Phân tích**: Trực quan hóa kết quả thi của sinh viên qua biểu đồ và bảng thống kê.
+- [x] **Quản lý Người dùng (Admin)**: Giao diện CRUD cho tài khoản người dùng, bao gồm phân quyền và gán lớp.
+- [x] **Quản lý Lớp học (Admin)**: Giao diện CRUD cho lớp học.
+- [x] **Cài đặt tài khoản**: Cho phép thay đổi mật khẩu.
 
 ## ✅ Phase 4: Examinee (Student) Views (Đã hoàn thành)
-- [x] 20. Xây dựng trang Dashboard cho Sinh viên, liệt kê các bài thi có sẵn.
-- [x] 21. Xây dựng giao diện làm bài thi (`show_quiz_taking_view`) với điều hướng câu hỏi.
-- [x] 22. Xử lý logic chấm điểm và tính thời gian làm bài.
-- [x] 23. Xây dựng trang hiển thị Kết quả sau khi nộp bài.
-- [x] 24. Xây dựng trang Lịch sử làm bài (`show_attempt_history_view`).
+*Mục tiêu: Hoàn thiện tất cả các tính năng dành cho vai trò Sinh viên.*
+- [x] **Dashboard**: Hiển thị danh sách các bài thi có sẵn cho lớp của sinh viên.
+- [x] **Giao diện Làm bài**: Giao diện làm bài thi tập trung, có đồng hồ đếm ngược, bảng điều hướng câu hỏi, và chức năng đánh dấu câu hỏi.
+- [x] **Xử lý Bài thi**: Hỗ trợ làm bài thi có mật khẩu và tự động lưu câu trả lời.
+- [x] **Xem Kết quả**: Hiển thị điểm số và kết quả ngay sau khi nộp bài.
+- [x] **Xem lại Bài làm**: Cho phép xem lại chi tiết câu trả lời và đáp án đúng (nếu giảng viên cho phép).
+- [x] **Lịch sử Làm bài**: Theo dõi tất cả các lần thi đã tham gia.
+- [x] **Tổng quan Kết quả**: Biểu đồ trực quan hóa tiến độ học tập qua các bài thi.
+- [x] **Thông tin Cá nhân**: Xem thông tin và đổi mật khẩu.
 
 ## ✅ Phase 5: Testing & Documentation (Đã hoàn thành)
-- [x] 25. Tạo file kiểm thử `test_ui.py` để xác minh các component và cấu trúc.
-- [x] 26. Viết tài liệu `README.md` chi tiết, hướng dẫn cài đặt và sử dụng.
-- [x] 27. Cập nhật `todo.md` để phản ánh tiến độ dự án.
+*Mục tiêu: Đảm bảo chất lượng và tài liệu hóa dự án.*
+- [x] **Kiểm thử Giao diện**: Tạo file `test_ui.py` để xác minh các component cơ bản.
+- [x] **Tài liệu hóa**: Hoàn thiện `README.md` và `todo.md` để hướng dẫn sử dụng và theo dõi tiến độ.
+- [x] **Kiểm tra Responsive**: Đảm bảo giao diện hoạt động tốt trên các kích thước màn hình khác nhau.
 
 ---
  
 ## 🚀 Phase 6: Backend Integration - Database Foundation (Các bước tiếp theo)
-- [ ] 28. **Dependencies**: Thêm `SQLAlchemy` và `passlib` (để mã hóa mật khẩu) vào `requirements.txt`.
-- [ ] 29. **Database Models**: Tạo thư mục `database` và file `models.py` để định nghĩa các bảng: `User`, `Class`, `Quiz`, `Question`, `Option`, `Attempt` sử dụng SQLAlchemy ORM.
-- [ ] 30. **Database Engine**: Tạo file `database/engine.py` chứa hàm khởi tạo engine, session và Base cho models.
-- [ ] 31. **Initialization Script**: Viết hàm `init_db()` trong `database/engine.py` để tạo tất cả các bảng và chèn dữ liệu người dùng mặc định (admin, instructor, student) với mật khẩu đã được mã hóa.
-- [ ] 32. **App Integration**: Gọi `init_db()` một lần khi ứng dụng khởi động trong `main.py`.
+*Mục tiêu: Chuyển đổi từ dữ liệu mẫu sang cơ sở dữ liệu thực tế.*
+- [ ] **Dependencies**: Thêm `SQLAlchemy` và `passlib` vào `requirements.txt`.
+- [ ] **Database Models**: Tạo file `database/models.py` để định nghĩa các bảng (`User`, `Class`, `Quiz`, `Question`, `Attempt`, v.v.) bằng SQLAlchemy ORM.
+- [ ] **Database Engine**: Tạo file `database/engine.py` để quản lý việc kết nối và khởi tạo session.
+- [ ] **Initialization Script**: Viết hàm `init_db()` để tự động tạo các bảng và dữ liệu ban đầu.
 
 ## 🚀 Phase 7: Backend Integration - Authentication (Các bước tiếp theo)
-- [ ] 33. **Auth Service**: Tạo file `services/auth_service.py` chứa các hàm mã hóa và xác thực mật khẩu (sử dụng `passlib`).
-- [ ] 34. **Login Logic**: Cập nhật `login_view.py` để gọi hàm xác thực từ `auth_service.py` và truy vấn `User` từ database thay vì `mock_data`.
-- [ ] 35. **Password Change**: Cập nhật trang Cài đặt (`show_settings_page`) để sử dụng `auth_service.py` và cập nhật mật khẩu đã mã hóa trong database.
+*Mục tiêu: Xây dựng hệ thống xác thực người dùng an toàn với database.*
+- [ ] **Auth Service**: Tạo `services/auth_service.py` để xử lý việc mã hóa và xác thực mật khẩu.
+- [ ] **Cập nhật Logic Đăng nhập**: Thay thế việc kiểm tra `mock_data` bằng cách gọi `auth_service` và truy vấn database.
+- [ ] **Cập nhật Logic Đổi mật khẩu**: Tích hợp `auth_service` vào chức năng đổi mật khẩu.
 
 ## 🚀 Phase 8: Backend Integration - CRUD Operations (Các bước tiếp theo)
-- [ ] 36. **Service Layer**: Tạo thư mục `services` và các file service cho từng module (ví dụ: `user_service.py`, `quiz_service.py`, `class_service.py`). Các service này sẽ chứa logic nghiệp vụ và tương tác với database.
-- [ ] 37. **User Management**: Chuyển đổi `show_user_management` từ `mock_data` sang sử dụng các hàm CRUD trong `user_service.py`.
-- [ ] 38. **Class Management**: Chuyển đổi `show_class_management` từ `mock_data` sang sử dụng các hàm CRUD trong `class_service.py`.
-- [ ] 39. **Quiz & Question Management**: Chuyển đổi các trang quản lý bài thi và câu hỏi sang sử dụng `quiz_service.py`.
-- [ ] 40. **Quiz Taking**: Khi sinh viên nộp bài, lưu lại kết quả (điểm, thời gian, câu trả lời) vào bảng `Attempt` và các bảng liên quan trong database.
-- [ ] 41. **Results & History Views**: Đọc dữ liệu kết quả và lịch sử làm bài từ database thay vì `mock_data` cho cả giảng viên và sinh viên.
-- [ ] 42. **Cleanup**: Xóa file `mock_data.py` sau khi tất cả các view đã được chuyển đổi hoàn toàn sang dùng database.
+*Mục tiêu: Chuyển đổi toàn bộ các chức năng đọc/ghi dữ liệu sang tương tác với database.*
+- [ ] **Service Layer**: Xây dựng các service (`user_service`, `quiz_service`, v.v.) để chứa logic nghiệp vụ và tương tác với database.
+- [ ] **Chuyển đổi các View**: Cập nhật tất cả các view (Quản lý người dùng, lớp, bài thi, làm bài, xem kết quả) để gọi các hàm từ service layer thay vì đọc từ `mock_data`.
+- [ ] **Lưu kết quả thi**: Đảm bảo kết quả mỗi lần làm bài được lưu vào bảng `Attempt` trong database.
+- [ ] **Dọn dẹp**: Xóa file `mock_data.py` sau khi hoàn tất chuyển đổi.
 
 ## 🚀 Phase 9: Advanced Features & Refinements (Tương lai)
-- [ ] 43. **Real-time Updates**: Tích hợp `page.pubsub` để cập nhật giao diện real-time (ví dụ: giảng viên thấy kết quả ngay khi sinh viên nộp bài).
-- [ ] 44. **File I/O**: Thêm chức năng import/export câu hỏi từ file Excel/CSV cho một bài thi (sử dụng `pandas` hoặc `openpyxl`).
-- [ ] 45. **Advanced Quiz Settings**: Thêm các cài đặt nâng cao cho bài thi (giới hạn số lần làm bài, cho phép xem lại đáp án chi tiết sau khi thi).
-- [ ] 46. **In-App Notifications**: Xây dựng hệ thống thông báo trong ứng dụng (ví dụ: khi có bài thi mới).
-- [ ] 47. **Internationalization (i18n)**: Tách các chuỗi văn bản ra file riêng để hỗ trợ đa ngôn ngữ (Anh/Việt).
-- [ ] 48. **Unit & Integration Testing**: Viết test case chi tiết cho các `service` và logic nghiệp vụ bằng `pytest`.
-- [ ] 49. **Deployment**: Đóng gói ứng dụng thành file thực thi (.exe, .app) để có thể chạy trên các máy khác mà không cần cài đặt Python (sử dụng `flet pack`).
-- [ ] 50. **UI/UX Polish**: Tinh chỉnh lại giao diện, thêm hiệu ứng chuyển động, và cải thiện trải nghiệm người dùng dựa trên phản hồi.
+*Mục tiêu: Nâng cao và hoàn thiện sản phẩm.*
+- [ ] **Cập nhật Real-time**: Tích hợp `page.pubsub` để cập nhật giao diện tức thì.
+- [ ] **Import/Export Dữ liệu**: Thêm chức năng nhập/xuất câu hỏi từ file Excel/CSV.
+- [ ] **Cài đặt Nâng cao**: Giới hạn số lần làm bài, thông báo trong ứng dụng, v.v.
+- [ ] **Đa ngôn ngữ (i18n)**: Hỗ trợ giao diện tiếng Anh và tiếng Việt.
+- [ ] **Kiểm thử Nâng cao**: Viết unit test và integration test cho các service.
+- [ ] **Đóng gói & Phân phối**: Đóng gói ứng dụng thành file thực thi (.exe, .app) bằng `flet pack`.
+- [ ] **Tinh chỉnh UI/UX**: Cải thiện giao diện và trải nghiệm người dùng.
 
 ## Progress Tracking
-- **Total Tasks**: 50
-- **Completed**: 27
+- **Total Tasks**: 29 (Grouped)
+- **Completed**: 17
 - **In Progress**: 0
-- **Remaining**: 23
+- **Remaining**: 12
 - **Current Phase**: Phase 6 - Backend Integration - Database Foundation
