@@ -7,6 +7,7 @@ import random
 # Import các module cần thiết
 from .. import app_state
 from ..data import mock_data
+from ..data import database # them data base
 from ..utils.constants import Colors, Spacing, Typography, BorderRadius
 
 # Import các hàm trợ giúp và component
@@ -579,13 +580,17 @@ def show_quiz_management():
             create_app_header(),
             ft.Container(
                 content=ft.Column(scroll=ft.ScrollMode.AUTO, controls=[
-                    ft.Row([
+                     ft.Row([
                         ft.Column([
                             create_page_title("Quiz Management"),
                             create_subtitle("Create and manage your quizzes")
                         ], expand=True, spacing=Spacing.XS),
                         search_field, status_filter_dropdown, shuffle_filter_dropdown, class_filter_dropdown,
+
+                        # THAY ĐỔI CÁC NÚT TẠO QUIZ
+                        create_secondary_button("Create from Bank", on_click=lambda e: show_create_quiz_from_bank(), width=160),
                         create_primary_button("Create New Quiz", on_click=show_create_form, width=150)
+                        
                     ]),
                     ft.Container(height=Spacing.XXL), quiz_form_container, ft.Container(height=Spacing.XL),
                     create_section_title("Your Quizzes"), ft.Container(height=Spacing.LG),
@@ -619,7 +624,166 @@ def show_quiz_management():
         app_state.current_page.appbar.visible = True
     app_state.current_page.update()
 
-# --- Thêm hàm sau vào cuối file instructor_admin_views.py ---
+def show_create_quiz_from_bank():
+    """Hiển thị giao diện tạo quiz bằng cách chọn câu hỏi từ ngân hàng."""
+    app_state.current_page.clean()
+    sidebar = create_sidebar(app_state.current_user['role'], "quizzes")
+
+    # State cho giao diện này
+    selected_questions = {}  # Dùng dictionary để tránh trùng lặp: {question_id: question_data}
+
+    # --- Các controls cho form thông tin quiz ---
+    quiz_title_field = create_text_input("Quiz Title", width=400)
+    quiz_description_field = create_text_input("Description", width=400, multiline=True, min_lines=2)
+    # (Bạn có thể thêm lại các trường start_time, end_time, duration... tương tự như form cũ ở đây)
+    instructor_classes = [c for c in mock_data.mock_classes if c['instructor_id'] == app_state.current_user['id']]
+    class_dropdown = ft.Dropdown(
+        label="Select Class for this Quiz", width=400,
+        options=[ft.dropdown.Option(key=cls['id'], text=cls['name']) for cls in instructor_classes]
+    )
+    error_text = ft.Text("", color=Colors.ERROR)
+
+    # --- Các controls cho phần ngân hàng câu hỏi ---
+    bank_search_field = create_text_input("Search questions...", width=300, icon=ft.Icons.SEARCH)
+    difficulty_filter = ft.Dropdown(label="Difficulty", width=150, value="all", options=[
+        ft.dropdown.Option("all", "All Difficulties"),
+        ft.dropdown.Option("Easy", "Easy"),
+        ft.dropdown.Option("Medium", "Medium"),
+        ft.dropdown.Option("Hard", "Hard"),
+    ])
+    question_bank_list_view = ft.ListView(expand=True, spacing=Spacing.MD)
+    selected_questions_list_view = ft.ListView(expand=True, spacing=Spacing.MD)
+    selected_counter_text = create_section_title(f"Selected Questions (0)")
+
+    def update_question_views():
+        """Cập nhật cả hai danh sách câu hỏi (ngân hàng và đã chọn)."""
+        # Cập nhật danh sách câu hỏi từ ngân hàng
+        all_db_questions = database.get_all_questions_from_db(
+            search_term=bank_search_field.value or "",
+            difficulty_filter=difficulty_filter.value or "all"
+        )
+        question_bank_list_view.controls.clear()
+        for q in all_db_questions:
+            # Chỉ hiển thị câu hỏi chưa được chọn
+            if q['id'] not in selected_questions:
+                question_bank_list_view.controls.append(
+                    create_card(ft.Row([
+                        ft.Column([
+                            ft.Text(q['question_text'], weight=ft.FontWeight.W_600),
+                            ft.Text(f"Type: {q['question_type']} | Difficulty: {q['difficulty']}", color=Colors.TEXT_MUTED, size=Typography.SIZE_SM)
+                        ], expand=True),
+                        create_primary_button("Add", on_click=lambda e, q_id=q['id'], q_data=q: add_question(q_id, q_data), width=80)
+                    ]), padding=Spacing.MD)
+                )
+
+        # Cập nhật danh sách câu hỏi đã chọn
+        selected_questions_list_view.controls.clear()
+        for q_id, q_data in selected_questions.items():
+            selected_questions_list_view.controls.append(
+                create_card(ft.Row([
+                    ft.Column([
+                        ft.Text(q_data['question_text'], weight=ft.FontWeight.W_600),
+                        ft.Text(f"Type: {q_data['question_type']} | Difficulty: {q_data['difficulty']}", color=Colors.TEXT_MUTED, size=Typography.SIZE_SM)
+                    ], expand=True),
+                    create_secondary_button("Remove", on_click=lambda e, q_id_to_remove=q_id: remove_question(q_id_to_remove), width=80)
+                ]), padding=Spacing.MD)
+            )
+        selected_counter_text.value = f"Selected Questions ({len(selected_questions)})"
+        app_state.current_page.update()
+
+    def add_question(question_id, question_data):
+        selected_questions[question_id] = question_data
+        update_question_views()
+
+    def remove_question(question_id):
+        if question_id in selected_questions:
+            del selected_questions[question_id]
+        update_question_views()
+
+    def handle_final_create_quiz(e):
+        if not quiz_title_field.value or not class_dropdown.value or not selected_questions:
+            error_text.value = "Quiz Title, Class, and at least one question are required."
+            app_state.current_page.update()
+            return
+        
+        quiz_details = {
+            'title': quiz_title_field.value,
+            'description': quiz_description_field.value,
+            'class_id': int(class_dropdown.value),
+            'created_by_id': app_state.current_user['id'],
+            # Lấy các giá trị khác từ các trường bạn đã thêm
+            'start_time': None, 'end_time': None, 'duration_minutes': 60, # Placeholder
+            'password': None, 'shuffle_questions': False, 'shuffle_answers': True,
+            'show_answers_after_quiz': False
+        }
+        question_ids = list(selected_questions.keys())
+
+        database.create_quiz_with_questions(quiz_details, question_ids)
+        
+        # Quay về trang quản lý quiz
+        show_quiz_management()
+
+    bank_search_field.on_change = lambda e: update_question_views()
+    difficulty_filter.on_change = lambda e: update_question_views()
+
+    # Layout chính
+    main_content = ft.Container(
+        content=ft.Column(spacing=0, controls=[
+            create_app_header(),
+            ft.Container(
+                content=ft.Column([
+                    ft.Row([
+                        create_secondary_button("← Back to Quizzes", on_click=lambda e: show_quiz_management(), width=180),
+                        ft.Container(expand=True),
+                    ]),
+                    ft.Container(height=Spacing.LG),
+                    create_page_title("Create Quiz from Question Bank"),
+                    create_subtitle("Select questions from the bank to build your new quiz."),
+                    ft.Container(height=Spacing.XL),
+                    ft.Row([
+                        # Cột bên trái: Ngân hàng câu hỏi
+                        ft.Column([
+                            create_section_title("Question Bank"),
+                            ft.Row([bank_search_field, difficulty_filter]),
+                            ft.Divider(),
+                            question_bank_list_view,
+                        ], expand=3),
+                        ft.VerticalDivider(width=Spacing.XXL),
+                        # Cột bên phải: Quiz đang tạo
+                        ft.Column([
+                            selected_counter_text,
+                            ft.Divider(),
+                            selected_questions_list_view,
+                            ft.Divider(),
+                            create_section_title("Quiz Details"),
+                            quiz_title_field,
+                            quiz_description_field,
+                            class_dropdown,
+                            error_text,
+                            ft.Container(height=Spacing.LG),
+                            create_primary_button("Create Quiz", on_click=handle_final_create_quiz, icon=ft.Icons.ADD_CIRCLE)
+                        ], expand=2),
+                    ], expand=True)
+                ]),
+                padding=Spacing.XXXXL, expand=True, bgcolor=Colors.GRAY_50
+            )
+        ]),
+        expand=True
+    )
+
+    update_question_views() # Tải dữ liệu lần đầu
+
+    app_state.sidebar_drawer = ft.NavigationDrawer(controls=[sidebar])
+    app_state.current_page.drawer = app_state.sidebar_drawer
+    app_state.current_page.appbar = create_app_bar()
+    app_state.current_view_handler = show_create_quiz_from_bank
+
+    if app_state.current_page.width >= 1000:
+        app_state.current_page.add(ft.Row([sidebar, main_content], expand=True))
+    else:
+        app_state.current_page.add(main_content)
+    app_state.current_page.update()
+
 
 def show_question_management(quiz):
     """Hiển thị trang quản lý câu hỏi chi tiết với nhiều loại câu hỏi"""
