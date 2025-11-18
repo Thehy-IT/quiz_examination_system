@@ -25,6 +25,7 @@ def show_instructor_dashboard():
     
     sidebar = create_sidebar(app_state.current_user['role'], "dashboard")
     
+    # Hàm tạo mục lịch sử hoạt động
     def create_activity_item(log):
         icon_map = {
             'created a new quiz': (ft.Icons.QUIZ, Colors.PRIMARY),
@@ -60,6 +61,7 @@ def show_instructor_dashboard():
         )
 
     stats_cards_list = []
+    # Tạo các thẻ thống kê dựa trên vai trò người dùng
     if app_state.current_user['role'] == 'admin':
         stats_cards_list.extend([
             create_card(
@@ -134,7 +136,7 @@ def show_instructor_dashboard():
         ])
     
     stats_cards = ft.Row(stats_cards_list, spacing=Spacing.XL)
-    
+    # Tạo nội dung chính của trang tổng quan
     main_content = ft.Container(
         content=ft.Column(spacing=0, controls=[
             create_app_header(),
@@ -227,11 +229,13 @@ def show_instructor_dashboard():
         expand=True
     )
     
+    # Cấu hình trang
     app_state.sidebar_drawer = ft.NavigationDrawer(controls=[sidebar])
     app_state.current_page.drawer = app_state.sidebar_drawer
     app_state.current_page.appbar = create_app_bar()
     app_state.current_view_handler = show_instructor_dashboard
-
+    
+    # Responsive layout
     if app_state.current_page.width >= 1000:
         app_state.current_page.add(ft.Row([sidebar, main_content], expand=True))
         app_state.current_page.appbar.visible = False
@@ -690,7 +694,8 @@ def show_create_quiz_from_bank():
             )
         selected_counter_text.value = f"Selected Questions ({len(selected_questions)})"
         app_state.current_page.update()
-
+    
+    # Hàm thêm/xóa câu hỏi khỏi danh sách đã chọn
     def add_question(question_id, question_data):
         selected_questions[question_id] = question_data
         update_question_views()
@@ -699,7 +704,8 @@ def show_create_quiz_from_bank():
         if question_id in selected_questions:
             del selected_questions[question_id]
         update_question_views()
-
+    
+    # Hàm xử lý khi nhấn nút tạo quiz cuối cùng
     def handle_final_create_quiz(e):
         if not quiz_title_field.value or not class_dropdown.value or not selected_questions:
             error_text.value = "Quiz Title, Class, and at least one question are required."
@@ -893,6 +899,7 @@ def show_question_management(quiz):
     
     question_type_group.on_change = on_question_type_change
     
+    # Hàm hiển thị/ẩn form tạo câu hỏi
     def show_question_form(e):
         question_form_container.visible = True
         question_text_field.value = ""
@@ -906,6 +913,7 @@ def show_question_management(quiz):
         question_form_container.visible = False
         app_state.current_page.update()
     
+    # Hàm xử lý tạo câu hỏi mới
     def handle_create_question(e):
         question_text = question_text_field.value or ""
         question_type = question_type_group.value
@@ -1002,6 +1010,7 @@ def show_question_management(quiz):
     
     update_dynamic_form("multiple_choice")
     
+    # Container cho form tạo câu hỏi mới
     question_form_container = create_card(
         content=ft.Column([
             create_section_title("Add New Question"), ft.Container(height=Spacing.LG),
@@ -1023,6 +1032,7 @@ def show_question_management(quiz):
     quiz_questions = mock_data.mock_questions.get(quiz['id'], [])
     question_cards = []
     
+    # Tạo card cho từng câu hỏi
     for i, question in enumerate(quiz_questions, 1):
         question_type = question.get('question_type', 'multiple_choice')
         difficulty = question.get('difficulty', 'Medium')
@@ -1068,6 +1078,7 @@ def show_question_management(quiz):
         )
         question_cards.append(question_card)
     
+    # Layout chính
     main_content = ft.Container(
         content=ft.Column(spacing=0, controls=[
             create_app_header(),
@@ -1361,6 +1372,7 @@ def show_settings_page():
     confirm_password_field = create_text_input("Xác nhận mật khẩu mới", password=True, can_reveal=True)
     password_message_text = ft.Text("", size=Typography.SIZE_SM)
 
+    # Hàm xử lý lưu mật khẩu mới
     def handle_save_password(e):
         current_pass = current_password_field.value
         new_pass = new_password_field.value
@@ -1394,11 +1406,13 @@ def show_settings_page():
         ft.Row([ft.Text("Vai trò:", weight=ft.FontWeight.W_600), ft.Text(app_state.current_user['role'].title())]),
     ]
 
+    # Thêm thông tin lớp học nếu là giảng viên
     if app_state.current_user['role'] == 'instructor':
         assigned_classes = [c['name'] for c in mock_data.mock_classes if c.get('instructor_id') == app_state.current_user['id']]
         if assigned_classes:
             info_details.extend([ft.Divider(), ft.Row([ft.Text("Các lớp phụ trách:", weight=ft.FontWeight.W_600), ft.Text(", ".join(assigned_classes))])])
 
+    # Giao diện chính
     main_content = ft.Container(
         content=ft.Column(spacing=0, controls=[
             create_app_header(),
