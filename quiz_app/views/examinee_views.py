@@ -774,12 +774,13 @@ def show_attempt_review(attempt):
     if not show_correct_answers:
         notice_content = ft.Container(
             content=ft.Column([
-                create_card(content=ft.Row([
-                    ft.Icon(ft.Icons.LOCK, color=Colors.ERROR),
-                    ft.Text("Bạn không được phép xem đáp án của bài quiz này.", size=Typography.SIZE_LG, color=Colors.ERROR, weight=ft.FontWeight.W_600),
-                    ft.Container(expand=True),
-                    create_secondary_button("Back to Attempts", on_click=lambda e: show_my_attempts(), width=150)
-                ]), padding=Spacing.XXXXL)
+                create_card(
+                    content=ft.Row([
+                        ft.Icon(ft.Icons.LOCK, color=Colors.ERROR),
+                        ft.Text("You are not allowed to view the answers for this quiz.", size=Typography.SIZE_LG, color=Colors.ERROR, weight=ft.FontWeight.W_600),
+                        ft.Container(expand=True),
+                        create_secondary_button("Back to Attempts", on_click=lambda e: show_my_attempts(), width=150)
+                    ]), padding=Spacing.XXXXL)
             ], alignment=ft.MainAxisAlignment.CENTER),
             padding=Spacing.XXXXL,
             expand=True
@@ -940,9 +941,9 @@ def show_profile_page():
     app_state.current_page.clean()
     sidebar = create_sidebar(app_state.current_user['role'], "profile")
 
-    current_password_field = create_text_input("Mật khẩu hiện tại", password=True, can_reveal=True)
-    new_password_field = create_text_input("Mật khẩu mới", password=True, can_reveal=True)
-    confirm_password_field = create_text_input("Xác nhận mật khẩu mới", password=True, can_reveal=True)
+    current_password_field = create_text_input("Current Password", password=True, can_reveal=True)
+    new_password_field = create_text_input("New Password", password=True, can_reveal=True)
+    confirm_password_field = create_text_input("Confirm New Password", password=True, can_reveal=True)
     password_message_text = ft.Text("", size=Typography.SIZE_SM)
 
     def handle_save_password(e):
@@ -951,20 +952,20 @@ def show_profile_page():
         confirm_pass = confirm_password_field.value
 
         if not all([current_pass, new_pass, confirm_pass]):
-            password_message_text.value = "Vui lòng điền đầy đủ các trường."
+            password_message_text.value = "Please fill in all fields."
             password_message_text.color = Colors.ERROR
             app_state.current_page.update()
             return
 
         if current_pass != app_state.current_user['password']:
-            password_message_text.value = "Mật khẩu hiện tại không đúng."
+            password_message_text.value = "Incorrect current password."
             password_message_text.color = Colors.ERROR
             current_password_field.value = ""
             app_state.current_page.update()
             return
 
         if new_pass != confirm_pass:
-            password_message_text.value = "Mật khẩu mới không khớp."
+            password_message_text.value = "New passwords do not match."
             password_message_text.color = Colors.ERROR
             new_password_field.value = ""
             confirm_password_field.value = ""
@@ -974,7 +975,7 @@ def show_profile_page():
         mock_data.mock_users[app_state.current_user['username']]['password'] = new_pass
         app_state.current_user['password'] = new_pass
 
-        password_message_text.value = "Đổi mật khẩu thành công!"
+        password_message_text.value = "Password changed successfully!"
         password_message_text.color = Colors.SUCCESS
         current_password_field.value = ""
         new_password_field.value = ""
@@ -1002,19 +1003,19 @@ def show_profile_page():
                     ft.Row([
                         create_card(
                             content=ft.Column([
-                                create_section_title("Thông tin tài khoản"),
+                                create_section_title("Account Information"),
                                 ft.Container(height=Spacing.LG),
                                 ft.Row([ft.Text("Username:", weight=ft.FontWeight.W_600), ft.Text(app_state.current_user['username'])]),
                                 ft.Divider(),
-                                ft.Row([ft.Text("Vai trò:", weight=ft.FontWeight.W_600), ft.Text(app_state.current_user['role'].title())]),
+                                ft.Row([ft.Text("Role:", weight=ft.FontWeight.W_600), ft.Text(app_state.current_user['role'].title())]),
                                 ft.Divider(),
-                                ft.Row([ft.Text("Lớp học:", weight=ft.FontWeight.W_600), ft.Text(class_name)]),
+                                ft.Row([ft.Text("Class:", weight=ft.FontWeight.W_600), ft.Text(class_name)]),
                             ]),
                             padding=Spacing.XL
                         ),
                         create_card(
                             content=ft.Column([
-                                create_section_title("Đổi mật khẩu"),
+                                create_section_title("Change Password"),
                                 ft.Container(height=Spacing.LG),
                                 current_password_field,
                                 new_password_field,
@@ -1022,7 +1023,7 @@ def show_profile_page():
                                 ft.Container(height=Spacing.SM),
                                 password_message_text,
                                 ft.Container(height=Spacing.LG),
-                                create_primary_button("Lưu thay đổi", on_click=handle_save_password)
+                                create_primary_button("Save Changes", on_click=handle_save_password)
                             ]),
                             padding=Spacing.XL
                         ),

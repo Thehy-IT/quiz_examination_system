@@ -29,15 +29,16 @@ def show_instructor_dashboard():
     def create_activity_item(log):
         icon_map = {
             'created a new quiz': (ft.Icons.QUIZ, Colors.PRIMARY),
-            'đã tạo một bài thi mới': (ft.Icons.QUIZ, Colors.PRIMARY),
             'completed the quiz': (ft.Icons.CHECK_CIRCLE, Colors.SUCCESS),
-            'đã hoàn thành bài thi': (ft.Icons.CHECK_CIRCLE, Colors.SUCCESS),
             'created a new user': (ft.Icons.PERSON_ADD, Colors.WARNING),
-            'đã tạo người dùng mới': (ft.Icons.PERSON_ADD, Colors.WARNING),
             'created a new class': (ft.Icons.SCHOOL, Colors.PRIMARY_LIGHT),
-            'đã tạo một lớp học mới': (ft.Icons.SCHOOL, Colors.PRIMARY_LIGHT),
         }
-        icon, color = icon_map.get(log['action'], (ft.Icons.INFO, Colors.GRAY_400))
+        # Normalize action key
+        action_key = log['action'].replace('đã tạo một bài thi mới', 'created a new quiz') \
+                                  .replace('đã hoàn thành bài thi', 'completed the quiz') \
+                                  .replace('đã tạo người dùng mới', 'created a new user') \
+                                  .replace('đã tạo một lớp học mới', 'created a new class')
+        icon, color = icon_map.get(action_key, (ft.Icons.INFO, Colors.GRAY_400))
 
         return ft.Container(
             content=ft.Row([
@@ -47,10 +48,10 @@ def show_instructor_dashboard():
                     ft.Row([
                         ft.Text(log['user'], weight=ft.FontWeight.W_600, color=Colors.TEXT_PRIMARY),
                         ft.Text(log['action'], color=Colors.TEXT_SECONDARY),
-                        ft.Text(f"'{log['details']}'", weight=ft.FontWeight.W_600, color=Colors.TEXT_PRIMARY),
+                        ft.Text(f"'{log['details']}'", weight=ft.FontWeight.W_600, color=Colors.TEXT_PRIMARY) if log['details'] else ft.Text(""),
                     ], spacing=Spacing.XS),
                     ft.Text(
-                        f"Thời gian: {log['timestamp']}",
+                        f"Time: {log['timestamp']}",
                         size=Typography.SIZE_XS,
                         color=Colors.TEXT_MUTED
                     )
@@ -66,21 +67,21 @@ def show_instructor_dashboard():
         stats_cards_list.extend([
             create_card(
                 content=ft.Column([
-                    ft.Row([ft.Icon(ft.Icons.SCHOOL, color=Colors.PRIMARY), ft.Text("Tổng số lớp học", color=Colors.TEXT_SECONDARY)]),
+                    ft.Row([ft.Icon(ft.Icons.SCHOOL, color=Colors.PRIMARY), ft.Text("Total Classes", color=Colors.TEXT_SECONDARY)]),
                     ft.Text(str(len(mock_data.mock_classes)), size=Typography.SIZE_3XL, weight=ft.FontWeight.W_700, color=Colors.TEXT_PRIMARY)
                 ], spacing=Spacing.SM),
                 padding=Spacing.XL
             ),
             create_card(
                 content=ft.Column([
-                    ft.Row([ft.Icon(ft.Icons.PEOPLE_OUTLINE, color=Colors.SUCCESS), ft.Text("Tổng số người dùng", color=Colors.TEXT_SECONDARY)]),
+                    ft.Row([ft.Icon(ft.Icons.PEOPLE_OUTLINE, color=Colors.SUCCESS), ft.Text("Total Users", color=Colors.TEXT_SECONDARY)]),
                     ft.Text(str(len(mock_data.mock_users)), size=Typography.SIZE_3XL, weight=ft.FontWeight.W_700, color=Colors.TEXT_PRIMARY)
                 ], spacing=Spacing.SM),
                 padding=Spacing.XL
             ),
             create_card(
                 content=ft.Column([
-                    ft.Row([ft.Icon(ft.Icons.FACE, color=Colors.WARNING), ft.Text("Tổng số sinh viên", color=Colors.TEXT_SECONDARY)]),
+                    ft.Row([ft.Icon(ft.Icons.FACE, color=Colors.WARNING), ft.Text("Total Students", color=Colors.TEXT_SECONDARY)]),
                     ft.Text(str(len([u for u in mock_data.mock_users.values() if u['role'] == 'examinee'])), size=Typography.SIZE_3XL, weight=ft.FontWeight.W_700, color=Colors.TEXT_PRIMARY)
                 ], spacing=Spacing.SM),
                 padding=Spacing.XL
@@ -144,8 +145,8 @@ def show_instructor_dashboard():
                 content=ft.Column(scroll=ft.ScrollMode.AUTO, controls=[
                     ft.Container(
                         content=ft.Column([
-                            create_page_title(f"Chào mừng trở lại, {app_state.current_user['username']}!"),
-                            create_subtitle("Đây là tổng quan về các hoạt động trên hệ thống.") if app_state.current_user['role'] == 'admin' else create_subtitle("Here's what's happening with your quizzes today.")
+                            create_page_title(f"Welcome back, {app_state.current_user['username']}!"),
+                            create_subtitle("Here's an overview of the system's activities.") if app_state.current_user['role'] == 'admin' else create_subtitle("Here's what's happening with your quizzes today.")
                         ]),
                         padding=ft.padding.only(bottom=Spacing.XXL)
                     ),
@@ -153,7 +154,7 @@ def show_instructor_dashboard():
                     ft.Container(height=Spacing.XXXXL),
                     ft.Column([
                         ft.Column([
-                            create_section_title("Lịch sử hoạt động"),
+                            create_section_title("Activity History"),
                             ft.Container(height=Spacing.LG),
                             create_card(
                                 content=ft.Column([create_activity_item(log) for log in mock_data.mock_activity_log]),
@@ -192,7 +193,7 @@ def show_instructor_dashboard():
                                 padding=Spacing.XL
                             ),
                             ft.Container(height=Spacing.XL),
-                            create_section_title("Các lớp được phân công"),
+                            create_section_title("Assigned Classes"),
                             ft.Container(height=Spacing.LG),
                             ft.Column(
                                 [
@@ -212,7 +213,7 @@ def show_instructor_dashboard():
                                 ],
                                 spacing=Spacing.LG
                             ) if any(c for c in mock_data.mock_classes if c['instructor_id'] == app_state.current_user['id']) else ft.Container(
-                                content=ft.Text("Bạn chưa được phân công vào lớp nào.", color=Colors.TEXT_MUTED),
+                                content=ft.Text("You are not assigned to any classes yet.", color=Colors.TEXT_MUTED),
                                 padding=Spacing.XL
                             ),
                             ft.Container(height=Spacing.XL),
@@ -291,21 +292,21 @@ def show_quiz_management():
 
     #Lọc, khởi tạo các tuỳ chọn lọc, tạo các dropdown lọc
     instructor_classes = [c for c in mock_data.mock_classes if c['instructor_id'] == app_state.current_user['id']]
-    class_filter_options = [ft.dropdown.Option(key="all", text="Tất cả các lớp")]
+    class_filter_options = [ft.dropdown.Option(key="all", text="All Classes")]
     class_filter_options.extend([ft.dropdown.Option(key=str(cls['id']), text=cls['name']) for cls in instructor_classes])
     
-    class_filter_dropdown = ft.Dropdown(label="Lọc theo lớp", width=220, value="all", options=class_filter_options)
-    status_filter_dropdown = ft.Dropdown(label="Lọc theo trạng thái", width=180, value="all", options=[
-        ft.dropdown.Option(key="all", text="Tất cả trạng thái"),
+    class_filter_dropdown = ft.Dropdown(label="Filter by Class", width=220, value="all", options=class_filter_options)
+    status_filter_dropdown = ft.Dropdown(label="Filter by Status", width=180, value="all", options=[
+        ft.dropdown.Option(key="all", text="All Statuses"),
         ft.dropdown.Option(key="active", text="Active"),
         ft.dropdown.Option(key="disabled", text="Disabled"),
     ])
-    shuffle_filter_dropdown = ft.Dropdown(label="Lọc theo xáo trộn", width=200, value="all", options=[
-        ft.dropdown.Option(key="all", text="Tất cả (Xáo trộn)"),
-        ft.dropdown.Option(key="questions", text="Chỉ xáo trộn câu hỏi"),
-        ft.dropdown.Option(key="answers", text="Chỉ xáo trộn đáp án"),
-        ft.dropdown.Option(key="both", text="Xáo trộn cả hai"),
-        ft.dropdown.Option(key="none", text="Không xáo trộn"),
+    shuffle_filter_dropdown = ft.Dropdown(label="Filter by Shuffle", width=200, value="all", options=[
+        ft.dropdown.Option(key="all", text="All (Shuffle)"),
+        ft.dropdown.Option(key="questions", text="Shuffle Questions Only"),
+        ft.dropdown.Option(key="answers", text="Shuffle Answers Only"),
+        ft.dropdown.Option(key="both", text="Shuffle Both"),
+        ft.dropdown.Option(key="none", text="No Shuffle"),
     ])
 
     # Tạo một cột để chứa danh sách các bài thi đã được lọc và hiển thị.
@@ -372,7 +373,7 @@ def show_quiz_management():
     # Biểu mẫu tạo bài thi mới
     quiz_title_field = create_text_input("Quiz Title", width=400)
     quiz_description_field = create_text_input("Description", width=400, multiline=True, min_lines=3)
-    quiz_start_time_field = create_text_input("YYYY-MM-DD HH:MM", width=250, icon=ft.Icons.CALENDAR_MONTH)
+    quiz_start_time_field = create_text_input("Start Time (YYYY-MM-DD HH:MM)", width=250, icon=ft.Icons.CALENDAR_MONTH)
     quiz_end_time_field = create_text_input("YYYY-MM-DD HH:MM", width=250, icon=ft.Icons.CALENDAR_MONTH) # thêm trường end_time: hạn của quiz
     quiz_duration_field = create_text_input("Duration (minutes)", width=140, icon=ft.Icons.TIMER)
     quiz_password_field = create_text_input("Quiz Password (optional)", password=True, width=400, icon=ft.Icons.LOCK, can_reveal=True)
@@ -483,7 +484,7 @@ def show_quiz_management():
             class_dropdown, ft.Container(height=Spacing.LG),
 
             # 2. Bố cục cài đặt thời gian theo chiều dọc
-            ft.Text("Start Time", color=Colors.TEXT_SECONDARY),
+            # ft.Text("Start Time", color=Colors.TEXT_SECONDARY), # The field has a label now
             ft.Row([
                 quiz_start_time_field,
                 ft.IconButton(icon=ft.Icons.CALENDAR_MONTH_OUTLINED, on_click=lambda _: app_state.current_page.open(start_date_picker), tooltip="Pick Start Date"),
@@ -491,7 +492,7 @@ def show_quiz_management():
             ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
             ft.Container(height=Spacing.SM),
 
-            ft.Text("End Time", color=Colors.TEXT_SECONDARY),
+            ft.Text("End Time (Optional)", color=Colors.TEXT_SECONDARY),
             ft.Row([
                 quiz_end_time_field,
                 ft.IconButton(icon=ft.Icons.CALENDAR_MONTH_OUTLINED, on_click=lambda _: app_state.current_page.open(end_date_picker), tooltip="Pick End Date"),
@@ -520,9 +521,9 @@ def show_quiz_management():
     # Hàm tạo giao diện Card cho một bài thi cụ thể
     def create_quiz_card(quiz):
         class_name = next((c['name'] for c in mock_data.mock_classes if c['id'] == quiz.get('class_id')), "Unassigned")
-        shuffle_info = []
-        if quiz.get('shuffle_questions'): shuffle_info.append("Câu hỏi")
-        if quiz.get('shuffle_answers'): shuffle_info.append("Đáp án")
+        shuffle_info_en = []
+        if quiz.get('shuffle_questions'): shuffle_info_en.append("Questions")
+        if quiz.get('shuffle_answers'): shuffle_info_en.append("Answers")
 
         def toggle_active_state(e):
             for q in mock_data.mock_quizzes:
@@ -539,7 +540,7 @@ def show_quiz_management():
                         ft.Text(quiz['description'] or "No description", size=Typography.SIZE_SM, color=Colors.TEXT_SECONDARY)
                     ], expand=True, spacing=Spacing.XS),
                     ft.Column([
-                        create_badge(f"Xáo trộn: {', '.join(shuffle_info) if shuffle_info else 'Không'}", color=Colors.PRIMARY_LIGHT),
+                        create_badge(f"Shuffle: {', '.join(shuffle_info_en) if shuffle_info_en else 'None'}", color=Colors.PRIMARY_LIGHT),
                         ft.Row([
                             create_badge("Active" if quiz.get('is_active', False) else "Disabled", color=Colors.SUCCESS if quiz.get('is_active', False) else Colors.GRAY_400),
                             create_badge(class_name, color=Colors.WARNING),
@@ -1240,8 +1241,8 @@ def show_instructor_results_page():
             results_container.controls.append(
                 create_card(ft.Column([
                     ft.Icon(ft.Icons.FILTER_LIST, size=48, color=Colors.GRAY_400),
-                    ft.Text("Select a Class and Quiz", size=Typography.SIZE_LG, color=Colors.TEXT_MUTED),
-                    ft.Text("Choose from the dropdowns above to view results.", color=Colors.TEXT_MUTED),
+                    ft.Text("Select a Class and a Quiz", size=Typography.SIZE_LG, color=Colors.TEXT_MUTED),
+                    ft.Text("Choose from the dropdowns above to view the results.", color=Colors.TEXT_MUTED),
                 ], horizontal_alignment=ft.CrossAxisAlignment.CENTER), padding=Spacing.XXXXL)
             )
             app_state.current_page.update()
@@ -1299,20 +1300,20 @@ def show_instructor_results_page():
 
         results_container.controls.extend([
             ft.Row([
-                create_card(ft.Column([ft.Row([ft.Icon(ft.Icons.STAR_HALF, color=Colors.PRIMARY), ft.Text("Điểm trung bình")]), ft.Text(f"{avg_score_10:.2f}", size=Typography.SIZE_3XL, weight=ft.FontWeight.W_700)])),
-                create_card(ft.Column([ft.Row([ft.Icon(ft.Icons.WORKSPACE_PREMIUM, color=Colors.WARNING), ft.Text("Điểm cao nhất")]), ft.Text(f"{highest_score_10:.2f}", size=Typography.SIZE_3XL, weight=ft.FontWeight.W_700)])),
-                create_card(ft.Column([ft.Row([ft.Icon(ft.Icons.PIE_CHART, color=Colors.SUCCESS), ft.Text("Tỷ lệ hoàn thành")]), ft.Text(f"{completion_rate:.1f}%", size=Typography.SIZE_3XL, weight=ft.FontWeight.W_700)])),
+                create_card(ft.Column([ft.Row([ft.Icon(ft.Icons.STAR_HALF, color=Colors.PRIMARY), ft.Text("Average Score")]), ft.Text(f"{avg_score_10:.2f}", size=Typography.SIZE_3XL, weight=ft.FontWeight.W_700)])),
+                create_card(ft.Column([ft.Row([ft.Icon(ft.Icons.WORKSPACE_PREMIUM, color=Colors.WARNING), ft.Text("Highest Score")]), ft.Text(f"{highest_score_10:.2f}", size=Typography.SIZE_3XL, weight=ft.FontWeight.W_700)])),
+                create_card(ft.Column([ft.Row([ft.Icon(ft.Icons.PIE_CHART, color=Colors.SUCCESS), ft.Text("Completion Rate")]), ft.Text(f"{completion_rate:.1f}%", size=Typography.SIZE_3XL, weight=ft.FontWeight.W_700)])),
             ], alignment=ft.MainAxisAlignment.SPACE_AROUND),
             ft.Container(height=Spacing.XXL),
-            create_card(ft.Column([create_section_title("Biểu đồ điểm sinh viên (Thang 10)"), ft.Container(chart, height=300, padding=Spacing.LG)]), padding=Spacing.XL),
+            create_card(ft.Column([create_section_title("Student Score Distribution (Scale of 10)"), ft.Container(chart, height=300, padding=Spacing.LG)]), padding=Spacing.XL),
             ft.Container(height=Spacing.XXL),
-            create_card(ft.Column([create_section_title("Kết quả chi tiết"), results_table]), padding=Spacing.XL),
+            create_card(ft.Column([create_section_title("Detailed Results"), results_table]), padding=Spacing.XL),
         ])
         app_state.current_page.update()
 
     instructor_classes = [c for c in mock_data.mock_classes if c['instructor_id'] == app_state.current_user['id']]
-    class_dd = ft.Dropdown(label="Chọn Lớp học", width=250, options=[ft.dropdown.Option(key=c['id'], text=c['name']) for c in instructor_classes])
-    quiz_dd = ft.Dropdown(label="Chọn Bài thi", width=300, disabled=True)
+    class_dd = ft.Dropdown(label="Select Class", width=250, options=[ft.dropdown.Option(key=c['id'], text=c['name']) for c in instructor_classes])
+    quiz_dd = ft.Dropdown(label="Select Quiz", width=300, disabled=True)
 
     def on_class_change(e):
         selected_class_id = int(e.control.value)
@@ -1373,9 +1374,9 @@ def show_settings_page():
     app_state.current_page.clean()
     sidebar = create_sidebar(app_state.current_user['role'], "settings")
 
-    current_password_field = create_text_input("Mật khẩu hiện tại", password=True, can_reveal=True)
-    new_password_field = create_text_input("Mật khẩu mới", password=True, can_reveal=True)
-    confirm_password_field = create_text_input("Xác nhận mật khẩu mới", password=True, can_reveal=True)
+    current_password_field = create_text_input("Current Password", password=True, can_reveal=True)
+    new_password_field = create_text_input("New Password", password=True, can_reveal=True)
+    confirm_password_field = create_text_input("Confirm New Password", password=True, can_reveal=True)
     password_message_text = ft.Text("", size=Typography.SIZE_SM)
 
     # Hàm xử lý lưu mật khẩu mới
@@ -1385,21 +1386,21 @@ def show_settings_page():
         confirm_pass = confirm_password_field.value
 
         if not all([current_pass, new_pass, confirm_pass]):
-            password_message_text.value = "Vui lòng điền đầy đủ các trường."
+            password_message_text.value = "Please fill in all fields."
             password_message_text.color = Colors.ERROR
         elif current_pass != app_state.current_user['password']:
-            password_message_text.value = "Mật khẩu hiện tại không đúng."
+            password_message_text.value = "Incorrect current password."
             password_message_text.color = Colors.ERROR
             current_password_field.value = ""
         elif new_pass != confirm_pass:
-            password_message_text.value = "Mật khẩu mới không khớp."
+            password_message_text.value = "New passwords do not match."
             password_message_text.color = Colors.ERROR
             new_password_field.value = ""
             confirm_password_field.value = ""
         else:
             mock_data.mock_users[app_state.current_user['username']]['password'] = new_pass
             app_state.current_user['password'] = new_pass
-            password_message_text.value = "Đổi mật khẩu thành công!"
+            password_message_text.value = "Password changed successfully!"
             password_message_text.color = Colors.SUCCESS
             current_password_field.value = ""
             new_password_field.value = ""
@@ -1409,14 +1410,14 @@ def show_settings_page():
     info_details = [
         ft.Row([ft.Text("Username:", weight=ft.FontWeight.W_600), ft.Text(app_state.current_user['username'])]),
         ft.Divider(),
-        ft.Row([ft.Text("Vai trò:", weight=ft.FontWeight.W_600), ft.Text(app_state.current_user['role'].title())]),
+        ft.Row([ft.Text("Role:", weight=ft.FontWeight.W_600), ft.Text(app_state.current_user['role'].title())]),
     ]
 
     # Thêm thông tin lớp học nếu là giảng viên
     if app_state.current_user['role'] == 'instructor':
         assigned_classes = [c['name'] for c in mock_data.mock_classes if c.get('instructor_id') == app_state.current_user['id']]
         if assigned_classes:
-            info_details.extend([ft.Divider(), ft.Row([ft.Text("Các lớp phụ trách:", weight=ft.FontWeight.W_600), ft.Text(", ".join(assigned_classes))])])
+            info_details.extend([ft.Divider(), ft.Row([ft.Text("Assigned Classes:", weight=ft.FontWeight.W_600), ft.Text(", ".join(assigned_classes))])])
 
     # Giao diện chính
     main_content = ft.Container(
@@ -1432,12 +1433,12 @@ def show_settings_page():
                         padding=ft.padding.only(bottom=Spacing.XXL)
                     ),
                     ft.Row([
-                        create_card(content=ft.Column([create_section_title("Thông tin tài khoản"), ft.Container(height=Spacing.LG), *info_details]), padding=Spacing.XL),
+                        create_card(content=ft.Column([create_section_title("Account Information"), ft.Container(height=Spacing.LG), *info_details]), padding=Spacing.XL),
                         create_card(content=ft.Column([
-                            create_section_title("Đổi mật khẩu"), ft.Container(height=Spacing.LG),
+                            create_section_title("Change Password"), ft.Container(height=Spacing.LG),
                             current_password_field, new_password_field, confirm_password_field,
                             ft.Container(height=Spacing.SM), password_message_text, ft.Container(height=Spacing.LG),
-                            create_primary_button("Lưu thay đổi", on_click=handle_save_password)
+                            create_primary_button("Save Changes", on_click=handle_save_password)
                         ]), padding=Spacing.XL),
                     ], alignment=ft.MainAxisAlignment.START, vertical_alignment=ft.CrossAxisAlignment.START)
                 ]),
@@ -1492,10 +1493,10 @@ def show_class_management():
             show_class_management()
         return on_delete
 
-    class_name_field = create_text_input("Tên lớp học", width=400)
+    class_name_field = create_text_input("Class Name", width=400)
     instructors = [user for user in mock_data.mock_users.values() if user['role'] == 'instructor']
     instructor_dropdown = ft.Dropdown(
-        label="Chọn giảng viên", width=400,
+        label="Select Instructor", width=400,
         options=[ft.dropdown.Option(key=ins['id'], text=ins['username']) for ins in instructors]
     )
     class_error_text = ft.Text("", color=Colors.ERROR, size=Typography.SIZE_SM)
@@ -1517,7 +1518,7 @@ def show_class_management():
         class_name = class_name_field.value or ""
         instructor_id = instructor_dropdown.value
         if not class_name.strip() or not instructor_id:
-            class_error_text.value = "Tên lớp và giảng viên là bắt buộc."
+            class_error_text.value = "Class name and instructor are required."
             app_state.current_page.update()
             return
 
@@ -1530,12 +1531,12 @@ def show_class_management():
 
     class_form_container_content = create_card(
         content=ft.Column([
-            create_section_title("Tạo Lớp học mới"), ft.Container(height=Spacing.LG),
+            create_section_title("Create New Class"), ft.Container(height=Spacing.LG),
             class_name_field, ft.Container(height=Spacing.LG), instructor_dropdown, ft.Container(height=Spacing.MD),
             class_error_text, ft.Container(height=Spacing.XL),
             ft.Row([
-                create_primary_button("Tạo Lớp", on_click=handle_create_class, width=120),
-                create_secondary_button("Hủy", on_click=hide_create_form, width=100)
+                create_primary_button("Create Class", on_click=handle_create_class, width=120),
+                create_secondary_button("Cancel", on_click=hide_create_form, width=100)
             ])
         ]),
         padding=Spacing.XXL
@@ -1550,9 +1551,9 @@ def show_class_management():
                 ft.Icon(ft.Icons.SCHOOL_OUTLINED, color=Colors.PRIMARY, size=32), ft.Container(width=Spacing.LG),
                 ft.Column([
                     ft.Text(cls['name'], size=Typography.SIZE_LG, weight=ft.FontWeight.W_600),
-                    ft.Text(f"Giảng viên: {instructor_name}", color=Colors.TEXT_SECONDARY),
+                    ft.Text(f"Instructor: {instructor_name}", color=Colors.TEXT_SECONDARY),
                 ], expand=True),
-                create_secondary_button("Xóa", width=80, on_click=handle_delete_class(cls['id'])),
+                create_secondary_button("Delete", width=80, on_click=handle_delete_class(cls['id'])),
             ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
             padding=Spacing.LG
         )
@@ -1565,15 +1566,15 @@ def show_class_management():
                 content=ft.Column(scroll=ft.ScrollMode.AUTO, controls=[
                     ft.Row([
                         ft.Column([
-                            create_page_title("Quản lý Lớp học"),
-                            create_subtitle("Tạo và quản lý các lớp học trong hệ thống.")
+                            create_page_title("Class Management"),
+                            create_subtitle("Create and manage classes in the system.")
                         ], expand=True, spacing=Spacing.XS),
                         search_field,
-                        create_primary_button("Tạo Lớp mới", on_click=show_create_form, width=150)
+                        create_primary_button("Create New Class", on_click=show_create_form, width=150)
                     ]),
                     ft.Container(height=Spacing.XXL), class_form_container, ft.Container(height=Spacing.XL),
-                    create_section_title("Danh sách Lớp học"), ft.Container(height=Spacing.LG),
-                    class_list_view if class_list_view.controls else ft.Text("Chưa có lớp học nào.")
+                    create_section_title("Class List"), ft.Container(height=Spacing.LG),
+                    class_list_view if class_list_view.controls else ft.Text("No classes have been created yet.")
                 ]),
                 padding=Spacing.XXXXL, expand=True, bgcolor=Colors.GRAY_50
             )
@@ -1650,7 +1651,7 @@ def show_user_management():
             ]
         )
         edit_class_assignment_dropdown = ft.Dropdown(
-            label="Gán vào lớp học (tùy chọn)", width=400, value=user_to_edit.get('class_id'),
+            label="Assign to Class (optional)", width=400, value=user_to_edit.get('class_id'),
             options=[ft.dropdown.Option(key=cls['id'], text=cls['name']) for cls in mock_data.mock_classes],
             visible=(user_to_edit['role'] == 'examinee')
         )
@@ -1691,11 +1692,11 @@ def show_user_management():
         options=[
             ft.dropdown.Option(key='instructor', text='Instructor'),
             ft.dropdown.Option(key='admin', text='Admin'),
-            ft.dropdown.Option(key='examinee', text='Examinee (Student)'),
+            ft.dropdown.Option(key='examinee', text='Examinee'),
         ]
     )
     class_assignment_dropdown = ft.Dropdown(
-        label="Gán vào lớp học (tùy chọn)", width=400,
+        label="Assign to Class (optional)", width=400,
         options=[ft.dropdown.Option(key=cls['id'], text=cls['name']) for cls in mock_data.mock_classes],
         visible=False
     )
@@ -1771,9 +1772,9 @@ def show_user_management():
             ft.Text(user_data['username'], size=Typography.SIZE_LG, weight=ft.FontWeight.W_600),
             ft.Text(f"Role: {user_data['role'].title()}", color=Colors.TEXT_SECONDARY),
         ]
-        if user_data['role'] == 'examinee' and user_data.get('class_id'):
-            class_name = next((c['name'] for c in mock_data.mock_classes if c['id'] == user_data['class_id']), "Chưa gán lớp")
-            details_column.append(ft.Text(f"Lớp: {class_name}", color=Colors.TEXT_MUTED, size=Typography.SIZE_SM))
+        if user_data['role'] == 'examinee' and user_data.get('class_id') is not None:
+            class_name = next((c['name'] for c in mock_data.mock_classes if c['id'] == user_data['class_id']), "Unassigned")
+            details_column.append(ft.Text(f"Class: {class_name}", color=Colors.TEXT_MUTED, size=Typography.SIZE_SM))
 
         return create_card(
             content=ft.Row([
@@ -1835,7 +1836,7 @@ def show_user_management():
 
     stats_card = create_card(
         content=ft.Column([
-            create_section_title("Thống kê vai trò"),
+            create_section_title("Role Statistics"),
             ft.Container(height=Spacing.LG),
             ft.Row([ft.Container(pie_chart, expand=1), ft.Container(legend, expand=1)], vertical_alignment=ft.CrossAxisAlignment.CENTER)
         ]), padding=Spacing.XL)
@@ -1862,7 +1863,7 @@ def show_user_management():
                         ft.Column([
                             create_section_title("All Users"),
                             ft.Container(height=Spacing.LG),
-                            user_list_view if user_list_view.controls else ft.Text("No users found.")
+                            user_list_view if user_list_view.controls else create_card(ft.Text("No users found.", text_align=ft.TextAlign.CENTER), padding=Spacing.XL)
                         ], expand=3),
                         ft.Column([stats_card], expand=2)
                     ], vertical_alignment=ft.CrossAxisAlignment.START)

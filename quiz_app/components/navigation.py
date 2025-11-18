@@ -236,7 +236,7 @@ def create_sidebar(user_role, active_page="dashboard"):
                     ft.Icon(ft.Icons.SUPPORT_AGENT, color=Colors.TEXT_SECONDARY, size=24),
                     ft.Column([
                         ft.Text(
-                            "Hỗ trợ kỹ thuật",
+                            "Technical Support",
                             size=Typography.SIZE_SM,
                             weight=ft.FontWeight.W_600,
                             color=Colors.TEXT_PRIMARY
