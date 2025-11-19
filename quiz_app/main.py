@@ -66,4 +66,9 @@ def main_page(page: ft.Page):
 if __name__ == "__main__":
     # Cú pháp chuẩn của Python để chạy ứng dụng khi file này được thực thi trực tiếp.
     # Để chạy app, mở terminal ở thư mục gốc (quiz_examination_system) và gõ: python -m quiz_app.main
-    ft.app(target=main_page)
+    print("Starting Flet app on http://0.0.0.0:8080")
+
+    ft.app(target=main_page,view=ft.WEB_BROWSER,port=8080,host="0.0.0.0")    # [Modified] Cấu hình để chạy trên Docker
+    # host="0.0.0.0": Lắng nghe mọi kết nối (bind to all interfaces)
+    # port=8080: Cổng sẽ mở trong container
+    # view=ft.WEB_BROWSER: Chế độ web
