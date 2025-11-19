@@ -61,7 +61,21 @@ Một ứng dụng thi trắc nghiệm hiện đại được xây dựng bằng
     python -m quiz_app.main
     ```
 
-### 📋 Thông tin Đăng nhập (Tài khoản mẫu)
+### Chạy với Docker (Tùy chọn)
+
+Nếu bạn đã cài đặt Docker, bạn có thể build và chạy ứng dụng trong một container. Từ thư mục gốc của dự án:
+
+1.  **Build Docker image**:
+    ```bash
+    docker build -t quiz-app-group15 .
+    ```
+2.  **Chạy container**:
+    ```bash
+    docker run -p 8080:8080 --name quiz-container quiz-app-group15
+    ```
+    Sau đó, mở trình duyệt và truy cập `http://localhost:8080`.
+
+### Thông tin Đăng nhập (Tài khoản mẫu)
 
 | Vai trò | Username | Password |
 | :--- | :--- | :--- |
