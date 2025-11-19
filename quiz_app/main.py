@@ -9,8 +9,8 @@ import flet as ft
 from . import app_state
 from .data import mock_data
 from .views.login_view import show_login
-from .views.instructor_admin_views import show_instructor_dashboard
-from .views.examinee_views import show_examinee_dashboard
+# from .views.instructor_admin_views import show_instructor_dashboard
+# from .views.examinee_views import show_examinee_dashboard
 
 
 def main_page(page: ft.Page):
@@ -66,9 +66,10 @@ def main_page(page: ft.Page):
 if __name__ == "__main__":
     # Cú pháp chuẩn của Python để chạy ứng dụng khi file này được thực thi trực tiếp.
     # Để chạy app, mở terminal ở thư mục gốc (quiz_examination_system) và gõ: python -m quiz_app.main
-    print("Starting Flet app on http://0.0.0.0:8080")
 
     ft.app(target=main_page,view=ft.WEB_BROWSER,port=8080,host="0.0.0.0")    # [Modified] Cấu hình để chạy trên Docker
+
+    # ft.app(target=main_page)
     # host="0.0.0.0": Lắng nghe mọi kết nối (bind to all interfaces)
     # port=8080: Cổng sẽ mở trong container
     # view=ft.WEB_BROWSER: Chế độ web
