@@ -1,21 +1,39 @@
-# 🎯 Quiz Examination System
+<div align="center">
+  <img src="assets/q2.png" alt="Banner" width="900"/>
+  <h1>🎯 Quiz Examination System 🎯</h1>
+</div>
 
 Một ứng dụng thi trắc nghiệm hiện đại được xây dựng bằng Python và Flet, có giao diện người dùng sạch sẽ, điều hướng chuyên nghiệp và các tính năng quản lý bài kiểm tra toàn diện.
 
-## ✨ Features
+## 📜 Mục lục
+- [✨ Tính năng nổi bật](#-tính-năng-nổi-bật)
+- [📸 Thư viện hình ảnh](#-thư-viện-hình-ảnh)
+- [👥 Vai trò người dùng](#-vai-trò-người-dùng)
+- [🚀 Bắt đầu](#-bắt-đầu)
+- [🎯 Luồng làm việc](#-luồng-làm-việc-hoàn-chỉnh)
+- [🏗️ Kiến trúc kỹ thuật](#️-kiến-trúc-kỹ-thuật)
+- [🔮 Lộ trình phát triển](#-các-cải-tiến-trong-tương-lai)
+
+## ✨ Tính năng nổi bật
 
 ### 🎨 Hệ thống Design Hiện đại
 - **Giao diện Sáng (Light Theme)**: Giao diện chuyên nghiệp, sạch sẽ.
 - **Màu sắc nhất quán**: Bảng màu chính là màu xanh dương cùng với các màu ngữ nghĩa (thành công, lỗi, cảnh báo).
 - **Hệ thống Typography**: Phân cấp văn bản được xây dựng cẩn thận.
 - **Hệ thống Spacing**: Khoảng cách nhất quán dựa trên bội số của 4px.
-- **Thư viện Component**: Các thành phần giao diện có thể tái sử dụng.
 
 ### 🧭 Điều hướng Chuyên nghiệp
 - **Sidebar Điều hướng**: Hệ thống menu gọn gàng, phân quyền theo vai trò người dùng.
 - **Trạng thái Active**: Phản hồi trực quan rõ ràng cho mục đang được chọn.
 - **Hồ sơ Người dùng**: Hiển thị avatar và vai trò.
 - **Bố cục Responsive**: Tự động thích ứng với các kích thước màn hình khác nhau (desktop và mobile).
+
+### 🎯 Tính năng Bài thi
+- **Nhiều loại Câu hỏi**: Hỗ trợ Trắc nghiệm (chọn một), Đúng/Sai, Điền vào chỗ trống, Chọn nhiều đáp án, và Tự luận ngắn.
+- **Cài đặt Nâng cao**: Tùy chọn đặt mật khẩu, xáo trộn câu hỏi, xáo trộn đáp án, và cho phép xem lại bài làm.
+- **Theo dõi Thời gian**: Tự động đếm ngược thời gian làm bài.
+- **Chấm điểm Tự động**: Tính toán kết quả và phần trăm điểm số ngay lập tức.
+- **Điều hướng Câu hỏi**: Dễ dàng chuyển đổi giữa các câu hỏi, đánh dấu câu hỏi cần xem lại.
 
 ### 👥 Vai trò Người dùng
 
@@ -34,12 +52,24 @@ Một ứng dụng thi trắc nghiệm hiện đại được xây dựng bằng
 - **Lịch sử Làm bài**: Theo dõi hiệu suất qua các lần thi.
 - **Xem lại Bài làm**: Xem lại chi tiết câu trả lời của mình (nếu được giảng viên cho phép).
 
-### 🎯 Tính năng Bài thi
-- **Nhiều loại Câu hỏi**: Hỗ trợ Trắc nghiệm (chọn một), Đúng/Sai, Điền vào chỗ trống, Chọn nhiều đáp án, và Tự luận ngắn.
-- **Cài đặt Nâng cao**: Tùy chọn đặt mật khẩu, xáo trộn câu hỏi, xáo trộn đáp án, và cho phép xem lại bài làm.
-- **Theo dõi Thời gian**: Tự động đếm ngược thời gian làm bài.
-- **Chấm điểm Tự động**: Tính toán kết quả và phần trăm điểm số ngay lập tức.
-- **Điều hướng Câu hỏi**: Dễ dàng chuyển đổi giữa các câu hỏi, đánh dấu câu hỏi cần xem lại.
+## 📸 Thư viện hình ảnh
+
+| Màn hình Đăng nhập | Dashboard Sinh viên | Giao diện Làm bài |
+| :---: | :---: | :---: |
+| <img src="assets/q1.png" alt="Login" width="300"/> | <img src="assets/q2.png" alt="Examinee Dashboard" width="300"/> | <img src="assets/q3.png" alt="Quiz Interface" width="300"/> |
+
+| Xem Kết quả | My Attempt | Profile (thay đổi mật khẩu) |
+| :---: | :---: | :---: |
+| <img src="assets/q4.png" alt="Quiz Result" width="300"/> | <img src="assets/q5.png" alt="My Attempt" width="300"/> | <img src="assets/q6.png" alt="Quiz Management" width="300"/> |
+
+| Dashboard instructor | Quản lý bài thi | Dashboard admin  |
+| :---: | :---: | :---: |
+| <img src="assets/q7.png" alt="Question Management" width="300"/> | <img src="assets/q8.png" alt="Quiz Preview" width="300"/> | <img src="assets/q9.png" alt="Result Analysis" width="300"/> |
+
+| Quản lý Lớp học (Admin) | Quản lý người dùng (Admin) |
+| :---: | :---: |
+| <img src="assets/q10.png" alt="User Management" width="300"/> | <img src="assets/q11.png" alt="Class Management" width="300"/> |
+
 
 ## 🚀 Bắt đầu
 
