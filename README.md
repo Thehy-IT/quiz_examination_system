@@ -200,7 +200,7 @@ Dựa trên `todo.md`, các bước tiếp theo bao gồm:
 
 ## 📄 Giấy phép
 
-Mã nguồn mở - bạn có thể tự do sử dụng và chỉnh sửa cho các dự án của mình.
+Mã nguồn mở - bạn có thể tự do sử dụng và chỉnh sửa cho các dự án của mình [MIT License](LICENSE).
 
 ---
 
